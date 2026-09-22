@@ -1,3 +1,25 @@
+# Team 3 - User Stories
+
+**Team Name:** TBD (will choose once we decide on a final project.)
+
+**Weekly Team Meeting:** Wednesdays 3pm MT
+
+
+
+** Team members in meeting: **
+- Leeza Etzenhouser (ScrumMaster for the first week)
+- Matthew Etter (Will be Scrumaster for the second week)
+- Connor Brow
+- Dane Neves
+
+** Zoom Recording: **
+https://drive.google.com/drive/folders/1R0BLFhXumyDqyDFRTM783cnv4xuC5x60?usp=sharing
+
+## Planning Poker
+
+** Effort scaled 1-3 for each story **
+______________________________________________________________________________
+
 User Story Card #3
 ______________________________________________________________________________
 *As a 	:* developer \
@@ -9,8 +31,8 @@ Level	: 2
 
 Acceptance Criteria:
 - Given	: 	a web page in the expected format, at the expected location
-- When 	: 	I run scrpt.sh
-- Then 	: 	the data is downloaded, parsed, and stored in the standard structure
+- When 	: 	I run scrpt.py
+- Then 	: 	the data is downloaded, parsed, and stored in a standard structure
 ____________________________________________________________________________
 
 User Story Card #7
@@ -23,7 +45,7 @@ Effort
 Level	: 2
 
 Acceptance Criteria
-- Given	: 	a business logic fuciont
+- Given	: 	a business logic function
 - When 	: 	I run it
 - Then 	: 	it accesses the database through a separate function
 ____________________________________________________________________________
