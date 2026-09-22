@@ -5,7 +5,7 @@ ______________________________________________________________________________
 *So that :* the information can be stored and analyzed.
 
 Effort
-Level	: <level of effort : 2>
+Level	: 2
 
 Acceptance Criteria:
 - Given	: 	a web page in the expected format, at the expected location
@@ -20,7 +20,7 @@ ______________________________________________________________________________
 *So that :* the codebase is easier to maintain and test.
 
 Effort
-Level	: <level of effort : 2>
+Level	: 2
 
 Acceptance Criteria
 - Given	: 	a business logic fuciont
@@ -35,42 +35,12 @@ ______________________________________________________________________________
 *So that :* tasks can be automated and tested easily.
 
 Effort
-Level	: <level of effort : 1>
+Level	: 1
 
 Acceptance Criteria
 - Given	: 	a script
 - When 	: 	I run in the command line
 - Then 	: 	the script executes without error
-____________________________________________________________________________
-
-User Story Card #13 (Optional)
-______________________________________________________________________________
-*As a 	:* developer \
-*I want	:* to log important application events to the console or a file \
-*So that :* debugging and troubleshooting are easier.
-
-Effort
-Level	: <level of effort : dimensionless units>
-
-Acceptance Criteria
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
-____________________________________________________________________________
-
-User Story Card #14 (Optional)
-______________________________________________________________________________
-*As a 	:* developer \
-*I want	:* to write unit tests in Python for core application logic \
-*So that :* regressions are detected early.
-
-Effort
-Level	: <level of effort : dimensionless units>
-
-Acceptance Criteria
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
 ____________________________________________________________________________
 
 User Story Card #15 (Optional)
@@ -80,7 +50,7 @@ ______________________________________________________________________________
 *So that :* new developers can get started quickly.
 
 Effort
-Level	: <level of effort : 2>
+Level	: 2
 
 Acceptance Criteria
 - Given	: 	a new developer
