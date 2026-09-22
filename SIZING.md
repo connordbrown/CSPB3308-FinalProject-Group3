@@ -7,13 +7,12 @@
 
 
 **Team members in meeting:**
-- Leeza Etzenhouser (ScrumMaster for the first week)
-- Matthew Etter (Will be Scrumaster for the second week)
-- Connor Brow
+- Leeza Etzenhouser (Scrum Master for the first week)
+- Matthew Etter (Will be Scrum Master for the second week)
+- Connor Brown
 - Dane Neves
 
-**Zoom Recording:**
-https://drive.google.com/drive/folders/1R0BLFhXumyDqyDFRTM783cnv4xuC5x60?usp=sharing
+**Zoom Recording:** https://drive.google.com/drive/folders/1R0BLFhXumyDqyDFRTM783cnv4xuC5x60?usp=sharing
 
 ## Planning Poker
 
