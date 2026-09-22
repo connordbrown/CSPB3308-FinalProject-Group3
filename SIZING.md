@@ -5,12 +5,12 @@ ______________________________________________________________________________
 *So that :* the information can be stored and analyzed.
 
 Effort
-Level	: <level of effort : dimensionless units>
+Level	: <level of effort : 2>
 
 Acceptance Criteria:
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
+- Given	: 	a web page in the expected format, at the expected location
+- When 	: 	I run scrpt.sh
+- Then 	: 	the data is downloaded, parsed, and stored in the standard structure
 ____________________________________________________________________________
 
 User Story Card #7
@@ -20,12 +20,12 @@ ______________________________________________________________________________
 *So that :* the codebase is easier to maintain and test.
 
 Effort
-Level	: <level of effort : dimensionless units>
+Level	: <level of effort : 2>
 
 Acceptance Criteria
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
+- Given	: 	a business logic fuciont
+- When 	: 	I run it
+- Then 	: 	it accesses the database through a separate function
 ____________________________________________________________________________
 
 User Story Card #11
@@ -35,12 +35,12 @@ ______________________________________________________________________________
 *So that :* tasks can be automated and tested easily.
 
 Effort
-Level	: <level of effort : dimensionless units>
+Level	: <level of effort : 1>
 
 Acceptance Criteria
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
+- Given	: 	a script
+- When 	: 	I run in the command line
+- Then 	: 	the script executes without error
 ____________________________________________________________________________
 
 User Story Card #13 (Optional)
@@ -80,11 +80,11 @@ ______________________________________________________________________________
 *So that :* new developers can get started quickly.
 
 Effort
-Level	: <level of effort : dimensionless units>
+Level	: <level of effort : 2>
 
 Acceptance Criteria
-- Given	: 	<context of action>
-- When 	: 	<some action is completed>
-- Then 	: 	<set of observable outcomes>
+- Given	: 	a new developer
+- When 	: 	they read the README
+- Then 	: 	They should be able to use the application without assistance 
 ____________________________________________________________________________
 
