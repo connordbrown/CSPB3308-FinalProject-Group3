@@ -6,18 +6,18 @@
 
 
 
-** Team members in meeting: **
+**Team members in meeting:**
 - Leeza Etzenhouser (ScrumMaster for the first week)
 - Matthew Etter (Will be Scrumaster for the second week)
 - Connor Brow
 - Dane Neves
 
-** Zoom Recording: **
+**Zoom Recording:**
 https://drive.google.com/drive/folders/1R0BLFhXumyDqyDFRTM783cnv4xuC5x60?usp=sharing
 
 ## Planning Poker
 
-** Effort scaled 1-3 for each story **
+**Effort scaled 1-3 for each story**
 ______________________________________________________________________________
 
 User Story Card #3
