@@ -26,16 +26,16 @@
 ## Risks to project completion
 
  - Risk: project creep, having too many features.
-      Mitigation: To be strict about feature set, maintain targeted goals.
+   - Mitigation: To be strict about feature set, maintain targeted goals.
       
 - Risk: no prior experience working with these team members
-      Mitigation: Weekly meetings and frequent communication through group message, trello.
+  - Mitigation: Weekly meetings and frequent communication through group message, trello.
 
 - Risk: Problems getting access to job listings APIs
-      Mitigation: Enter job listings manually on MVP. Research scraping, API's and alternatives later
+  - Mitigation: Enter job listings manually on MVP. Research scraping, API's and alternatives later
 
 - Risk: Lack of experience working with tools in project stack may lead to delays.
-      Mitigation: Ensure that we are accounting for the time required to learn new tools when we set goals.
+  - Mitigation: Ensure that we are accounting for the time required to learn new tools when we set goals.
  
  ## Development method:
   Scrum with week-long sprints and weekly check-ins. 
