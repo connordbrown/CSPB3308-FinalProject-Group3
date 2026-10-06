@@ -62,3 +62,18 @@ Acceptance Criteria
 - When 	: 	I change its status
 - Then 	: 	it moves to a different location/bin
 ____________________________________________________________________________
+
+User Story Card #5: Link Contacts to Job Application
+______________________________________________________________________________
+*As a 	:* user \
+*I want	:* save the people I meet during my search and link them to a job \
+*So that :* I can remember who referred or interviewed me
+
+Effort
+Level	: 2
+
+Acceptance Criteria
+- Given	: 	a networking connection/contact
+- When 	: 	I link them to a specific job application
+- Then 	: 	I can add them to a contacts list for that job
+____________________________________________________________________________
