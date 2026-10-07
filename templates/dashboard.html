@@ -1,0 +1,15 @@
+<!doctype html>
+<title> Prospex</title>
+<h1>Prospex Dashboard</h1>
+<p>Where your job search lives</p>
+
+{% if username %}
+
+    <p>Welcome to Prospex {{username}}!</p>
+    <a href="{{ url_for('logout') }}">Log out</a>
+
+{% else %} 
+    <p> Please login in order to use Prospex</p>
+    <a href="{{ url_for('login') }}">Log in</a>
+
+{% endif %} 
