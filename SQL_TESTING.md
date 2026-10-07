@@ -63,7 +63,9 @@ Records the date of every status change, which enables stats like time from appl
 - **New access methods and tests:** e.g., get the history for a job, plus a test that a status change creates exactly one history row.
 
 ### Entity Relationship Diagram
-[Link or embed the dbdiagram.io export]
+![Prospex ER diagram](docs/images/erd.png)
+
+[View and edit on dbdiagram.io](https://dbdiagram.io/d/Prospex-database-schema-SQLite-6ac692d3a5ab28041913c48e)
 
 ---
 
