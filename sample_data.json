@@ -1,0 +1,737 @@
+{
+  "_about": {
+    "description": "Sample data for the Prospex SQLite database (Milestone 5). This '_about' section is documentation only: JSON has no comments, so it is stored under a reserved key that loaders must skip. The four keys after it (users, companies, jobs, contacts) hold the actual table rows.",
+    "how_to_read": {
+      "structure": "Each table key holds a list of row objects. Each object's keys are the column names.",
+      "insert_order": [
+        "users",
+        "companies",
+        "jobs",
+        "contacts"
+      ],
+      "insert_order_reason": "Parents before children, so foreign keys always point to rows that already exist.",
+      "ids": "Every row has an explicit integer 'id'. Foreign keys (user_id, company_id, job_id) refer to these ids.",
+      "nulls": "A JSON null means the nullable column is empty (SQL NULL).",
+      "dates": "date_applied is date-only 'YYYY-MM-DD'. created_at is 'YYYY-MM-DD HH:MM:SS'.",
+      "text_fields": "phone is stored as text so +, dashes, parentheses, and spaces are kept.",
+      "demo_password": "All three demo users log in with 'DemoPass123!'. Each password_hash is a separate Werkzeug hash.",
+      "ownership": "Every row in companies, jobs, and contacts belongs to one user via user_id. The data is kept consistent per user (a job never uses another user's company).",
+      "expanding": "To add rows, append to the table's list with the next unused id. Add parents before children and keep emails lowercase."
+    },
+    "tables": {
+      "users": {
+        "fields": {
+          "id": "INTEGER, primary key",
+          "name": "TEXT, NOT NULL, the user's display name",
+          "email": "TEXT, NOT NULL, UNIQUE, lowercase",
+          "password_hash": "TEXT, NOT NULL, Werkzeug password hash",
+          "created_at": "TIMESTAMP, NOT NULL"
+        }
+      },
+      "companies": {
+        "fields": {
+          "id": "INTEGER, primary key",
+          "user_id": "INTEGER, NOT NULL, FK -> users.id",
+          "name": "TEXT, NOT NULL, unique per user",
+          "city": "TEXT, nullable",
+          "region": "TEXT, nullable, state, province, or country",
+          "website": "TEXT, nullable",
+          "notes": "TEXT, nullable"
+        }
+      },
+      "jobs": {
+        "fields": {
+          "id": "INTEGER, primary key",
+          "user_id": "INTEGER, NOT NULL, FK -> users.id",
+          "company_id": "INTEGER, NOT NULL, FK -> companies.id",
+          "title": "TEXT, NOT NULL",
+          "link": "TEXT, nullable, URL of the job post",
+          "work_type": "TEXT, nullable, one of: remote, hybrid, in person",
+          "notes": "TEXT, nullable",
+          "status": "TEXT, NOT NULL, default 'saved', one of: saved, applied, interviewing, offer, rejected, accepted, declined, withdrawn",
+          "date_applied": "DATE, nullable, set manually by the user",
+          "created_at": "TIMESTAMP, NOT NULL"
+        }
+      },
+      "contacts": {
+        "fields": {
+          "id": "INTEGER, primary key",
+          "user_id": "INTEGER, NOT NULL, FK -> users.id",
+          "company_id": "INTEGER, nullable, FK -> companies.id",
+          "job_id": "INTEGER, nullable, FK -> jobs.id (cleared if the job is deleted)",
+          "name": "TEXT, NOT NULL",
+          "title": "TEXT, nullable, the contact's own job title",
+          "designation": "TEXT, nullable, one of: recruiter, referrer, interviewer, hiring manager, other",
+          "email": "TEXT, nullable, not unique",
+          "phone": "TEXT, nullable",
+          "linkedin_url": "TEXT, nullable",
+          "notes": "TEXT, nullable"
+        }
+      }
+    }
+  },
+  "users": [
+    {
+      "id": 1,
+      "name": "Alex Morgan",
+      "email": "alex.demo@example.com",
+      "password_hash": "scrypt:32768:8:1$eerw5YkckOdL2gNy$13197a054ec9f8d27b8e6a000a271e639d6b5a932f5bb33c06449ed64aedd205cf1e9543eabe8c51db655c0ca3398a5cd75ab0e669754b0424d4a1dd27c7f8f1",
+      "created_at": "2026-09-01 09:00:00"
+    },
+    {
+      "id": 2,
+      "name": "Priya Shah",
+      "email": "priya.demo@example.com",
+      "password_hash": "scrypt:32768:8:1$hKGS4Gki3UCXQQYU$263434742a0ba6cbc1367acae6462f3029020feb99c39f50dc6f45f7110db284d7dfbee66d53b786ea3110cd39df667fa1d8fd967998539e606643bd663593a1",
+      "created_at": "2026-09-03 11:15:00"
+    },
+    {
+      "id": 3,
+      "name": "Marcus Lee",
+      "email": "marcus.demo@example.com",
+      "password_hash": "scrypt:32768:8:1$a6VlSVGyLXFssMyG$f9c67b23848017bb542f6ab68f3b22482d6c7349332c03a74919b61d49bdda38f6fe62655a8fc2d68767e2a6668ac950e64e069789e073c190b82af7d4a21ad8",
+      "created_at": "2026-09-05 16:40:00"
+    }
+  ],
+  "companies": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Acme",
+      "city": "Denver",
+      "region": "CO",
+      "website": "https://www.acme-example.com",
+      "notes": "Met their team at a career fair."
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "name": "Northwind Analytics",
+      "city": "Boulder",
+      "region": "CO",
+      "website": "https://www.northwind-example.com",
+      "notes": null
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "name": "Bluebird Health",
+      "city": "Austin",
+      "region": "TX",
+      "website": "https://www.bluebird-example.com",
+      "notes": "Healthcare software; strong benefits."
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "name": "Summit Cloud",
+      "city": null,
+      "region": null,
+      "website": "https://www.summitcloud-example.com",
+      "notes": "Remote-first, no central office."
+    },
+    {
+      "id": 5,
+      "user_id": 1,
+      "name": "Fernhill Studio",
+      "city": "Toronto",
+      "region": "Ontario",
+      "website": null,
+      "notes": "Small design and dev shop."
+    },
+    {
+      "id": 6,
+      "user_id": 1,
+      "name": "Orbit Recruiting Group",
+      "city": "Chicago",
+      "region": "IL",
+      "website": "https://www.orbitrg-example.com",
+      "notes": "Staffing agency."
+    },
+    {
+      "id": 7,
+      "user_id": 2,
+      "name": "Acme",
+      "city": "Seattle",
+      "region": "WA",
+      "website": "https://www.acme-example.com",
+      "notes": "Same company name as user 1's Acme."
+    },
+    {
+      "id": 8,
+      "user_id": 2,
+      "name": "Lumen Labs",
+      "city": "Portland",
+      "region": "OR",
+      "website": "https://www.lumenlabs-example.com",
+      "notes": null
+    },
+    {
+      "id": 9,
+      "user_id": 2,
+      "name": "Tidewater Logistics",
+      "city": "Norfolk",
+      "region": "VA",
+      "website": null,
+      "notes": null
+    },
+    {
+      "id": 10,
+      "user_id": 2,
+      "name": "Kestrel Robotics",
+      "city": "Pittsburgh",
+      "region": "PA",
+      "website": "https://www.kestrel-example.com",
+      "notes": "Spun out of a university lab."
+    },
+    {
+      "id": 11,
+      "user_id": 2,
+      "name": "Harbor Bank",
+      "city": "London",
+      "region": "England",
+      "website": "https://www.harborbank-example.com",
+      "notes": "Non-US location example."
+    },
+    {
+      "id": 12,
+      "user_id": 3,
+      "name": "Pinecone Foods",
+      "city": "Minneapolis",
+      "region": "MN",
+      "website": "https://www.pineconefoods-example.com",
+      "notes": null
+    },
+    {
+      "id": 13,
+      "user_id": 3,
+      "name": "Vega Games",
+      "city": "Montreal",
+      "region": "Quebec",
+      "website": "https://www.vegagames-example.com",
+      "notes": "Indie studio."
+    },
+    {
+      "id": 14,
+      "user_id": 3,
+      "name": "Cobalt Energy",
+      "city": "Houston",
+      "region": "TX",
+      "website": null,
+      "notes": null
+    },
+    {
+      "id": 15,
+      "user_id": 3,
+      "name": "Meridian Schools",
+      "city": null,
+      "region": null,
+      "website": null,
+      "notes": "District IT department."
+    }
+  ],
+  "jobs": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "company_id": 1,
+      "title": "Junior Backend Developer",
+      "link": "https://www.acme-example.com/careers/junior-backend",
+      "work_type": "hybrid",
+      "notes": "Python and Flask stack. Referral submitted.",
+      "status": "interviewing",
+      "date_applied": "2026-09-10",
+      "created_at": "2026-09-08 14:30:00"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "company_id": 2,
+      "title": "Data Analyst",
+      "link": "https://www.northwind-example.com/jobs/data-analyst",
+      "work_type": "remote",
+      "notes": "SQL-heavy role.",
+      "status": "applied",
+      "date_applied": "2026-09-12",
+      "created_at": "2026-09-11 10:05:00"
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "company_id": 3,
+      "title": "Software Engineer I",
+      "link": "https://www.bluebird-example.com/careers/swe-1",
+      "work_type": "in person",
+      "notes": "Offer received; deadline to respond is end of month.",
+      "status": "offer",
+      "date_applied": "2026-08-28",
+      "created_at": "2026-08-25 13:20:00"
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "company_id": 4,
+      "title": "Platform Engineer",
+      "link": "https://www.summitcloud-example.com/jobs/platform",
+      "work_type": "remote",
+      "notes": "Want to apply once resume is updated.",
+      "status": "saved",
+      "date_applied": null,
+      "created_at": "2026-09-15 08:45:00"
+    },
+    {
+      "id": 5,
+      "user_id": 1,
+      "company_id": 5,
+      "title": "Front-End Developer",
+      "link": "https://www.fernhill-example.com/join",
+      "work_type": "hybrid",
+      "notes": "Rejection email received.",
+      "status": "rejected",
+      "date_applied": "2026-08-15",
+      "created_at": "2026-08-14 17:00:00"
+    },
+    {
+      "id": 6,
+      "user_id": 1,
+      "company_id": 1,
+      "title": "QA Automation Engineer",
+      "link": "https://www.acme-example.com/careers/qa-automation",
+      "work_type": "hybrid",
+      "notes": "Received an offer but chose another path.",
+      "status": "declined",
+      "date_applied": "2026-08-20",
+      "created_at": "2026-08-19 09:30:00"
+    },
+    {
+      "id": 7,
+      "user_id": 1,
+      "company_id": 2,
+      "title": "Python Developer",
+      "link": null,
+      "work_type": "remote",
+      "notes": "Withdrew after accepting a closer-fit interview elsewhere.",
+      "status": "withdrawn",
+      "date_applied": "2026-09-01",
+      "created_at": "2026-08-30 12:10:00"
+    },
+    {
+      "id": 8,
+      "user_id": 1,
+      "company_id": 4,
+      "title": "Junior DevOps Engineer",
+      "link": null,
+      "work_type": null,
+      "notes": null,
+      "status": "applied",
+      "date_applied": null,
+      "created_at": "2026-09-16 19:25:00"
+    },
+    {
+      "id": 9,
+      "user_id": 1,
+      "company_id": 6,
+      "title": "Contract Python Developer",
+      "link": "https://www.orbitrg-example.com/roles/python-contract",
+      "work_type": "remote",
+      "notes": "Agency posting; client company not disclosed.",
+      "status": "saved",
+      "date_applied": null,
+      "created_at": "2026-09-17 11:00:00"
+    },
+    {
+      "id": 10,
+      "user_id": 1,
+      "company_id": 5,
+      "title": "Support Engineer",
+      "link": null,
+      "work_type": null,
+      "notes": null,
+      "status": "saved",
+      "date_applied": null,
+      "created_at": "2026-09-18 15:15:00"
+    },
+    {
+      "id": 11,
+      "user_id": 2,
+      "company_id": 7,
+      "title": "Frontend Engineer",
+      "link": "https://www.acme-example.com/careers/frontend",
+      "work_type": "remote",
+      "notes": "Accepted the offer; start date in October.",
+      "status": "accepted",
+      "date_applied": "2026-08-05",
+      "created_at": "2026-08-03 10:00:00"
+    },
+    {
+      "id": 12,
+      "user_id": 2,
+      "company_id": 8,
+      "title": "Machine Learning Engineer",
+      "link": "https://www.lumenlabs-example.com/jobs/ml",
+      "work_type": "hybrid",
+      "notes": "Second-round technical interview scheduled.",
+      "status": "interviewing",
+      "date_applied": "2026-09-14",
+      "created_at": "2026-09-12 09:15:00"
+    },
+    {
+      "id": 13,
+      "user_id": 2,
+      "company_id": 9,
+      "title": "Logistics Software Developer",
+      "link": "https://www.tidewater-example.com/careers",
+      "work_type": "in person",
+      "notes": null,
+      "status": "applied",
+      "date_applied": "2026-09-20",
+      "created_at": "2026-09-19 16:40:00"
+    },
+    {
+      "id": 14,
+      "user_id": 2,
+      "company_id": 10,
+      "title": "Robotics Software Engineer",
+      "link": "https://www.kestrel-example.com/jobs/rse",
+      "work_type": "in person",
+      "notes": "Needs C++; brush up first.",
+      "status": "saved",
+      "date_applied": null,
+      "created_at": "2026-09-21 12:30:00"
+    },
+    {
+      "id": 15,
+      "user_id": 2,
+      "company_id": 11,
+      "title": "Junior Analyst",
+      "link": "https://www.harborbank-example.com/graduates",
+      "work_type": "hybrid",
+      "notes": null,
+      "status": "rejected",
+      "date_applied": "2026-09-02",
+      "created_at": "2026-09-01 08:20:00"
+    },
+    {
+      "id": 16,
+      "user_id": 2,
+      "company_id": 8,
+      "title": "Backend Developer",
+      "link": "https://www.lumenlabs-example.com/jobs/backend",
+      "work_type": "remote",
+      "notes": "Verbal offer; waiting on written offer.",
+      "status": "offer",
+      "date_applied": "2026-09-05",
+      "created_at": "2026-09-04 14:00:00"
+    },
+    {
+      "id": 17,
+      "user_id": 3,
+      "company_id": 12,
+      "title": "Data Engineer",
+      "link": "https://www.pineconefoods-example.com/careers/data",
+      "work_type": "hybrid",
+      "notes": "Referral from a former classmate.",
+      "status": "applied",
+      "date_applied": "2026-09-25",
+      "created_at": "2026-09-24 18:10:00"
+    },
+    {
+      "id": 18,
+      "user_id": 3,
+      "company_id": 13,
+      "title": "Gameplay Programmer",
+      "link": "https://www.vegagames-example.com/jobs/gameplay",
+      "work_type": "remote",
+      "notes": "Take-home exercise due Friday.",
+      "status": "interviewing",
+      "date_applied": "2026-09-18",
+      "created_at": "2026-09-16 13:45:00"
+    },
+    {
+      "id": 19,
+      "user_id": 3,
+      "company_id": 14,
+      "title": "Software Developer",
+      "link": null,
+      "work_type": "in person",
+      "notes": null,
+      "status": "saved",
+      "date_applied": null,
+      "created_at": "2026-09-26 10:50:00"
+    },
+    {
+      "id": 20,
+      "user_id": 3,
+      "company_id": 15,
+      "title": "IT Systems Analyst",
+      "link": "https://www.meridian-example.com/employment",
+      "work_type": "in person",
+      "notes": "Withdrew; commute too long.",
+      "status": "withdrawn",
+      "date_applied": "2026-08-30",
+      "created_at": "2026-08-29 09:00:00"
+    }
+  ],
+  "contacts": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "company_id": 1,
+      "job_id": 1,
+      "name": "Jordan Rivera",
+      "title": "Engineering Manager",
+      "designation": "hiring manager",
+      "email": "jordan.rivera@acme-example.com",
+      "phone": "+1 (303) 555-0142",
+      "linkedin_url": "https://www.linkedin.com/in/jordan-rivera-example",
+      "notes": "Phone screen scheduled for the following week."
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "company_id": 1,
+      "job_id": 1,
+      "name": "Sam Okafor",
+      "title": "Software Engineer",
+      "designation": "referrer",
+      "email": "sam.okafor@acme-example.com",
+      "phone": null,
+      "linkedin_url": "https://www.linkedin.com/in/sam-okafor-example",
+      "notes": "Submitted my referral internally."
+    },
+    {
+      "id": 3,
+      "user_id": 1,
+      "company_id": 6,
+      "job_id": 1,
+      "name": "Dana Whitfield",
+      "title": "Technical Recruiter",
+      "designation": "recruiter",
+      "email": "dana.whitfield@orbitrg-example.com",
+      "phone": "+1 (312) 555-0178",
+      "linkedin_url": null,
+      "notes": "Agency recruiter, but company differs from the job's company."
+    },
+    {
+      "id": 4,
+      "user_id": 1,
+      "company_id": 2,
+      "job_id": 2,
+      "name": "Lena Park",
+      "title": "Senior Analyst",
+      "designation": "interviewer",
+      "email": "lena.park@northwind-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": "Technical interviewer; asked about window functions."
+    },
+    {
+      "id": 5,
+      "user_id": 1,
+      "company_id": 3,
+      "job_id": 3,
+      "name": "Chris Delgado",
+      "title": "Talent Acquisition Partner",
+      "designation": "recruiter",
+      "email": "chris.delgado@bluebird-example.com",
+      "phone": "+1 (512) 555-0119",
+      "linkedin_url": null,
+      "notes": "Sent the offer letter."
+    },
+    {
+      "id": 6,
+      "user_id": 1,
+      "company_id": 3,
+      "job_id": null,
+      "name": "Taylor Brooks",
+      "title": "Director of Engineering",
+      "designation": "other",
+      "email": "taylor.brooks@bluebird-example.com",
+      "phone": null,
+      "linkedin_url": "https://www.linkedin.com/in/taylor-brooks-example",
+      "notes": "Company contact, not tied to a specific job."
+    },
+    {
+      "id": 7,
+      "user_id": 1,
+      "company_id": null,
+      "job_id": null,
+      "name": "Morgan Ellis",
+      "title": null,
+      "designation": null,
+      "email": null,
+      "phone": null,
+      "linkedin_url": null,
+      "notes": null
+    },
+    {
+      "id": 8,
+      "user_id": 1,
+      "company_id": null,
+      "job_id": 5,
+      "name": "Riley Nguyen",
+      "title": null,
+      "designation": "referrer",
+      "email": "riley.nguyen@example.net",
+      "phone": null,
+      "linkedin_url": "https://www.linkedin.com/in/riley-nguyen-example",
+      "notes": "Met at a meetup; knows the Fernhill team."
+    },
+    {
+      "id": 9,
+      "user_id": 1,
+      "company_id": 4,
+      "job_id": 4,
+      "name": "Jamie Fox",
+      "title": "Head of Platform",
+      "designation": null,
+      "email": "jamie.fox@summitcloud-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": "Designation not decided yet."
+    },
+    {
+      "id": 10,
+      "user_id": 1,
+      "company_id": 5,
+      "job_id": 5,
+      "name": "Pat Quinn",
+      "title": "Studio Recruiter",
+      "designation": "recruiter",
+      "email": "careers@fernhill-example.com",
+      "phone": "+1 (416) 555-0166",
+      "linkedin_url": null,
+      "notes": "Sent the rejection email."
+    },
+    {
+      "id": 11,
+      "user_id": 2,
+      "company_id": 7,
+      "job_id": 11,
+      "name": "Aisha Rahman",
+      "title": "Engineering Director",
+      "designation": "hiring manager",
+      "email": "aisha.rahman@acme-example.com",
+      "phone": "+1 (206) 555-0123",
+      "linkedin_url": "https://www.linkedin.com/in/aisha-rahman-example",
+      "notes": "Will be my manager."
+    },
+    {
+      "id": 12,
+      "user_id": 2,
+      "company_id": 7,
+      "job_id": 11,
+      "name": "Ben Castillo",
+      "title": "Staff Engineer",
+      "designation": "interviewer",
+      "email": "ben.castillo@acme-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": "Led the system design round."
+    },
+    {
+      "id": 13,
+      "user_id": 2,
+      "company_id": 8,
+      "job_id": 12,
+      "name": "Chloe Martin",
+      "title": "Technical Recruiter",
+      "designation": "recruiter",
+      "email": "recruiting@lumenlabs-example.com",
+      "phone": "+1 (503) 555-0188",
+      "linkedin_url": null,
+      "notes": "Shares a team inbox with Dev Patel."
+    },
+    {
+      "id": 14,
+      "user_id": 2,
+      "company_id": 8,
+      "job_id": 16,
+      "name": "Dev Patel",
+      "title": "Recruiting Coordinator",
+      "designation": "recruiter",
+      "email": "recruiting@lumenlabs-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": "Handling the written offer."
+    },
+    {
+      "id": 15,
+      "user_id": 2,
+      "company_id": 11,
+      "job_id": 15,
+      "name": "Elena Sokolova",
+      "title": "Graduate Programme Lead",
+      "designation": "interviewer",
+      "email": "elena.sokolova@harborbank-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": null
+    },
+    {
+      "id": 16,
+      "user_id": 2,
+      "company_id": null,
+      "job_id": null,
+      "name": "Frank Osei",
+      "title": "Freelance Consultant",
+      "designation": "other",
+      "email": "frank.osei@example.net",
+      "phone": "+1 (412) 555-0101",
+      "linkedin_url": "https://www.linkedin.com/in/frank-osei-example",
+      "notes": "Met at a conference; no company tie."
+    },
+    {
+      "id": 17,
+      "user_id": 3,
+      "company_id": 12,
+      "job_id": 17,
+      "name": "Gina Alvarez",
+      "title": "Product Analyst",
+      "designation": "referrer",
+      "email": "gina.alvarez@pineconefoods-example.com",
+      "phone": null,
+      "linkedin_url": "https://www.linkedin.com/in/gina-alvarez-example",
+      "notes": "Former classmate."
+    },
+    {
+      "id": 18,
+      "user_id": 3,
+      "company_id": 13,
+      "job_id": 18,
+      "name": "Hiro Tanaka",
+      "title": "Lead Programmer",
+      "designation": "interviewer",
+      "email": "hiro.tanaka@vegagames-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": "Sent the take-home exercise."
+    },
+    {
+      "id": 19,
+      "user_id": 3,
+      "company_id": 14,
+      "job_id": null,
+      "name": "Isaac Bell",
+      "title": "Operations Manager",
+      "designation": "other",
+      "email": null,
+      "phone": "+1 (713) 555-0155",
+      "linkedin_url": null,
+      "notes": "Company contact; no open job yet."
+    },
+    {
+      "id": 20,
+      "user_id": 3,
+      "company_id": 15,
+      "job_id": 20,
+      "name": "Julia Kwan",
+      "title": "IT Manager",
+      "designation": "hiring manager",
+      "email": "julia.kwan@meridian-example.com",
+      "phone": null,
+      "linkedin_url": null,
+      "notes": null
+    }
+  ]
+}
