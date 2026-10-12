@@ -266,30 +266,120 @@ class TestJobs(DatabaseTestCase):
                 )
 
     def test_insert_job_default_status(self):
-         #Test does here
-
-         pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self.conn.execute(
+            """
+            INSERT INTO jobs
+            (user_id, company_id, title, link, work_type, notes, date_applied)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "1968-01-01")
+            ).lastrowid
+        row = self.conn.execute(
+            """
+            SELECT status 
+            FROM jobs
+            WHERE id = ?
+            """, (job_id,)).fetchone()
+        
+        self.assertEqual(row[0], "saved" )
+        
+            
 
     def test_insert_job_unlisted_status(self):
-         #Test does here
-
-         pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs
+                (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "appiled", "1968-01-01") #added typo to status
+                )
 
     def test_insert_job_unlisted_worktype(self):
-         #Test does here
-
-         pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs
+                (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in persone", "Singer wanted", "applied", "1968-01-01") #added typo to worktype
+                )
 
     def test_insert_job_missing_nullable_fields(self):
-         #Test does here
-
-         pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self.conn.execute(
+            """INSERT INTO jobs (user_id, company_id, title, status) 
+            VALUES (?, ?, ?, ?)
+            """, 
+            (user_id, company_id, "Singer",  "applied")
+            ).lastrowid
+         
+        row = self.conn.execute(
+            """
+            SELECT * 
+            FROM jobs
+            WHERE id = ?
+            """, (job_id,)).fetchone()
+         
+        self.assertIsNotNone(row)
 
     
     def test_delete_job(self):
-             #Test does here
-    
-             pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        contact_id = self._insert_default_contact(user_id=user_id, company_id=company_id, job_id=job_id)
+
+        row = self.conn.execute(
+            """
+            SELECT job_id
+            FROM contacts
+            WHERE id = ?
+            """, (contact_id,)
+        ).fetchone()
+
+        #check that job_id is properly associated with contact
+        self.assertEqual(row[0], job_id)
+
+        #delete job
+        self.conn.execute(
+            """
+            DELETE
+            FROM jobs
+            WHERE id = ?
+            """, (job_id,)
+        )
+        # select fresh rows
+        job_row = self.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM jobs
+            """
+        ).fetchone()
+        contact_row = self.conn.execute(
+                    """
+                    SELECT job_id, company_id
+                    FROM contacts
+                    WHERE id = ?
+                    """, (contact_id,)
+                ).fetchone()
+
+        self.assertEqual(job_row[0], 0, "job not deleted")
+        self.assertIsNotNone(contact_row, "contact deleted with job")
+        self.assertIsNone(contact_row[0])
+        self.assertEqual(contact_row[1], company_id, "company_id affected by job deletion")
+
+
+        
          
  
 
