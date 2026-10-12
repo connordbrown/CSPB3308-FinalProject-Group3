@@ -1,6 +1,6 @@
 import sqlite3
 import unittest
-from datetime import datetime
+
 
 
 class TestUsers(unittest.TestCase):
@@ -86,8 +86,58 @@ class TestUsers(unittest.TestCase):
             
 
     def test_cascade_on_delete_user(self):
-            # test goes here
-            pass
+
+            #creates all four interconnected tables
+            user_id = self.conn.execute(
+                 """
+                 INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
+                 VALUES (?, ?, ?, ?, ?)
+                 """, 
+                ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy")
+                ).lastrowid          
+
+            company_id = self.conn.execute(
+                 """
+                 INSERT INTO companies (user_id, name, city, region, website, notes)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """, 
+                (user_id, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
+                ).lastrowid            
+
+            job_id = self.conn.execute(
+                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 """, 
+                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                ).lastrowid
+            
+
+            contact = self.conn.execute("INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                         (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )).lastrowid
+
+            #Check that there is one user asocciated with one of each table
+            user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+            company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+            job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
+            contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+
+            self.assertEqual(user_count, 1)
+            self.assertEqual(company_count, 1)
+            self.assertEqual(job_count, 1)
+            self.assertEqual(contact_count, 1)
+
+            #delete user
+            self.conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self.assertEqual(user_count, 1)
+            self.assertEqual(company_count, 1)
+            self.assertEqual(job_count, 1)
+            self.assertEqual(contact_count, 1)
+            
+
+
+
+
+
 
     def tearDown(self):
            # Close the connection
