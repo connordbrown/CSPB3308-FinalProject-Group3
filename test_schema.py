@@ -16,16 +16,50 @@ class TestUsers(unittest.TestCase):
         self.conn.executescript(schema)
 
         
-
+## Tests for Users table
         
-    def tearDown(self):
-        # Close the connection
-        self.conn.close()
-        pass
+   
 
     def test_insert_valid_user(self):
-        # Your first test goes here
-        pass
+        self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy")
+        )
+        row = self.conn.execute("SELECT first_name, last_name, email, password_hash, display_name FROM users WHERE email = 'ozzy@example.com'").fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], "John", "first_name not saved")
+        self.assertEqual(row[1], "Osbourne", "last_name not saved")
+        self.assertEqual(row[2], "ozzy@example.com", "email not saved")
+        self.assertEqual(row[3], "fakehash1234", "password_hash not saved")
+        self.assertEqual(row[4], "Ozzy", "display_name not saved")
 
+
+    def test_insert_user_missing_email(self):
+           # test goes here
+           pass
+
+    def test_insert_user_missing_name(self):
+            # test goes here
+            pass
+
+    def test_insert_user_missing_password(self):
+            # test goes here
+            pass
+
+    def test_insert_user_existing_email(self):
+            # test goes here
+            pass
+
+    def test_id_timestamp_at_creation(self):
+            # test goes here
+            pass
+
+    def test_cascade_on_delete_user(self):
+            # test goes here
+            pass
+
+    def tearDown(self):
+           # Close the connection
+           self.conn.close()
+         
+    
 if __name__ == "__main__":
     unittest.main()
