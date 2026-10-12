@@ -17,8 +17,48 @@ class TestUsers(unittest.TestCase):
             schema = f.read()
         self.conn.executescript(schema)
 
+    def _insert_user(self, email="ozzy@example.com"):
+         user_id = self.conn.execute(
+              """
+              INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
+              VALUES (?, ?, ?, ?, ?)
+              """,
+             ("John", "Osbourne", email, "fakehash1234", "Ozzy")
+            ).lastrowid
+         return user_id
+
+    def _insert_company(self, user_id, name="Black Sabbath"):
+         company_id = self.conn.execute(
+                 """
+              INSERT INTO companies (user_id, name, city, region, website, notes)
+              VALUES (?, ?, ?, ?, ?, ?)
+              """, 
+             (user_id, name, "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
+            ).lastrowid
+         return company_id
+
+    def _insert_job(self, user_id, company_id):
+         job_id = self.conn.execute(
+                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 """, 
+                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                ).lastrowid
+         return job_id 
+
+    def _insert_contact(self, user_id, company_id=None, job_id=None):
+         contact_id = self.conn.execute(
+                 """
+                 INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 """,
+                (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )
+                ).lastrowid
+         return contact_id
+         
+
         
-## Tests for Users table
+## Tests for users table
         
    
 
@@ -112,8 +152,13 @@ class TestUsers(unittest.TestCase):
                 ).lastrowid
             
 
-            contact = self.conn.execute("INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                                         (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )).lastrowid
+            contact = self.conn.execute(
+                 """
+                 INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 """,
+                (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )
+                ).lastrowid
 
             #Check that there is one user asocciated with one of each table
             user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
@@ -135,9 +180,28 @@ class TestUsers(unittest.TestCase):
             
 
 
+## Tests for companies table
+    
+    #function for creating user
+    def _insert_user(self, email="ozzy@example.com"):
+         user_id = self.conn.execute(
+              """
+              INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
+              VALUES (?, ?, ?, ?, ?)
+              """,
+             ("John", "Osbourne", email, "fakehash1234", "Ozzy")
+            ).lastrowid
+         return user_id
 
-
-
+    def _insert_company(self, user_id, name="Black Sabbath"):
+         company_id = self.conn.execute(
+                 """
+              INSERT INTO companies (user_id, name, city, region, website, notes)
+              VALUES (?, ?, ?, ?, ?, ?)
+              """, 
+             (user_id, name, "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
+            ).lastrowid
+         return company_id
 
     def tearDown(self):
            # Close the connection
