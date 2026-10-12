@@ -14,7 +14,7 @@ class DatabaseTestCase(unittest.TestCase):
             schema = f.read()
         self.conn.executescript(schema)
 
-     def _insert_user(self, email="ozzy@example.com"):
+     def _insert_default_user(self, email="ozzy@example.com"):
          user_id = self.conn.execute(
               """
               INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
@@ -24,7 +24,7 @@ class DatabaseTestCase(unittest.TestCase):
             ).lastrowid
          return user_id
 
-     def _insert_company(self, user_id, name="Black Sabbath"):
+     def _insert_default_company(self, user_id, name="Black Sabbath"):
          company_id = self.conn.execute(
                  """
               INSERT INTO companies (user_id, name, city, region, website, notes)
@@ -34,7 +34,7 @@ class DatabaseTestCase(unittest.TestCase):
             ).lastrowid
          return company_id
 
-     def _insert_job(self, user_id, company_id):
+     def _insert_default_job(self, user_id, company_id):
          job_id = self.conn.execute(
                  """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -43,7 +43,7 @@ class DatabaseTestCase(unittest.TestCase):
                 ).lastrowid
          return job_id 
 
-     def _insert_contact(self, user_id, company_id=None, job_id=None):
+     def _insert_default_contact(self, user_id, company_id=None, job_id=None):
          contact_id = self.conn.execute(
                  """
                  INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
@@ -182,54 +182,111 @@ class TestUsers(DatabaseTestCase):
 class TestJobs(DatabaseTestCase):
 ## Tests for jobs table
 
-    def insert_valid_job(self):
-         #Test does here
+    def test_insert_valid_job(self):
+         user_id = self._insert_default_user()
+         company_id = self._insert_default_company(user_id=user_id)
+         job_id = self.conn.execute(
+                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 """, 
+                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                ).lastrowid
+         
+         row = self.conn.execute(
+            """
+            SELECT user_id, company_id, title, link, work_type, notes, status, date_applied 
+            FROM jobs
+            WHERE id = ?
+            """, (job_id,)).fetchone()
+         
+         self.assertIsNotNone(row)
+         self.assertEqual(row[0], user_id, "user_id not saved")
+         self.assertEqual(row[1], company_id, "company_id not saved")
+         self.assertEqual(row[2], "Singer", "title not saved" )
+         self.assertEqual(row[3], "https://fakelink.blacksabbath.com", "link not saved" )
+         self.assertEqual(row[4], "in person", "work_type not saved")
+         self.assertEqual(row[5], "Singer wanted", "notes not saved")
+         self.assertEqual(row[6], "applied", "status not saved")
+         self.assertEqual(row[7], "1968-01-01", "date_applied not saved")
 
-        pass
 
-    def insert_job_nonexistent_userid(self):
-             #Test does here
+    def test_insert_job_nonexistent_userid(self):
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs
+                (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                """,
+                (9999, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                )
     
-             pass
+        
 
-    def insert_job_missing_title(self):
-         user = self._insert_user()
+    def test_insert_job_missing_title(self):
+         user_id = self._insert_default_user()
+         company_id = self._insert_default_company(user_id=user_id)
+         with self.assertRaises(sqlite3.IntegrityError):
+              self.conn.execute(
+                   """
+                   INSERT INTO jobs
+                   (user_id, company_id, link, work_type, notes, status, date_applied)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   """,
+                   (user_id, company_id, "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                   )
 
+        
 
-         pass
+    def test_insert_job_missing_companyid(self):
+         user_id = self._insert_default_user()
+         with self.assertRaises(sqlite3.IntegrityError):
+              self.conn.execute(
+                   """
+                   INSERT INTO jobs
+                   (user_id, title, link, work_type, notes, status, date_applied)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   """,
+                   (user_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                   )
 
-    def insert_job_missing_companyid(self):
+    def test_insert_job_nonexistent_companyid(self):
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs
+                (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, 9999, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
+                )
+
+    def test_insert_job_default_status(self):
          #Test does here
 
          pass
 
-    def insert_job_nonexistent_companyid(self):
+    def test_insert_job_unlisted_status(self):
          #Test does here
 
          pass
 
-    def insert_job_default_status(self):
+    def test_insert_job_unlisted_worktype(self):
          #Test does here
 
          pass
 
-    def insert_job_unlisted_status(self):
-         #Test does here
-
-         pass
-
-    def insert_job_unlisted_worktype(self):
-         #Test does here
-
-         pass
-
-    def insert_job_missing_nullable_fields(self):
+    def test_insert_job_missing_nullable_fields(self):
          #Test does here
 
          pass
 
     
-    def delete_job(self):
+    def test_delete_job(self):
              #Test does here
     
              pass
