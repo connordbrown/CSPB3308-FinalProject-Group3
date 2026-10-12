@@ -1,11 +1,8 @@
 import sqlite3
 import unittest
 
-
-
-class TestUsers(unittest.TestCase):
-
-    def setUp(self):
+class DatabaseTestCase(unittest.TestCase):
+     def setUp(self):
         # Connect to a fresh in-memory database
         self.conn = sqlite3.connect(":memory:")
     
@@ -17,7 +14,7 @@ class TestUsers(unittest.TestCase):
             schema = f.read()
         self.conn.executescript(schema)
 
-    def _insert_user(self, email="ozzy@example.com"):
+     def _insert_user(self, email="ozzy@example.com"):
          user_id = self.conn.execute(
               """
               INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
@@ -27,7 +24,7 @@ class TestUsers(unittest.TestCase):
             ).lastrowid
          return user_id
 
-    def _insert_company(self, user_id, name="Black Sabbath"):
+     def _insert_company(self, user_id, name="Black Sabbath"):
          company_id = self.conn.execute(
                  """
               INSERT INTO companies (user_id, name, city, region, website, notes)
@@ -37,7 +34,7 @@ class TestUsers(unittest.TestCase):
             ).lastrowid
          return company_id
 
-    def _insert_job(self, user_id, company_id):
+     def _insert_job(self, user_id, company_id):
          job_id = self.conn.execute(
                  """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -46,7 +43,7 @@ class TestUsers(unittest.TestCase):
                 ).lastrowid
          return job_id 
 
-    def _insert_contact(self, user_id, company_id=None, job_id=None):
+     def _insert_contact(self, user_id, company_id=None, job_id=None):
          contact_id = self.conn.execute(
                  """
                  INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
@@ -55,10 +52,13 @@ class TestUsers(unittest.TestCase):
                 (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )
                 ).lastrowid
          return contact_id
-         
 
-        
-## Tests for users table
+     def tearDown(self):
+           # Close the connection
+           self.conn.close()
+
+class TestUsers(DatabaseTestCase): 
+    ## Tests for users table
         
    
 
@@ -179,33 +179,64 @@ class TestUsers(unittest.TestCase):
             self.assertEqual(contact_count, 1)
             
 
+class TestJobs(DatabaseTestCase):
+## Tests for jobs table
 
-## Tests for companies table
+    def insert_valid_job(self):
+         #Test does here
+
+        pass
+
+    def insert_job_nonexistent_userid(self):
+             #Test does here
     
-    #function for creating user
-    def _insert_user(self, email="ozzy@example.com"):
-         user_id = self.conn.execute(
-              """
-              INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
-              VALUES (?, ?, ?, ?, ?)
-              """,
-             ("John", "Osbourne", email, "fakehash1234", "Ozzy")
-            ).lastrowid
-         return user_id
+             pass
 
-    def _insert_company(self, user_id, name="Black Sabbath"):
-         company_id = self.conn.execute(
-                 """
-              INSERT INTO companies (user_id, name, city, region, website, notes)
-              VALUES (?, ?, ?, ?, ?, ?)
-              """, 
-             (user_id, name, "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
-            ).lastrowid
-         return company_id
+    def insert_job_missing_title(self):
+         user = self._insert_user()
 
-    def tearDown(self):
-           # Close the connection
-           self.conn.close()
+
+         pass
+
+    def insert_job_missing_companyid(self):
+         #Test does here
+
+         pass
+
+    def insert_job_nonexistent_companyid(self):
+         #Test does here
+
+         pass
+
+    def insert_job_default_status(self):
+         #Test does here
+
+         pass
+
+    def insert_job_unlisted_status(self):
+         #Test does here
+
+         pass
+
+    def insert_job_unlisted_worktype(self):
+         #Test does here
+
+         pass
+
+    def insert_job_missing_nullable_fields(self):
+         #Test does here
+
+         pass
+
+    
+    def delete_job(self):
+             #Test does here
+    
+             pass
+         
+ 
+
+    
          
     
 if __name__ == "__main__":
