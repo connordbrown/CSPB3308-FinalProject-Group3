@@ -33,16 +33,22 @@ class TestUsers(unittest.TestCase):
 
 
     def test_insert_user_missing_email(self):
-           # test goes here
-           pass
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute("INSERT INTO users (first_name, last_name, password_hash, display_name) VALUES (?, ?, ?, ?)", ("John", "Osbourne", "fakehash1234", "Ozzy"))
+           
 
     def test_insert_user_missing_name(self):
-            # test goes here
-            pass
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute("INSERT INTO users (last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?)", ("Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy"))
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute("INSERT INTO users (first_name, email, password_hash, display_name) VALUES (?, ?, ?, ?)", ("John", "ozzy@example.com", "fakehash1234", "Ozzy"))
+        
 
     def test_insert_user_missing_password(self):
-            # test goes here
-            pass
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute("INSERT INTO users (first_name, last_name, email, display_name) VALUES (?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "Ozzy"))
+            
 
     def test_insert_user_existing_email(self):
             # test goes here
