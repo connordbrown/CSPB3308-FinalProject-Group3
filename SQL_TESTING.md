@@ -27,7 +27,7 @@ This document describes the database design for Prospex: the tables, their field
 | Adding companies | App handles "pick existing or add company": the route looks up the company by name and creates it if missing, in the same transaction as the job insert | Keeps business logic in the app, not in database triggers |
 | Contacts in MVP | Yes. Each contact has an optional link to one job, plus a designation (e.g., referrer, recruiter, interviewer, hiring manager) | The vision promises tracking "applications and connections"; one job per contact keeps the MVP simple |
 | Deleting a user | ON DELETE CASCADE to all of their rows | Deleting an account removes all of that user's data |
-| Deleting a company | ON DELETE RESTRICT | Blocks deleting a company that still has jobs or contacts, so job history can't be wiped by accident |
+| Deleting a company | `jobs.company_id` uses NO ACTION (SQLite default); `contacts.company_id` uses SET NULL | NO ACTION blocks deleting a company that still has jobs, but is checked at the end of the statement, so a user's cascade delete always succeeds. RESTRICT was rejected because it is checked immediately and can block the user cascade depending on table creation order. Contacts are kept when their company is deleted |
 | Deleting a job | Contacts' `job_id` is SET NULL | The person stays in the user's network even if the job is removed |
 | Contacts without a company | Allowed (`company_id` nullable) | Covers people met at meetups or events with no company tie |
 | Location and work type | `city` and `region` on `companies`; `work_type` (remote, hybrid, in person) on `jobs` | Location is recorded once per company; work arrangement varies by job |
@@ -44,7 +44,7 @@ This document describes the database design for Prospex: the tables, their field
 - SQLite stores the database as a file on the server. Some free hosts wipe local files on restart or redeploy, so the deployment setup must keep the file (revisit when the course covers cloud deployment). A seed script will rebuild demo data in one command.
 - A contact linked to more than one job must be entered twice (a `job_contacts` join table would fix this later).
 - Only the applied date is stored, not when other status changes happened (see Stretch: Status History).
-- A user must delete or move a company's jobs and contacts before deleting the company itself.
+- A user must delete or move a company's jobs before deleting the company itself.
 - Location is stored once per company, not per job. Jobs at a company's other offices can't show their own city (a per-job location field would fix this later).
 
 ### Stretch: Status History (possible addition)
@@ -95,8 +95,11 @@ Stores individual users so that only an individuals own data is available to the
 | Field Name | Type | Description | Constraints |
 |---|---|---|---|
 | id | INTEGER | [auto-incremented id code ] | PRIMARY KEY (auto-generated) |
+| first_name | TEXT | [the user's typed first name] | NOT NULL| 
+|last_name | TEXT | [the user's typed last name] | NOT NULL |
 | email | TEXT | [  the user's email address] | NOT NULL, UNIQUE; lowercased by the app |
 | password_hash | TEXT | [hashkey to password for login ] | NOT NULL |
+|display_name | the user's preferred display name | TEXT | UNIQUE |
 | created_at | TIMESTAMP | [records date of user creation ] | NOT NULL, DEFAULT current timestamp |
 
 
@@ -107,10 +110,11 @@ Stores individual users so that only an individuals own data is available to the
 
 1. Insert a valid user succeeds
 2. Insert user with missing email fails
-3. Insert user with missing password hash fails
-4. Insert user with an existing email fails
-5. New user gets an auto-generated id and created_at
-6. Deleting a user deletes their companies, jobs, and contacts (CASCADE)
+3. Insert user with missing first_name or last_name fails
+4. Insert user with missing password hash fails
+5. Insert user with an existing email fails, including the same email in different case
+6. New user gets an auto-generated id and created_at
+7. Deleting a user who has a company, job, and contact deletes all of them (CASCADE succeeds regardless of table order)
 
 ---
 
@@ -124,7 +128,7 @@ Stores individual jobs entered by the user.
 |---|---|---|---|
 | id | INTEGER | auto-incremented id code | PRIMARY KEY (auto-generated) |
 | user_id | INTEGER | id of the user that added job | FK → users.id, NOT NULL, ON DELETE CASCADE |
-| company_id | INTEGER | id of company offering job | FK → companies.id, NOT NULL, ON DELETE RESTRICT |
+| company_id | INTEGER | id of company offering job | FK → companies.id, NOT NULL, ON DELETE NO ACTION |
 | title | TEXT | job title | NOT NULL |
 | link | TEXT | link to the post for added job | Nullable |
 | work_type | TEXT | indicates remote work status of job | Nullable, CHECK (remote, hybrid, in person) |
@@ -163,7 +167,7 @@ Stores network contacts that can be associated with specific jobs
 |---|---|---|---|
 | id | INTEGER | auto-incremented id code | PRIMARY KEY (auto-generated) |
 | user_id | INTEGER | id of user adding contact | FK → users.id, NOT NULL, ON DELETE CASCADE |
-| company_id | INTEGER | id of company contact is from | FK → companies.id, nullable, ON DELETE RESTRICT |
+| company_id | INTEGER | id of company contact is from | FK → companies.id, nullable, ON DELETE SET NULL |
 | job_id | INTEGER | job associated with contact | FK → jobs.id, nullable, ON DELETE SET NULL |
 | name | TEXT | name of contact | NOT NULL |
 | title | TEXT | job title of contact | Nullable |
@@ -175,7 +179,7 @@ Stores network contacts that can be associated with specific jobs
 
 ### Relationships
 - Many-to-one with `users`
-- Many-to-one with `companies` (optional)
+- Many-to-one with `companies` (optional; link cleared if the company is deleted)
 - Many-to-one with `jobs` (optional; link cleared if the job is deleted)
 
 ### Table Tests
@@ -200,7 +204,7 @@ Stores companies offering jobs in jobs table
 |---|---|---|---|
 | id | INTEGER | auto-incremented id code | PRIMARY KEY (auto-generated) |
 | user_id | INTEGER | id of user adding company | FK → users.id, NOT NULL, ON DELETE CASCADE |
-| name | TEXT | Company name | NOT NULL; UNIQUE together with user_id |
+| name | TEXT | Company name | NOT NULL; COLLATE NOCASE; UNIQUE together with user_id |
 | city | TEXT | City where company is located | Nullable |
 | region | TEXT | region where company is located | Nullable; state, province, or country (works for non-US locations) |
 | website | TEXT | company website | Nullable |
@@ -208,19 +212,20 @@ Stores companies offering jobs in jobs table
 
 ### Relationships
 - Many-to-one with `users`
-- One-to-many with `jobs` and `contacts` (ON DELETE RESTRICT)
+- One-to-many with `contacts` (ON DELETE SET NULL)
+- One-to-many with `jobs (ON DELETE NO ACTION)
 
 ### Table Tests
 
 1. Insert a valid company succeeds
 2. Insert company with missing name fails
 3. Insert company with a user_id that doesn't exist fails
-4. Insert a company name the same user already has fails
+4. 4. Insert a company name the same user already has fails, including different case
 5. Two different users can each have a company with the same name
 6. New company gets an auto-generated id
-7. Deleting a company that still has jobs fails (RESTRICT)
-8. Deleting a company that still has contacts fails (RESTRICT)
-9. Deleting a company with no jobs or contacts succeeds
+7. Deleting a company that still has jobs fails (NO ACTION)
+8. Deleting a company with contacts (but no jobs) succeeds and sets those contacts' company_id to NULL
+
 
 ---
 
