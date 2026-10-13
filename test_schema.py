@@ -476,21 +476,41 @@ class TestContacts(DatabaseTestCase):
              )
 
     def test_insert_contact_unlisted_designation(self):
-            #test goes here
-    
-            pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
 
-    def test_insert_conatacts_same_email(self):
-            #test goes here
-    
-            pass
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
+             self.conn.execute(
+             """
+             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             """,
+             (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring managers", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes") #typo to designation
+             )
 
+    def test_insert_contact_duplicate_email(self):
+        user_id = self._insert_default_user()
+        self.conn.execute(
+            "INSERT INTO contacts (user_id, name, email) VALUES (?, ?, ?)",
+            (user_id, "Geezer Butler", "recruiting@example.com"))
 
-         
- 
+        self.conn.execute(
+            "INSERT INTO contacts (user_id, name, email) VALUES (?, ?, ?)",
+            (user_id, "Tony Iommi", "recruiting@example.com"))
 
-    
-         
+        count = self.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM contacts
+            WHERE email = "recruiting@example.com"
+            """
+        ).fetchone()[0]
+
+        self.assertEqual(count, 2)
+        
+
+     
     
 if __name__ == "__main__":
     unittest.main()
