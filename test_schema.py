@@ -379,7 +379,71 @@ class TestJobs(DatabaseTestCase):
         self.assertEqual(contact_row[1], company_id, "company_id affected by job deletion")
 
 
+class TestContacts(DatabaseTestCase): 
+    ## Tests for contacts table
         
+    def test_insert_valid_contact(self):
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        contact_id = self.conn.execute(
+             """
+             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             """,
+             (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
+             ).lastrowid
+
+        row = self.conn.execute(
+            """   
+            SELECT user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes
+            FROM contacts
+            WHERE id = ?
+            """, (contact_id,)).fetchone()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], user_id, "uset_id not saved")
+        self.assertEqual(row[1], company_id, "company_id not saved" )
+        self.assertEqual(row[2], job_id, "job_id not saved")
+        self.assertEqual(row[3], "Geezer Butler", "name not saved")
+        self.assertEqual(row[4], "Bassist", "title not saved")
+        self.assertEqual(row[5], "hiring manager", "designation not saved")
+        self.assertEqual(row[6], "geezer@example.com", "email not saved")
+        self.assertEqual(row[7], "555-666-777", "phone number not saved")
+        self.assertEqual(row[8], "https://linkedin.com/in/geezerbutler", "linkedin_url not saved")
+        self.assertEqual(row[9], "Some notes", "notes not saved")
+
+    def test_insert_contact_missing_name(self):
+            #test goes here
+    
+            pass
+
+    def test_insert_contact_missing_nullables(self):
+            #test goes here
+    
+            pass
+
+    def test_insert_contact_nonexistent_companyid(self):
+            #test goes here
+    
+            pass
+
+    def test_insert_conatact_nonexsitent_jobid(self):
+            #test goes here
+    
+            pass
+
+    def test_insert_contact_unlisted_designation(self):
+            #test goes here
+    
+            pass
+
+    def test_insert_conatacts_same_email(self):
+            #test goes here
+    
+            pass
+
+
          
  
 
