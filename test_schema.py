@@ -414,24 +414,66 @@ class TestContacts(DatabaseTestCase):
         self.assertEqual(row[9], "Some notes", "notes not saved")
 
     def test_insert_contact_missing_name(self):
-            #test goes here
-    
-            pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        with self.assertRaises(sqlite3.IntegrityError):
+             self.conn.execute(
+             """
+             INSERT INTO contacts (user_id, company_id, job_id, title, designation, email, phone, linkedin_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             """,
+             (user_id, company_id, job_id, "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
+             )
 
     def test_insert_contact_missing_nullables(self):
-            #test goes here
-    
-            pass
+        user_id = self._insert_default_user()    
+        contact_id = self.conn.execute(
+            """
+            INSERT INTO contacts (user_id, name)
+            VALUES (?, ?)
+            """,
+            (user_id, "Geezer Butler")
+            )
+        row = (
+             """
+             SELECT * 
+             FROM contacts
+             WHERE id = ?
+             """, (contact_id,)
+        )
+        self.assertIsNotNone(row)
+
 
     def test_insert_contact_nonexistent_companyid(self):
-            #test goes here
-    
-            pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
+             self.conn.execute(
+             """
+             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             """,
+             (user_id, 9999, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
+             )
+             
+
 
     def test_insert_conatact_nonexsitent_jobid(self):
-            #test goes here
-    
-            pass
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
+             self.conn.execute(
+             """
+             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             """,
+             (user_id, company_id, 9999, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
+             )
 
     def test_insert_contact_unlisted_designation(self):
             #test goes here
