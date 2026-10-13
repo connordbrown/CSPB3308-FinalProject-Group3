@@ -514,7 +514,7 @@ class TestCompanies(DatabaseTestCase):
 ## Tests for companies table
 
     def test_insert_valid_company(self):
-        user_id = self._insert_default_user
+        user_id = self._insert_default_user()
         company_id = self.conn.execute(
             """
             INSERT INTO companies (user_id, name, city, region, website, notes)
@@ -541,37 +541,50 @@ class TestCompanies(DatabaseTestCase):
 
         
 
-    def test_insert_valid_company(self):
+    def test_insert_company_missing_name(self):
+        user_id = self._insert_default_user()
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute(
+                """
+                INSERT INTO companies (user_id, city, region, website, notes)
+                VALUES (?, ?, ?, ?, ?) 
+                """,
+                (user_id, "Birmingham", "UK", "blacksabbath.com", "forever #1!")
+            )
+       
+
+    def test_insert_company_nonexistent_userid(self):
+        user_id = self._insert_default_user()
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
+            self.conn.execute(
+                """
+                INSERT INTO companies (user_id, name, city, region, website, notes)
+                VALUES (?, ?, ?, ?, ?, ?) 
+                """,
+                (9999, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "forever #1!")
+            )
+
+    def test_insert_company_duplicate_name(self):
         #test goes here
 
         pass
 
-    def test_insert_valid_company(self):
+    def test_insert_same_company_multiple_users(self):
         #test goes here
 
         pass
 
-    def test_insert_valid_company(self):
+    def test_company_generated_id(self):
         #test goes here
 
         pass
 
-    def test_insert_valid_company(self):
+    def test_delete_company_with_jobs(self):
         #test goes here
 
         pass
 
-    def test_insert_valid_company(self):
-        #test goes here
-
-        pass
-
-    def test_insert_valid_company(self):
-        #test goes here
-
-        pass
-
-    def test_insert_valid_company(self):
+    def test_delete_company_with_contacts(self):
         #test goes here
 
         pass
