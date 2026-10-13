@@ -1,0 +1,37 @@
+<!doctype html>
+<head>
+<title>{% block title %}{% endblock %} - Prospex</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Prospex</h1>
+        <nav>
+            <ul>
+                <li> <a href="{{ url_for('index') }}"> Dashboard </a></li>
+                <li> <a href="{{ url_for('add_job') }}"> Add a job application - stub for now </a></li>
+                <li> <a href="{{ url_for('contacts') }}"> view list of contacts - stub for now </a></li>
+            </ul>
+                {% if username %}
+
+                    <p>Welcome to Prospex {{username}}!</p>
+                    <ul>
+                        <li> <a href="{{ url_for('logout') }}">Log out</a></li>
+                        <li> <a href="{{ url_for('profile', username=username) }}"> View User Profile </a></li>
+                    </ul>
+                {% else %} 
+                    <p> Please login in order to use Prospex</p>
+                    <a href="{{ url_for('login') }}">Log in</a>
+
+                {% endif %} 
+        </nav>
+</header>
+
+<section class="content">
+
+  {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</section>
+</body>
