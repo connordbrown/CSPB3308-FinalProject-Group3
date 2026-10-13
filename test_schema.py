@@ -510,6 +510,71 @@ class TestContacts(DatabaseTestCase):
         self.assertEqual(count, 2)
         
 
+class TestCompanies(DatabaseTestCase):
+## Tests for companies table
+
+    def test_insert_valid_company(self):
+        user_id = self._insert_default_user
+        company_id = self.conn.execute(
+            """
+            INSERT INTO companies (user_id, name, city, region, website, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "forever #1!")
+        ).lastrowid
+
+        row = self.conn.execute(
+            """
+            SELECT user_id, name, city, region, website, notes
+            FROM companies
+            WHERE id = ?
+            """, (company_id,)
+        ).fetchone()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], user_id, "user_id not saved" )
+        self.assertEqual(row[1], "Black Sabbath", "name not saved")
+        self.assertEqual(row[2], "Birmingham", "city not saved")
+        self.assertEqual(row[3], "UK", "region not saved")
+        self.assertEqual(row[4], "blacksabbath.com", "email not saved")
+        self.assertEqual(row[5], "forever #1!", "notes not saved")
+
+        
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
+
+    def test_insert_valid_company(self):
+        #test goes here
+
+        pass
      
     
 if __name__ == "__main__":
