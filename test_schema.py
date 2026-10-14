@@ -173,10 +173,17 @@ class TestUsers(DatabaseTestCase):
 
             #delete user
             self.conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
-            self.assertEqual(user_count, 1)
-            self.assertEqual(company_count, 1)
-            self.assertEqual(job_count, 1)
-            self.assertEqual(contact_count, 1)
+
+            #recheck rows - they should now be 0
+            user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+            company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+            job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
+            contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+
+            self.assertEqual(user_count, 0)
+            self.assertEqual(company_count, 0)
+            self.assertEqual(job_count, 0)
+            self.assertEqual(contact_count, 0)
             
 
 class TestJobs(DatabaseTestCase):
@@ -565,29 +572,146 @@ class TestCompanies(DatabaseTestCase):
             )
 
     def test_insert_company_duplicate_name(self):
-        #test goes here
+        user_id = self._insert_default_user()
+        self._insert_default_company(user_id=user_id, name="Black Sabbath")
 
-        pass
-
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE"):
+            self._insert_default_company(user_id=user_id, name="Black Sabbath")
+            self._insert_default_company(user_id=user_id, name="black sabbath")
+            
+        
     def test_insert_same_company_multiple_users(self):
-        #test goes here
+        user_1_id = self._insert_default_user(email="ozzy@example.com")
+        user_2_id  = self._insert_default_user(email="lemmy@example.com")
 
-        pass
+        self._insert_default_company(user_id=user_1_id, name="Black Sabbath")
+        self._insert_default_company(user_id=user_2_id, name="Black Sabbath")
+
+        row_count = self.conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM companies
+            WHERE name = "Black Sabbath"
+            """
+        ).fetchone()[0]
+
+        self.assertEqual(row_count, 2, "company prevented from being added for separate users")
 
     def test_company_generated_id(self):
-        #test goes here
+        user_1_id = self._insert_default_user(email="ozzy@example.com")
+        user_2_id  = self._insert_default_user(email="lemmy@example.com")
 
-        pass
+        # create two separate companies for the same user
+        company_1_id = self._insert_default_company(user_id=user_1_id, name="Black Sabbath")
+        company_2_id = self._insert_default_company(user_id=user_1_id, name="Motorhead")
+
+        # and one additional company for a sperate user
+        company_3_id = self._insert_default_company(user_id=user_2_id, name="Judas Priest")
+
+        sabbath_row = self.conn.execute(
+            """
+            SELECT id
+            FROM companies
+            WHERE name = "Black Sabbath"
+            """
+        ).fetchone()[0]
+
+        motorhead_row = self.conn.execute(
+            """
+            SELECT id
+            FROM companies
+            WHERE name = "Motorhead"
+            """
+        ).fetchone()[0]
+
+        priest_row = self.conn.execute(
+            """
+            SELECT id
+            FROM companies
+            WHERE name = "Judas Priest"
+            """
+        ).fetchone()[0]
+
+        #check that ids were generated
+        self.assertIsNotNone(sabbath_row, "company_id not generated")
+        self.assertIsNotNone(motorhead_row, "company_id not generated")
+        self.assertIsNotNone(priest_row, "company_id not generated")
+
+        #check they are integers
+        self.assertIsInstance(sabbath_row, int, "company_id must be an integer")
+        self.assertIsInstance(motorhead_row, int, "company_id must be an integer")
+        self.assertIsInstance(priest_row, int, "company_id must be an integer")
+
+        #check that they are unique
+        self.assertEqual(len({sabbath_row, motorhead_row, priest_row}), 3, "generated company_id not unique")
+
 
     def test_delete_company_with_jobs(self):
-        #test goes here
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
 
-        pass
+        #create job for company_id
+        self._insert_default_job(user_id=user_id, company_id=company_id)
+
+        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+        job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
+        
+
+        self.assertEqual(user_count, 1)
+        self.assertEqual(company_count, 1)
+        self.assertEqual(job_count, 1)
+        
+
+        #delete company
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
+
+        #recheck rows - they should still equal 1 meaning Deleting a company that still has jobs fails
+        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+        job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
+        
+        self.assertEqual(user_count, 1)
+        self.assertEqual(company_count, 1)
+        self.assertEqual(job_count, 1)
+                
 
     def test_delete_company_with_contacts(self):
-        #test goes here
+        #Deleting a company with contacts (but no jobs) succeeds and sets those contacts' company_id to NULL
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        contact_id = self._insert_default_contact(user_id=user_id, company_id=company_id)
 
-        pass
+        #check all exist and that company ID is correct in contact row
+        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+        contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+        contact_row_company_id = self.conn.execute("SELECT company_id FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+
+        self.assertEqual(user_count, 1)
+        self.assertEqual(company_count, 1)
+        self.assertEqual(contact_count, 1)
+        self.assertEqual(contact_row_company_id, company_id, "company_id in contact row not properly set")
+
+        #delete company
+        self.conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
+
+        # recheck all exist except for company and that company ID is Null in contact row
+        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
+        contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+        contact_row_company_id = self.conn.execute("SELECT company_id FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+
+        self.assertEqual(user_count, 1)
+        self.assertEqual(company_count, 0)
+        self.assertEqual(contact_count, 1)
+        self.assertIsNone(contact_row_company_id, "company_id in contact row not rest to NULL")
+
+
+        
+
+        
      
     
 if __name__ == "__main__":

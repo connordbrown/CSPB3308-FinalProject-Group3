@@ -220,7 +220,7 @@ Stores companies offering jobs in jobs table
 1. Insert a valid company succeeds
 2. Insert company with missing name fails
 3. Insert company with a user_id that doesn't exist fails
-4. 4. Insert a company name the same user already has fails, including different case
+4. Insert a company name the same user already has fails, including different case
 5. Two different users can each have a company with the same name
 6. New company gets an auto-generated id
 7. Deleting a company that still has jobs fails (NO ACTION)
