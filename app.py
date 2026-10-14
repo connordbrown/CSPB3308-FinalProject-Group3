@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, session, redirect, url_for
+
 from markupsafe import escape
+import json
 
 
 app = Flask(__name__)
@@ -9,6 +11,10 @@ app.secret_key = "Incredibly-private-and-secure-key"
 def index():
     """Dashboard, will show filterable list of job applications"""
     return render_template("dashboard.html", username=session.get("username"))
+    path = app.static_folder + '/testing/sample_data.json'
+    sample_data_file = open(path, "r")
+    sample_data = json.load(sample_data_file)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
