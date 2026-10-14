@@ -1,3 +1,19 @@
+.filter {
+    width: 350px;
+    border: 2px solid black;
+    padding: 5px;
+    margin: 20px;
+    margin-left: auto;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.filter > div {
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 5px;
+}
+
 .jobs-list {
     margin: 0 auto;
     display: flex;
