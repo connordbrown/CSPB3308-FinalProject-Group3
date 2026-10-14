@@ -10,11 +10,28 @@ app.secret_key = "Incredibly-private-and-secure-key"
 @app.route("/")
 def index():
     """Dashboard, will show filterable list of job applications"""
-    return render_template("dashboard.html", username=session.get("username"))
+
     path = app.static_folder + '/testing/sample_data.json'
     sample_data_file = open(path, "r")
     sample_data = json.load(sample_data_file)
 
+    # Sort by status - in set order
+    sort_order = {
+        'saved': 1,
+        'applied': 2,
+        'interviewing': 3,
+        'offer': 4,
+        'accepted': 5,
+        'declined': 6,
+        'withdrawn': 7,
+        'rejected': 8
+    }
+    jobs = sorted(sample_data['jobs'], key=lambda job: sort_order[job['status']])
+
+    return render_template(
+        "dashboard.html",
+        username=session.get("username"),
+        jobs=jobs)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -28,7 +45,7 @@ def logout():
     # remove username
     session.pop('username', None)
     return redirect(url_for('index'))
-        
+
 
 @app.route('/user/<username>')
 def profile(username):

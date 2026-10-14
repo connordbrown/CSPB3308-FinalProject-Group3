@@ -1,0 +1,41 @@
+.jobs-list {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.job-tile {
+    border-radius: 10px;
+    width: 500px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.saved {
+    background-color: lightgrey;
+}
+
+.applied {
+    background-color: lightblue;
+}
+
+.interviewing {
+    background-color: blue;
+}
+
+.accepted {
+    background-color: green;
+}
+
+.offer {
+    background-color: lightgreen;
+}
+
+.declined, .withdrawn, .rejected {
+    background-color: lightcoral;
+}
+
