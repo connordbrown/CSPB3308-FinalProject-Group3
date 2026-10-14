@@ -1,533 +1,542 @@
+"""
+Unit tests for the Prospex database schema (schema.sql).
+
+Each test class covers one table, and each test maps to a numbered
+"Table Tests" entry in SQL_TESTING.md (e.g. "Users #3"). Every test runs
+against a fresh in-memory SQLite database, so tests never share data.
+
+Run with:  python3 -m unittest test_schema.py -v
+"""
+
+import os
 import sqlite3
 import unittest
 
+# Resolve schema.sql relative to this file so tests run from any directory
+SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
+
+# Matches SQLite's CURRENT_TIMESTAMP format: "YYYY-MM-DD HH:MM:SS"
+TIMESTAMP_REGEX = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"
+
+# An id that will never exist in a fresh test database
+NONEXISTENT_ID = 9999
+
+
 class DatabaseTestCase(unittest.TestCase):
-     def setUp(self):
+    """Base class: builds a fresh database for each test and provides insert helpers."""
+
+    def setUp(self):
         # Connect to a fresh in-memory database
         self.conn = sqlite3.connect(":memory:")
-    
-        # Turn on foreign keys (PRAGMA)
+
+        # SQLite ignores foreign keys unless this is turned on for every connection
         self.conn.execute("PRAGMA foreign_keys = ON")
 
-        # Read schema.sql and run it with executescript
-        with open("schema.sql") as f:
-            schema = f.read()
-        self.conn.executescript(schema)
+        # Build all tables from schema.sql
+        with open(SCHEMA_PATH) as f:
+            self.conn.executescript(f.read())
 
-     def _insert_default_user(self, email="ozzy@example.com"):
-         user_id = self.conn.execute(
-              """
-              INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
-              VALUES (?, ?, ?, ?, ?)
-              """,
-             ("John", "Osbourne", email, "fakehash1234", "Ozzy")
-            ).lastrowid
-         return user_id
+    def tearDown(self):
+        self.conn.close()
 
-     def _insert_default_company(self, user_id, name="Black Sabbath"):
-         company_id = self.conn.execute(
-                 """
-              INSERT INTO companies (user_id, name, city, region, website, notes)
-              VALUES (?, ?, ?, ?, ?, ?)
-              """, 
-             (user_id, name, "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
-            ).lastrowid
-         return company_id
+    # ------------------------------------------------------------------
+    # Helpers: insert one valid row with every column filled in and return
+    # its id. Tests use these to set up rows they are NOT directly testing.
+    # ------------------------------------------------------------------
 
-     def _insert_default_job(self, user_id, company_id):
-         job_id = self.conn.execute(
-                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                 """, 
-                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                ).lastrowid
-         return job_id 
+    def _insert_default_user(self, email="ozzy@example.com", display_name="Ozzy"):
+        return self.conn.execute(
+            """
+            INSERT INTO users (first_name, last_name, email, password_hash, display_name)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ("John", "Osbourne", email, "fakehash1234", display_name),
+        ).lastrowid
 
-     def _insert_default_contact(self, user_id, company_id=None, job_id=None):
-         contact_id = self.conn.execute(
-                 """
-                 INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                 """,
-                (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )
-                ).lastrowid
-         return contact_id
+    def _insert_default_company(self, user_id, name="Black Sabbath"):
+        return self.conn.execute(
+            """
+            INSERT INTO companies (user_id, name, city, region, website, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, name, "Birmingham", "UK", "blacksabbath.com", "Forever #1"),
+        ).lastrowid
 
-     def tearDown(self):
-           # Close the connection
-           self.conn.close()
+    def _insert_default_job(self, user_id, company_id):
+        return self.conn.execute(
+            """
+            INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com",
+             "in person", "Singer wanted", "applied", "1968-01-01"),
+        ).lastrowid
 
-class TestUsers(DatabaseTestCase): 
-    ## Tests for users table
-        
-   
+    def _insert_default_contact(self, user_id, company_id=None, job_id=None):
+        return self.conn.execute(
+            """
+            INSERT INTO contacts (user_id, company_id, job_id, name, title, designation,
+                                  email, phone, linkedin_url, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager",
+             "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler",
+             "Some notes"),
+        ).lastrowid
+
+    def _count(self, table, where="1", params=()):
+        """Return the number of rows in `table` matching the WHERE clause."""
+        return self.conn.execute(
+            f"SELECT COUNT(*) FROM {table} WHERE {where}", params
+        ).fetchone()[0]
+
+
+class TestUsers(DatabaseTestCase):
+    """Tests for the users table (SQL_TESTING.md, section 1)."""
 
     def test_insert_valid_user(self):
-        self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy")
+        """Users #1: Insert a valid user succeeds."""
+        self.conn.execute(
+            """
+            INSERT INTO users (first_name, last_name, email, password_hash, display_name)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy"),
         )
-        row = self.conn.execute("SELECT first_name, last_name, email, password_hash, display_name FROM users WHERE email = 'ozzy@example.com'").fetchone()
-        self.assertIsNotNone(row)
+
+        row = self.conn.execute(
+            """
+            SELECT first_name, last_name, email, password_hash, display_name
+            FROM users
+            WHERE email = ?
+            """,
+            ("ozzy@example.com",),
+        ).fetchone()
+
+        # Every value we inserted should be stored unchanged
+        self.assertIsNotNone(row, "user row not found")
         self.assertEqual(row[0], "John", "first_name not saved")
         self.assertEqual(row[1], "Osbourne", "last_name not saved")
         self.assertEqual(row[2], "ozzy@example.com", "email not saved")
         self.assertEqual(row[3], "fakehash1234", "password_hash not saved")
         self.assertEqual(row[4], "Ozzy", "display_name not saved")
 
-
     def test_insert_user_missing_email(self):
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (first_name, last_name, password_hash, display_name) VALUES (?, ?, ?, ?)", ("John", "Osbourne", "fakehash1234", "Ozzy"))
-           
+        """Users #2: Insert user with missing email fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: users.email"):
+            self.conn.execute(
+                """
+                INSERT INTO users (first_name, last_name, password_hash, display_name)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("John", "Osbourne", "fakehash1234", "Ozzy"),
+            )
 
     def test_insert_user_missing_name(self):
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?)", ("Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy"))
+        """Users #3: Insert user with missing first_name or last_name fails."""
+        # Missing first_name
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: users.first_name"):
+            self.conn.execute(
+                """
+                INSERT INTO users (last_name, email, password_hash, display_name)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy"),
+            )
 
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (first_name, email, password_hash, display_name) VALUES (?, ?, ?, ?)", ("John", "ozzy@example.com", "fakehash1234", "Ozzy"))
-        
+        # Missing last_name
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: users.last_name"):
+            self.conn.execute(
+                """
+                INSERT INTO users (first_name, email, password_hash, display_name)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("John", "ozzy@example.com", "fakehash1234", "Ozzy"),
+            )
 
     def test_insert_user_missing_password(self):
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (first_name, last_name, email, display_name) VALUES (?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "Ozzy"))
-            
+        """Users #4: Insert user with missing password hash fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: users.password_hash"):
+            self.conn.execute(
+                """
+                INSERT INTO users (first_name, last_name, email, display_name)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("John", "Osbourne", "ozzy@example.com", "Ozzy"),
+            )
 
     def test_insert_user_existing_email(self):
-        self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy")
-                    )
+        """Users #5: Insert user with an existing email fails, including the same email in different case."""
+        self._insert_default_user(email="ozzy@example.com")
 
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("Ian", "Kilmister", "ozzy@example.com", "fakehash4321", "Lemmy"))
+        # Exact same email
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE constraint failed: users.email"):
+            self._insert_default_user(email="ozzy@example.com", display_name="Lemmy")
 
-        with self.assertRaises(sqlite3.IntegrityError):
-            self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("Ian", "Kilmister", "Ozzy@example.com", "fakehash4321", "Lemmy"))
-            
+        # Same email, different case (email column is COLLATE NOCASE)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE constraint failed: users.email"):
+            self._insert_default_user(email="Ozzy@Example.com", display_name="Lemmy")
+
+        self.assertEqual(self._count("users"), 1, "duplicate email was saved")
 
     def test_id_timestamp_at_creation(self):
-            self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy"))
-            self.conn.execute("INSERT INTO users (first_name, last_name, email, password_hash, display_name) VALUES (?, ?, ?, ?, ?)", ("Ian", "Kilmister", "lemmy@example.com", "fakehash4321", "Lemmy"))
-            row_1 = self.conn.execute("SELECT id, created_at FROM users WHERE email = 'ozzy@example.com'").fetchone()
-            row_2 = self.conn.execute("SELECT id, created_at FROM users WHERE email = 'lemmy@example.com'").fetchone()
+        """Users #6: New user gets an auto-generated id and created_at."""
+        # Insert two users without supplying id or created_at
+        self._insert_default_user(email="ozzy@example.com", display_name="Ozzy")
+        self._insert_default_user(email="lemmy@example.com", display_name="Lemmy")
 
-            self.assertIsNotNone(row_1[0], "user_id not generated")
-            self.assertIsNotNone(row_1[0], "user_id not generated")
-            self.assertIsInstance(row_1[0], int, "user_id must be type int")
-            self.assertIsInstance(row_2[0], int, "user_id must be type int")
+        row_1 = self.conn.execute(
+            "SELECT id, created_at FROM users WHERE email = ?", ("ozzy@example.com",)
+        ).fetchone()
+        row_2 = self.conn.execute(
+            "SELECT id, created_at FROM users WHERE email = ?", ("lemmy@example.com",)
+        ).fetchone()
 
+        # Each user gets its own integer id
+        self.assertIsInstance(row_1[0], int, "id not generated as an integer")
+        self.assertIsInstance(row_2[0], int, "id not generated as an integer")
+        self.assertNotEqual(row_1[0], row_2[0], "same id generated for separate users")
 
-            self.assertIsNotNone(row_1[1], "created_at timestamp not generated")
-            self.assertIsNotNone(row_2[1], "created_at timestamp not generated")
-            self.assertRegex(row_1[1], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
-            self.assertRegex(row_2[1], r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
-
-
-            self.assertNotEqual(row_1[0], row_2[0], "same user_id generated for separate profiles")
-
-            
+        # Each user gets a created_at timestamp in SQLite's default format
+        self.assertIsNotNone(row_1[1], "created_at not generated")
+        self.assertIsNotNone(row_2[1], "created_at not generated")
+        self.assertRegex(row_1[1], TIMESTAMP_REGEX, "created_at not in expected format")
+        self.assertRegex(row_2[1], TIMESTAMP_REGEX, "created_at not in expected format")
 
     def test_cascade_on_delete_user(self):
+        """Users #7: Deleting a user who has a company, job, and contact deletes all of them."""
+        # Create one row in every table, all owned by the same user
+        user_id = self._insert_default_user()
+        company_id = self._insert_default_company(user_id=user_id)
+        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        self._insert_default_contact(user_id=user_id, company_id=company_id, job_id=job_id)
 
-            #creates all four interconnected tables
-            user_id = self.conn.execute(
-                 """
-                 INSERT INTO users (first_name, last_name, email, password_hash, display_name) 
-                 VALUES (?, ?, ?, ?, ?)
-                 """, 
-                ("John", "Osbourne", "ozzy@example.com", "fakehash1234", "Ozzy")
-                ).lastrowid          
+        # Before: one row per table
+        self.assertEqual(self._count("users", "id = ?", (user_id,)), 1)
+        self.assertEqual(self._count("companies", "user_id = ?", (user_id,)), 1)
+        self.assertEqual(self._count("jobs", "user_id = ?", (user_id,)), 1)
+        self.assertEqual(self._count("contacts", "user_id = ?", (user_id,)), 1)
 
-            company_id = self.conn.execute(
-                 """
-                 INSERT INTO companies (user_id, name, city, region, website, notes)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """, 
-                (user_id, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "Forever # 1" )
-                ).lastrowid            
+        # Delete the user. This must succeed even though the job still points at the
+        # company (jobs.company_id is NO ACTION, which is checked at end of statement).
+        self.conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
-            job_id = self.conn.execute(
-                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                 """, 
-                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                ).lastrowid
-            
+        # After: every row owned by the user is gone
+        self.assertEqual(self._count("users", "id = ?", (user_id,)), 0, "user not deleted")
+        self.assertEqual(self._count("companies", "user_id = ?", (user_id,)), 0, "company not cascaded")
+        self.assertEqual(self._count("jobs", "user_id = ?", (user_id,)), 0, "job not cascaded")
+        self.assertEqual(self._count("contacts", "user_id = ?", (user_id,)), 0, "contact not cascaded")
 
-            contact = self.conn.execute(
-                 """
-                 INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                 """,
-                (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler", "Some notes" )
-                ).lastrowid
-
-            #Check that there is one user asocciated with one of each table
-            user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-            company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-            job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
-            contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
-
-            self.assertEqual(user_count, 1)
-            self.assertEqual(company_count, 1)
-            self.assertEqual(job_count, 1)
-            self.assertEqual(contact_count, 1)
-
-            #delete user
-            self.conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
-
-            #recheck rows - they should now be 0
-            user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-            company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-            job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
-            contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
-
-            self.assertEqual(user_count, 0)
-            self.assertEqual(company_count, 0)
-            self.assertEqual(job_count, 0)
-            self.assertEqual(contact_count, 0)
-            
 
 class TestJobs(DatabaseTestCase):
-## Tests for jobs table
+    """Tests for the jobs table (SQL_TESTING.md, section 2)."""
+
+    def setUp(self):
+        # Every job needs an existing user and company
+        super().setUp()
+        self.user_id = self._insert_default_user()
+        self.company_id = self._insert_default_company(user_id=self.user_id)
 
     def test_insert_valid_job(self):
-         user_id = self._insert_default_user()
-         company_id = self._insert_default_company(user_id=user_id)
-         job_id = self.conn.execute(
-                 """INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                 """, 
-                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                ).lastrowid
-         
-         row = self.conn.execute(
+        """Jobs #1: Insert a valid job succeeds."""
+        job_id = self.conn.execute(
             """
-            SELECT user_id, company_id, title, link, work_type, notes, status, date_applied 
+            INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (self.user_id, self.company_id, "Singer", "https://fakelink.blacksabbath.com",
+             "in person", "Singer wanted", "applied", "1968-01-01"),
+        ).lastrowid
+
+        row = self.conn.execute(
+            """
+            SELECT user_id, company_id, title, link, work_type, notes, status, date_applied
             FROM jobs
             WHERE id = ?
-            """, (job_id,)).fetchone()
-         
-         self.assertIsNotNone(row)
-         self.assertEqual(row[0], user_id, "user_id not saved")
-         self.assertEqual(row[1], company_id, "company_id not saved")
-         self.assertEqual(row[2], "Singer", "title not saved" )
-         self.assertEqual(row[3], "https://fakelink.blacksabbath.com", "link not saved" )
-         self.assertEqual(row[4], "in person", "work_type not saved")
-         self.assertEqual(row[5], "Singer wanted", "notes not saved")
-         self.assertEqual(row[6], "applied", "status not saved")
-         self.assertEqual(row[7], "1968-01-01", "date_applied not saved")
+            """,
+            (job_id,),
+        ).fetchone()
 
-
-    def test_insert_job_nonexistent_userid(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
-            self.conn.execute(
-                """
-                INSERT INTO jobs
-                (user_id, company_id, title, link, work_type, notes, status, date_applied)
-                VALUES (?,?, ?, ?, ?, ?, ?, ?)
-                """,
-                (9999, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                )
-    
-        
+        # Every value we inserted should be stored unchanged
+        self.assertIsNotNone(row, "job row not found")
+        self.assertEqual(row[0], self.user_id, "user_id not saved")
+        self.assertEqual(row[1], self.company_id, "company_id not saved")
+        self.assertEqual(row[2], "Singer", "title not saved")
+        self.assertEqual(row[3], "https://fakelink.blacksabbath.com", "link not saved")
+        self.assertEqual(row[4], "in person", "work_type not saved")
+        self.assertEqual(row[5], "Singer wanted", "notes not saved")
+        self.assertEqual(row[6], "applied", "status not saved")
+        self.assertEqual(row[7], "1968-01-01", "date_applied not saved")
 
     def test_insert_job_missing_title(self):
-         user_id = self._insert_default_user()
-         company_id = self._insert_default_company(user_id=user_id)
-         with self.assertRaises(sqlite3.IntegrityError):
-              self.conn.execute(
-                   """
-                   INSERT INTO jobs
-                   (user_id, company_id, link, work_type, notes, status, date_applied)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)
-                   """,
-                   (user_id, company_id, "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                   )
-
-        
+        """Jobs #2: Insert job with missing title fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: jobs.title"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs (user_id, company_id, link, work_type, notes, status, date_applied)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (self.user_id, self.company_id, "https://fakelink.blacksabbath.com",
+                 "in person", "Singer wanted", "applied", "1968-01-01"),
+            )
 
     def test_insert_job_missing_companyid(self):
-         user_id = self._insert_default_user()
-         with self.assertRaises(sqlite3.IntegrityError):
-              self.conn.execute(
-                   """
-                   INSERT INTO jobs
-                   (user_id, title, link, work_type, notes, status, date_applied)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)
-                   """,
-                   (user_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                   )
+        """Jobs #3: Insert job with missing company_id fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: jobs.company_id"):
+            self.conn.execute(
+                """
+                INSERT INTO jobs (user_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (self.user_id, "Singer", "https://fakelink.blacksabbath.com",
+                 "in person", "Singer wanted", "applied", "1968-01-01"),
+            )
 
     def test_insert_job_nonexistent_companyid(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
-            self.conn.execute(
-                """
-                INSERT INTO jobs
-                (user_id, company_id, title, link, work_type, notes, status, date_applied)
-                VALUES (?,?, ?, ?, ?, ?, ?, ?)
-                """,
-                (user_id, 9999, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "applied", "1968-01-01")
-                )
+        """Jobs #4: Insert job with a company_id that doesn't exist fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
+            self._insert_default_job(user_id=self.user_id, company_id=NONEXISTENT_ID)
+
+    def test_insert_job_nonexistent_userid(self):
+        """Jobs #5: Insert job with a user_id that doesn't exist fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
+            self._insert_default_job(user_id=NONEXISTENT_ID, company_id=self.company_id)
 
     def test_insert_job_default_status(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
+        """Jobs #6: Insert job with no status gets 'saved' by default."""
+        # status column is left out of the INSERT
         job_id = self.conn.execute(
             """
-            INSERT INTO jobs
-            (user_id, company_id, title, link, work_type, notes, date_applied)
+            INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, date_applied)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "1968-01-01")
-            ).lastrowid
-        row = self.conn.execute(
-            """
-            SELECT status 
-            FROM jobs
-            WHERE id = ?
-            """, (job_id,)).fetchone()
-        
-        self.assertEqual(row[0], "saved" )
-        
-            
+            (self.user_id, self.company_id, "Singer", "https://fakelink.blacksabbath.com",
+             "in person", "Singer wanted", "1968-01-01"),
+        ).lastrowid
+
+        status = self.conn.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()[0]
+
+        self.assertEqual(status, "saved", "status did not default to 'saved'")
 
     def test_insert_job_unlisted_status(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
+        """Jobs #7: Insert job with a status not on the list fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK constraint failed"):
             self.conn.execute(
                 """
-                INSERT INTO jobs
-                (user_id, company_id, title, link, work_type, notes, status, date_applied)
-                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in person", "Singer wanted", "appiled", "1968-01-01") #added typo to status
-                )
+                (self.user_id, self.company_id, "Singer", "https://fakelink.blacksabbath.com",
+                 "in person", "Singer wanted", "appiled", "1968-01-01"),  # typo: "appiled"
+            )
 
     def test_insert_job_unlisted_worktype(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
+        """Jobs #8: Insert job with a work_type not on the list fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK constraint failed"):
             self.conn.execute(
                 """
-                INSERT INTO jobs
-                (user_id, company_id, title, link, work_type, notes, status, date_applied)
-                VALUES (?,?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO jobs (user_id, company_id, title, link, work_type, notes, status, date_applied)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, company_id, "Singer", "https://fakelink.blacksabbath.com", "in persone", "Singer wanted", "applied", "1968-01-01") #added typo to worktype
-                )
+                (self.user_id, self.company_id, "Singer", "https://fakelink.blacksabbath.com",
+                 "in persone", "Singer wanted", "applied", "1968-01-01"),  # typo: "in persone"
+            )
 
     def test_insert_job_missing_nullable_fields(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
+        """Jobs #9: Insert job with no date_applied, link, notes, or work_type succeeds."""
+        # Only required columns (plus status) are supplied
         job_id = self.conn.execute(
-            """INSERT INTO jobs (user_id, company_id, title, status) 
+            """
+            INSERT INTO jobs (user_id, company_id, title, status)
             VALUES (?, ?, ?, ?)
-            """, 
-            (user_id, company_id, "Singer",  "applied")
-            ).lastrowid
-         
-        row = self.conn.execute(
-            """
-            SELECT * 
-            FROM jobs
-            WHERE id = ?
-            """, (job_id,)).fetchone()
-         
-        self.assertIsNotNone(row)
+            """,
+            (self.user_id, self.company_id, "Singer", "applied"),
+        ).lastrowid
 
-    
+        row = self.conn.execute(
+            "SELECT date_applied, link, notes, work_type FROM jobs WHERE id = ?", (job_id,)
+        ).fetchone()
+
+        # Row exists and every optional field was stored as NULL
+        self.assertIsNotNone(row, "job row not found")
+        self.assertIsNone(row[0], "date_applied should be NULL")
+        self.assertIsNone(row[1], "link should be NULL")
+        self.assertIsNone(row[2], "notes should be NULL")
+        self.assertIsNone(row[3], "work_type should be NULL")
+
     def test_delete_job(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
-        contact_id = self._insert_default_contact(user_id=user_id, company_id=company_id, job_id=job_id)
-
-        row = self.conn.execute(
-            """
-            SELECT job_id
-            FROM contacts
-            WHERE id = ?
-            """, (contact_id,)
-        ).fetchone()
-
-        #check that job_id is properly associated with contact
-        self.assertEqual(row[0], job_id)
-
-        #delete job
-        self.conn.execute(
-            """
-            DELETE
-            FROM jobs
-            WHERE id = ?
-            """, (job_id,)
+        """Jobs #10: Deleting a job keeps its contacts but clears their job_id (SET NULL)."""
+        job_id = self._insert_default_job(user_id=self.user_id, company_id=self.company_id)
+        contact_id = self._insert_default_contact(
+            user_id=self.user_id, company_id=self.company_id, job_id=job_id
         )
-        # select fresh rows
-        job_row = self.conn.execute(
-            """
-            SELECT COUNT(*)
-            FROM jobs
-            """
-        ).fetchone()
+
+        # Before: contact is linked to the job
+        linked_job_id = self.conn.execute(
+            "SELECT job_id FROM contacts WHERE id = ?", (contact_id,)
+        ).fetchone()[0]
+        self.assertEqual(linked_job_id, job_id, "contact not linked to job")
+
+        self.conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+
+        # After: job is gone, contact remains with job_id cleared and company_id untouched
         contact_row = self.conn.execute(
-                    """
-                    SELECT job_id, company_id
-                    FROM contacts
-                    WHERE id = ?
-                    """, (contact_id,)
-                ).fetchone()
+            "SELECT job_id, company_id FROM contacts WHERE id = ?", (contact_id,)
+        ).fetchone()
 
-        self.assertEqual(job_row[0], 0, "job not deleted")
-        self.assertIsNotNone(contact_row, "contact deleted with job")
-        self.assertIsNone(contact_row[0])
-        self.assertEqual(contact_row[1], company_id, "company_id affected by job deletion")
+        self.assertEqual(self._count("jobs", "id = ?", (job_id,)), 0, "job not deleted")
+        self.assertIsNotNone(contact_row, "contact was deleted along with the job")
+        self.assertIsNone(contact_row[0], "contact job_id not set to NULL")
+        self.assertEqual(contact_row[1], self.company_id, "contact company_id changed by job deletion")
 
 
-class TestContacts(DatabaseTestCase): 
-    ## Tests for contacts table
-        
+class TestContacts(DatabaseTestCase):
+    """Tests for the contacts table (SQL_TESTING.md, section 3)."""
+
+    def setUp(self):
+        # Most contact tests need an existing user, company, and job to link to
+        super().setUp()
+        self.user_id = self._insert_default_user()
+        self.company_id = self._insert_default_company(user_id=self.user_id)
+        self.job_id = self._insert_default_job(user_id=self.user_id, company_id=self.company_id)
+
     def test_insert_valid_contact(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        """Contacts #1: Insert a valid contact succeeds."""
         contact_id = self.conn.execute(
-             """
-             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             """,
-             (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
-             ).lastrowid
+            """
+            INSERT INTO contacts (user_id, company_id, job_id, name, title, designation,
+                                  email, phone, linkedin_url, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (self.user_id, self.company_id, self.job_id, "Geezer Butler", "Bassist",
+             "hiring manager", "geezer@example.com", "+1 (555) 666-7777",
+             "https://linkedin.com/in/geezerbutler", "Some notes"),
+        ).lastrowid
 
         row = self.conn.execute(
-            """   
-            SELECT user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes
+            """
+            SELECT user_id, company_id, job_id, name, title, designation,
+                   email, phone, linkedin_url, notes
             FROM contacts
             WHERE id = ?
-            """, (contact_id,)).fetchone()
+            """,
+            (contact_id,),
+        ).fetchone()
 
-        self.assertIsNotNone(row)
-        self.assertEqual(row[0], user_id, "uset_id not saved")
-        self.assertEqual(row[1], company_id, "company_id not saved" )
-        self.assertEqual(row[2], job_id, "job_id not saved")
+        # Every value we inserted should be stored unchanged
+        self.assertIsNotNone(row, "contact row not found")
+        self.assertEqual(row[0], self.user_id, "user_id not saved")
+        self.assertEqual(row[1], self.company_id, "company_id not saved")
+        self.assertEqual(row[2], self.job_id, "job_id not saved")
         self.assertEqual(row[3], "Geezer Butler", "name not saved")
         self.assertEqual(row[4], "Bassist", "title not saved")
         self.assertEqual(row[5], "hiring manager", "designation not saved")
         self.assertEqual(row[6], "geezer@example.com", "email not saved")
-        self.assertEqual(row[7], "555-666-777", "phone number not saved")
+        # phone is TEXT so +, spaces, dashes, and parentheses are kept as typed
+        self.assertEqual(row[7], "+1 (555) 666-7777", "phone not saved as text")
         self.assertEqual(row[8], "https://linkedin.com/in/geezerbutler", "linkedin_url not saved")
         self.assertEqual(row[9], "Some notes", "notes not saved")
 
     def test_insert_contact_missing_name(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
-        with self.assertRaises(sqlite3.IntegrityError):
-             self.conn.execute(
-             """
-             INSERT INTO contacts (user_id, company_id, job_id, title, designation, email, phone, linkedin_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-             """,
-             (user_id, company_id, job_id, "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
-             )
+        """Contacts #2: Insert contact with missing name fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: contacts.name"):
+            self.conn.execute(
+                """
+                INSERT INTO contacts (user_id, company_id, job_id, title, designation,
+                                      email, phone, linkedin_url, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (self.user_id, self.company_id, self.job_id, "Bassist", "hiring manager",
+                 "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler",
+                 "Some notes"),
+            )
 
     def test_insert_contact_missing_nullables(self):
-        user_id = self._insert_default_user()    
+        """Contacts #3: Insert contact with only a name (no company, job, or contact info) succeeds."""
         contact_id = self.conn.execute(
-            """
-            INSERT INTO contacts (user_id, name)
-            VALUES (?, ?)
-            """,
-            (user_id, "Geezer Butler")
-            )
-        row = (
-             """
-             SELECT * 
-             FROM contacts
-             WHERE id = ?
-             """, (contact_id,)
-        )
-        self.assertIsNotNone(row)
+            "INSERT INTO contacts (user_id, name) VALUES (?, ?)",
+            (self.user_id, "Geezer Butler"),
+        ).lastrowid
 
+        row = self.conn.execute(
+            """
+            SELECT name, company_id, job_id, title, designation, email, phone, linkedin_url, notes
+            FROM contacts
+            WHERE id = ?
+            """,
+            (contact_id,),
+        ).fetchone()
+
+        # Row exists, name is saved, and every optional field is NULL
+        self.assertIsNotNone(row, "contact row not found")
+        self.assertEqual(row[0], "Geezer Butler", "name not saved")
+        for column, value in zip(
+            ["company_id", "job_id", "title", "designation", "email", "phone", "linkedin_url", "notes"],
+            row[1:],
+        ):
+            self.assertIsNone(value, f"{column} should be NULL")
 
     def test_insert_contact_nonexistent_companyid(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
+        """Contacts #4: Insert contact with a company_id that doesn't exist fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
+            self._insert_default_contact(
+                user_id=self.user_id, company_id=NONEXISTENT_ID, job_id=self.job_id
+            )
 
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
-             self.conn.execute(
-             """
-             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             """,
-             (user_id, 9999, job_id, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
-             )
-             
-
-
-    def test_insert_conatact_nonexsitent_jobid(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
-
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
-             self.conn.execute(
-             """
-             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             """,
-             (user_id, company_id, 9999, "Geezer Butler", "Bassist", "hiring manager", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes")
-             )
+    def test_insert_contact_nonexistent_jobid(self):
+        """Contacts #5: Insert contact with a job_id that doesn't exist fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
+            self._insert_default_contact(
+                user_id=self.user_id, company_id=self.company_id, job_id=NONEXISTENT_ID
+            )
 
     def test_insert_contact_unlisted_designation(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        job_id = self._insert_default_job(user_id=user_id, company_id=company_id)
-
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK"):
-             self.conn.execute(
-             """
-             INSERT INTO contacts (user_id, company_id, job_id, name, title, designation, email, phone, linkedin_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-             """,
-             (user_id, company_id, job_id, "Geezer Butler", "Bassist", "hiring managers", "geezer@example.com", "555-666-777", "https://linkedin.com/in/geezerbutler", "Some notes") #typo to designation
-             )
+        """Contacts #6: Insert contact with a designation not on the list fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "CHECK constraint failed"):
+            self.conn.execute(
+                """
+                INSERT INTO contacts (user_id, company_id, job_id, name, title, designation,
+                                      email, phone, linkedin_url, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (self.user_id, self.company_id, self.job_id, "Geezer Butler", "Bassist",
+                 "hiring managers",  # typo: "hiring managers"
+                 "geezer@example.com", "555-666-7777", "https://linkedin.com/in/geezerbutler",
+                 "Some notes"),
+            )
 
     def test_insert_contact_duplicate_email(self):
-        user_id = self._insert_default_user()
+        """Contacts #7: Two contacts with the same email succeed (email is not unique)."""
         self.conn.execute(
             "INSERT INTO contacts (user_id, name, email) VALUES (?, ?, ?)",
-            (user_id, "Geezer Butler", "recruiting@example.com"))
-
+            (self.user_id, "Geezer Butler", "recruiting@example.com"),
+        )
         self.conn.execute(
             "INSERT INTO contacts (user_id, name, email) VALUES (?, ?, ?)",
-            (user_id, "Tony Iommi", "recruiting@example.com"))
+            (self.user_id, "Tony Iommi", "recruiting@example.com"),
+        )
 
-        count = self.conn.execute(
-            """
-            SELECT COUNT(*)
-            FROM contacts
-            WHERE email = "recruiting@example.com"
-            """
-        ).fetchone()[0]
+        count = self._count("contacts", "email = ?", ("recruiting@example.com",))
 
-        self.assertEqual(count, 2)
-        
+        self.assertEqual(count, 2, "second contact with the same email was not saved")
+
 
 class TestCompanies(DatabaseTestCase):
-## Tests for companies table
+    """Tests for the companies table (SQL_TESTING.md, section 4)."""
+
+    def setUp(self):
+        # Every company needs an existing user
+        super().setUp()
+        self.user_id = self._insert_default_user()
 
     def test_insert_valid_company(self):
-        user_id = self._insert_default_user()
+        """Companies #1: Insert a valid company succeeds."""
         company_id = self.conn.execute(
             """
             INSERT INTO companies (user_id, name, city, region, website, notes)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (user_id, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "forever #1!")
+            (self.user_id, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "Forever #1"),
         ).lastrowid
 
         row = self.conn.execute(
@@ -535,184 +544,121 @@ class TestCompanies(DatabaseTestCase):
             SELECT user_id, name, city, region, website, notes
             FROM companies
             WHERE id = ?
-            """, (company_id,)
+            """,
+            (company_id,),
         ).fetchone()
 
-        self.assertIsNotNone(row)
-        self.assertEqual(row[0], user_id, "user_id not saved" )
+        # Every value we inserted should be stored unchanged
+        self.assertIsNotNone(row, "company row not found")
+        self.assertEqual(row[0], self.user_id, "user_id not saved")
         self.assertEqual(row[1], "Black Sabbath", "name not saved")
         self.assertEqual(row[2], "Birmingham", "city not saved")
         self.assertEqual(row[3], "UK", "region not saved")
-        self.assertEqual(row[4], "blacksabbath.com", "email not saved")
-        self.assertEqual(row[5], "forever #1!", "notes not saved")
-
-        
+        self.assertEqual(row[4], "blacksabbath.com", "website not saved")
+        self.assertEqual(row[5], "Forever #1", "notes not saved")
 
     def test_insert_company_missing_name(self):
-        user_id = self._insert_default_user()
-        with self.assertRaises(sqlite3.IntegrityError):
+        """Companies #2: Insert company with missing name fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "NOT NULL constraint failed: companies.name"):
             self.conn.execute(
                 """
                 INSERT INTO companies (user_id, city, region, website, notes)
-                VALUES (?, ?, ?, ?, ?) 
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (user_id, "Birmingham", "UK", "blacksabbath.com", "forever #1!")
+                (self.user_id, "Birmingham", "UK", "blacksabbath.com", "Forever #1"),
             )
-       
 
     def test_insert_company_nonexistent_userid(self):
-        user_id = self._insert_default_user()
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY"):
-            self.conn.execute(
-                """
-                INSERT INTO companies (user_id, name, city, region, website, notes)
-                VALUES (?, ?, ?, ?, ?, ?) 
-                """,
-                (9999, "Black Sabbath", "Birmingham", "UK", "blacksabbath.com", "forever #1!")
-            )
+        """Companies #3: Insert company with a user_id that doesn't exist fails."""
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
+            self._insert_default_company(user_id=NONEXISTENT_ID)
 
     def test_insert_company_duplicate_name(self):
-        user_id = self._insert_default_user()
-        self._insert_default_company(user_id=user_id, name="Black Sabbath")
+        """Companies #4: Insert a company name the same user already has fails, including different case."""
+        self._insert_default_company(user_id=self.user_id, name="Black Sabbath")
 
-        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE"):
-            self._insert_default_company(user_id=user_id, name="Black Sabbath")
-            self._insert_default_company(user_id=user_id, name="black sabbath")
-            
-        
+        # Exact same name for the same user
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE constraint failed"):
+            self._insert_default_company(user_id=self.user_id, name="Black Sabbath")
+
+        # Same name in different case (name column is COLLATE NOCASE)
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "UNIQUE constraint failed"):
+            self._insert_default_company(user_id=self.user_id, name="black sabbath")
+
+        self.assertEqual(self._count("companies"), 1, "duplicate company name was saved")
+
     def test_insert_same_company_multiple_users(self):
-        user_1_id = self._insert_default_user(email="ozzy@example.com")
-        user_2_id  = self._insert_default_user(email="lemmy@example.com")
+        """Companies #5: Two different users can each have a company with the same name."""
+        user_2_id = self._insert_default_user(email="lemmy@example.com", display_name="Lemmy")
 
-        self._insert_default_company(user_id=user_1_id, name="Black Sabbath")
+        self._insert_default_company(user_id=self.user_id, name="Black Sabbath")
         self._insert_default_company(user_id=user_2_id, name="Black Sabbath")
 
-        row_count = self.conn.execute(
-            """
-            SELECT COUNT(*)
-            FROM companies
-            WHERE name = "Black Sabbath"
-            """
-        ).fetchone()[0]
+        count = self._count("companies", "name = ?", ("Black Sabbath",))
 
-        self.assertEqual(row_count, 2, "company prevented from being added for separate users")
+        self.assertEqual(count, 2, "same company name blocked for separate users")
 
     def test_company_generated_id(self):
-        user_1_id = self._insert_default_user(email="ozzy@example.com")
-        user_2_id  = self._insert_default_user(email="lemmy@example.com")
+        """Companies #6: New company gets an auto-generated id."""
+        user_2_id = self._insert_default_user(email="lemmy@example.com", display_name="Lemmy")
 
-        # create two separate companies for the same user
-        company_1_id = self._insert_default_company(user_id=user_1_id, name="Black Sabbath")
-        company_2_id = self._insert_default_company(user_id=user_1_id, name="Motorhead")
+        # Two companies for the first user, one for the second (no id supplied)
+        ids = [
+            self._insert_default_company(user_id=self.user_id, name="Black Sabbath"),
+            self._insert_default_company(user_id=self.user_id, name="Motorhead"),
+            self._insert_default_company(user_id=user_2_id, name="Judas Priest"),
+        ]
 
-        # and one additional company for a sperate user
-        company_3_id = self._insert_default_company(user_id=user_2_id, name="Judas Priest")
+        # Read the ids back from the table rather than trusting lastrowid
+        stored_ids = [
+            row[0] for row in self.conn.execute("SELECT id FROM companies ORDER BY id").fetchall()
+        ]
 
-        sabbath_row = self.conn.execute(
-            """
-            SELECT id
-            FROM companies
-            WHERE name = "Black Sabbath"
-            """
-        ).fetchone()[0]
-
-        motorhead_row = self.conn.execute(
-            """
-            SELECT id
-            FROM companies
-            WHERE name = "Motorhead"
-            """
-        ).fetchone()[0]
-
-        priest_row = self.conn.execute(
-            """
-            SELECT id
-            FROM companies
-            WHERE name = "Judas Priest"
-            """
-        ).fetchone()[0]
-
-        #check that ids were generated
-        self.assertIsNotNone(sabbath_row, "company_id not generated")
-        self.assertIsNotNone(motorhead_row, "company_id not generated")
-        self.assertIsNotNone(priest_row, "company_id not generated")
-
-        #check they are integers
-        self.assertIsInstance(sabbath_row, int, "company_id must be an integer")
-        self.assertIsInstance(motorhead_row, int, "company_id must be an integer")
-        self.assertIsInstance(priest_row, int, "company_id must be an integer")
-
-        #check that they are unique
-        self.assertEqual(len({sabbath_row, motorhead_row, priest_row}), 3, "generated company_id not unique")
-
+        self.assertEqual(stored_ids, ids, "stored ids do not match generated ids")
+        for company_id in stored_ids:
+            self.assertIsInstance(company_id, int, "company id must be an integer")
+        self.assertEqual(len(set(stored_ids)), 3, "generated company ids are not unique")
 
     def test_delete_company_with_jobs(self):
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
+        """Companies #7: Deleting a company that still has jobs fails (NO ACTION)."""
+        company_id = self._insert_default_company(user_id=self.user_id)
+        self._insert_default_job(user_id=self.user_id, company_id=company_id)
 
-        #create job for company_id
-        self._insert_default_job(user_id=user_id, company_id=company_id)
+        # Before: company and job both exist
+        self.assertEqual(self._count("companies", "id = ?", (company_id,)), 1)
+        self.assertEqual(self._count("jobs", "company_id = ?", (company_id,)), 1)
 
-        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-        job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
-        
-
-        self.assertEqual(user_count, 1)
-        self.assertEqual(company_count, 1)
-        self.assertEqual(job_count, 1)
-        
-
-        #delete company
-        with self.assertRaises(sqlite3.IntegrityError):
+        # The job still references the company, so the delete is blocked
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "FOREIGN KEY constraint failed"):
             self.conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
 
-        #recheck rows - they should still equal 1 meaning Deleting a company that still has jobs fails
-        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-        job_count = self.conn.execute("SELECT COUNT(*) FROM jobs WHERE user_id = ?", (user_id,)).fetchone()[0]
-        
-        self.assertEqual(user_count, 1)
-        self.assertEqual(company_count, 1)
-        self.assertEqual(job_count, 1)
-                
+        # After: nothing was removed
+        self.assertEqual(self._count("companies", "id = ?", (company_id,)), 1, "company was deleted")
+        self.assertEqual(self._count("jobs", "company_id = ?", (company_id,)), 1, "job was deleted")
 
     def test_delete_company_with_contacts(self):
-        #Deleting a company with contacts (but no jobs) succeeds and sets those contacts' company_id to NULL
-        user_id = self._insert_default_user()
-        company_id = self._insert_default_company(user_id=user_id)
-        contact_id = self._insert_default_contact(user_id=user_id, company_id=company_id)
+        """Companies #8: Deleting a company with contacts (but no jobs) succeeds and sets their company_id to NULL."""
+        company_id = self._insert_default_company(user_id=self.user_id)
+        contact_id = self._insert_default_contact(user_id=self.user_id, company_id=company_id)
 
-        #check all exist and that company ID is correct in contact row
-        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-        contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
-        contact_row_company_id = self.conn.execute("SELECT company_id FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+        # Before: contact is linked to the company
+        linked_company_id = self.conn.execute(
+            "SELECT company_id FROM contacts WHERE id = ?", (contact_id,)
+        ).fetchone()[0]
+        self.assertEqual(linked_company_id, company_id, "contact not linked to company")
 
-        self.assertEqual(user_count, 1)
-        self.assertEqual(company_count, 1)
-        self.assertEqual(contact_count, 1)
-        self.assertEqual(contact_row_company_id, company_id, "company_id in contact row not properly set")
-
-        #delete company
         self.conn.execute("DELETE FROM companies WHERE id = ?", (company_id,))
 
-        # recheck all exist except for company and that company ID is Null in contact row
-        user_count = self.conn.execute("SELECT COUNT(*) FROM users WHERE id = ?", (user_id,)).fetchone()[0]
-        company_count = self.conn.execute("SELECT COUNT(*) FROM companies WHERE user_id = ?", (user_id,)).fetchone()[0]
-        contact_count = self.conn.execute("SELECT COUNT(*) FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
-        contact_row_company_id = self.conn.execute("SELECT company_id FROM contacts WHERE user_id = ?", (user_id,)).fetchone()[0]
+        # After: company is gone, contact (and user) remain, contact's company_id is NULL
+        self.assertEqual(self._count("companies", "id = ?", (company_id,)), 0, "company not deleted")
+        self.assertEqual(self._count("users", "id = ?", (self.user_id,)), 1, "user was deleted")
+        self.assertEqual(self._count("contacts", "id = ?", (contact_id,)), 1, "contact was deleted")
 
-        self.assertEqual(user_count, 1)
-        self.assertEqual(company_count, 0)
-        self.assertEqual(contact_count, 1)
-        self.assertIsNone(contact_row_company_id, "company_id in contact row not rest to NULL")
+        linked_company_id = self.conn.execute(
+            "SELECT company_id FROM contacts WHERE id = ?", (contact_id,)
+        ).fetchone()[0]
+        self.assertIsNone(linked_company_id, "contact company_id not set to NULL")
 
 
-        
-
-        
-     
-    
 if __name__ == "__main__":
     unittest.main()
