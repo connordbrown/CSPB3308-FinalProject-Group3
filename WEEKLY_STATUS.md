@@ -17,17 +17,17 @@
 | Matthew Etter | base template with stub routes, README run steps, WEEKLY STATUS.md | mockups, detailed page descriptions | None |
 | Connor Brown | Created Sample Test Data set| Login page, job details page   | mockups |
 | Leeza Etzenhouser | schema.sql and db tests | contacts page, add contacts page| mockups |
-| Dane Neves | Dashboard details | add job, dashboard | mockups | 
+| Dane Neves | Created dynamic jobs list on dashboard with sample data | add job, dashboard | mockups |
 
 
-**Decisions:** Matt does mockups, split technical page details between other three. Add 'Pending' column to Trello
+**Decisions:** Matt does mockups, split technical page details between other three. Add 'Pending (PR Created)' column to Trello
 
 **Risks:** Diverging page design, referencing different names for same function in design
 
 **Retro:** 
 - Went well: Division of labor worked without conflict, db tests up and running with sample data, dashboard routes passing basic test
 - Didn't work: still getting up to speed on Trello, better than last week on that front.
-- Changing next sprint: Created Trello template, adding Pending column
+- Changing next sprint: Created Trello template, adding Pending (PR Created) column
 
 -------
 
