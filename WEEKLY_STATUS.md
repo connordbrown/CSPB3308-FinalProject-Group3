@@ -1,9 +1,35 @@
-# WEEKLY_STATUS.md
-## Project Milestone 3: Weekly Status Report
-
 # Weekly Status: Prospex (Team 3)
 
----
+-------
+
+## October 14 Sprint 2 Review
+
+**Meeting:** October 7, 3pm MT, 30 Minutes, Zoom. Scrum master: Connor Brown
+
+**Sprint Goal:**  sample data set, db schema + tests, base template and stub routes, started on page work. Dashboard view and PAGES_TESTING.md in progress.
+
+**Next Sprint Goal** PAGE_TESTING.md complete, additional progress on pages tbd once requirements ironed out.
+
+![Trello board, Oct 14](docs/images/trello-2026-10-14.png)
+
+| Team member | Completed this sprint | Plan for next Sprint | Blocks |
+| --- | --- | --- | --- | 
+| Matthew Etter | base template with stub routes, README run steps, WEEKLY STATUS.md | mockups, detailed page descriptions | None |
+| Connor Brown | Created Sample Test Data set| Login page, job details page   | mockups |
+| Leeza Etzenhouser | schema.sql and db tests | contacts page, add contacts page| mockups |
+| Dane Neves | Dashboard details | add job, dashboard | mockups | 
+
+
+**Decisions:** Matt does mockups, split technical page details between other three. Add 'Pending' column to Trello
+
+**Risks:** Diverging page design, referencing different names for same function in design
+
+**Retro:** 
+- Went well: Division of labor worked without conflict, db tests up and running with sample data, dashboard routes passing basic test
+- Didn't work: still getting up to speed on Trello, better than last week on that front.
+- Changing next sprint: Created Trello template, adding Pending column
+
+-------
 
 ## October 7 Sprint 1 Review
 
@@ -21,9 +47,9 @@
 | Dane Neves | Wireframes for each page of application | Begin work on PAGE_TESTING.md | None | 
 
 
-**Decisions** Switched to SQLite from MySQL because it better matches class stack.
+**Decisions:** Switched to SQLite from MySQL because it better matches class stack.
 
-**Risks** Difficulty integrating tests/ pages/ db
+**Risks:** Difficulty integrating tests/ pages/ db
 
 **Retro:** 
 - Went well: PRs reviewed, code merged and working, design docs reviewed and discussed
