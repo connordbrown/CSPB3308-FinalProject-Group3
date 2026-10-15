@@ -46,3 +46,30 @@ The job search process is often fragmented and spread out over many different si
 ## Project Tracking Software link
  [Trello](https://trello.com/b/6BrC0GcW/3308-team-3)
 
+
+
+ ## How to Run the App
+
+ ### Prerequisites:
+ - Python 3.10+
+
+ ### Setup Script:
+ ``` bash
+ git clone git@github.com:connordbrown/CSPB3308-FinalProject-Group3.git
+ cd CSPB3308-FinalProject-Group3
+ python -m venv venv
+ source venv/bin/activate
+ pip install -r requirements.txt
+ ```
+
+ ### Run Script:
+ ```bash 
+ flask --app app run
+ ```
+
+### Run Tests: 
+```bash
+python -m unittest -v
+```
+
+
