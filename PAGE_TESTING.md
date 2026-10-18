@@ -24,9 +24,16 @@
 
 ![Login page mockup](docs/images/login.jpg)
 
-**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dahsboard, otherwise they stay on this page.
+**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dashboard, otherwise they stay on this page.
 
-**Parameters:** TODO
+**Parameters:**
+- GET: none.
+- POST, form fields:
+  - `email` (str, required): lowercased and trimmed by the app before lookup.
+  - `password` (str, required).
+  - `action` (str): "login" or "signup", set by the name/value of the button clicked.
+  - Signup only: `first_name` (str, required), `last_name` (str, required), `display_name` (str, optional; an empty value is saved as NULL, not "").
+
 **Data needed:** TODO
 **Links:** TODO
 **Tests:** TODO
