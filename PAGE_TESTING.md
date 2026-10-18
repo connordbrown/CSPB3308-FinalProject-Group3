@@ -34,7 +34,12 @@
   - `action` (str): "login" or "signup", set by the name/value of the button clicked.
   - Signup only: `first_name` (str, required), `last_name` (str, required), `display_name` (str, optional; an empty value is saved as NULL, not "").
 
-**Data needed:** TODO
+**Data needed:**
+- Table accessed: `users`.
+- Log in: look up one user by lowercased `email`, then check `password` against `password_hash` (`check_password_hash`). On success, store `user_id` in the session (not only the username).
+- Sign up: insert a user with `first_name`, `last_name`, `email`, `display_name`, and `generate_password_hash(password)`. Catch the UNIQUE violation on `email` or `display_name` and show a friendly error.
+- Access methods needed: `get_user_by_email(email)`, `create_user(first_name, last_name, email, password_hash, display_name=None)`.
+
 **Links:** TODO
 **Tests:** TODO
 
