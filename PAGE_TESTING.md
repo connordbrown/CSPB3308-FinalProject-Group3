@@ -37,12 +37,38 @@
 
 ![Contacts page mockup](docs/images/contacts.jpg)
 
-**Description:** Provides a list of cnntacts with name, role and company displayed. An 'add new button' takes user to the add new contact page, see below. Clicking on a contact takes the user to the details page for that particular contact. 
+**Description:** Provides a list of contacts with name, title and company displayed. An 'add new button' takes user to the add new contact page, see below. Clicking on a contact takes the user to the details page for that particular contact. 
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:** 
+
+- Route: none
+- Query: none (filtering is a possible stretch goal)
+- Session: logged-in `user_id` (required; otherwise redirect to `/login`)
+
+**Data needed:** 
+
+Session: `user_id`
+- Database: `get_contacts_for_user(user_id)` returns each contact's id, name, title, and company name
+  - Uses a LEFT JOIN to companies so contacts with no company still appear
+  - Sorted alphabetically by name
+
+**Links:** 
+
+- Contact row →`/contacts/<id>`
+- + Add new → `/contacts/add`
+- Log out → `/logout`
+- Nav bar → per `base.html`
+
+**Tests:** 
+
+1. Not logged in redirects to `/login`
+2. Page loads with "Contacts" heading and "Add new" button
+3. Each contact shows name, title, and company
+4. Only the logged-in user's contacts appear
+5. Contact with no title or company still appears; empty fields are blank, not "None"
+6. User with no contacts sees an empty-state message; Add button still shows
+7. Clicking a contact opens its detail page
+8. "Add new" opens `/contacts/add`
 
 ---
 ## 4. Add / Edit Contact
