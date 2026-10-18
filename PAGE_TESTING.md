@@ -125,7 +125,13 @@
 - `job_id` (int, URL path): must be a whole number.
 - Session `user_id`: required. A logged-out visitor is redirected to `/login`.
 
-**Data needed:** TODO
+**Data needed:**
+- Tables accessed: `jobs`, `companies`, `contacts`. Every query also filters on the session `user_id`.
+- Job: `title`, `status`, `work_type`, `link`, `notes`, `date_applied`, joined to the company's `name`, `city`, `region`.
+- Linked contacts: `id`, `name`, `title`, `designation` for contacts where `job_id` = the job and `user_id` = the session user.
+- Access methods needed: `get_job(user_id, job_id)` (returns the job with its company, or None) and `get_contacts_for_job(user_id, job_id)` (returns a list, possibly empty).
+- Empty values (NULL `link`, `work_type`, `notes`, `date_applied`, or company `city`/`region`) are left out or shown as a dash. The page never shows "None".
+
 **Links:** TODO
 **Tests:** TODO
 
