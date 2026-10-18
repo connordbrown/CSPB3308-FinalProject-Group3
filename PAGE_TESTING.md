@@ -46,7 +46,20 @@
 - A user who is already logged in and opens `/login` is redirected to `/`.
 - Log out (`/logout`) clears the session and returns to `/`.
 
-**Tests:** TODO
+**Tests:**
+1. GET `/login` returns 200 and shows the form with both buttons.
+2. Log in with a valid email and password (e.g., `alex.demo@example.com` / `DemoPass123!`) redirects to `/` and the session holds Alex's `user_id`.
+3. Log in with the right email in different case (`ALEX.DEMO@example.com`) succeeds.
+4. Log in with a wrong password stays on `/login`, shows an error, and creates no session.
+5. Log in with an unknown email gives the same generic error as test 4, so the page doesn't reveal which emails exist.
+6. Sign up with valid fields creates one new `users` row, logs the user in, and redirects to `/`.
+7. The new row's `password_hash` is a hash, not the plain password.
+8. Sign up with an email that already exists (including different case) stays on `/login`, shows an error, and adds no row.
+9. Sign up with a missing `first_name`, `last_name`, or `password` shows an error and adds no row.
+10. Sign up with a `display_name` already in use shows an error and adds no row.
+11. Two sign-ups with a blank `display_name` both succeed (stored as NULL).
+12. A logged-in user who opens `/login` is redirected to `/`.
+13. `/logout` clears the session; the nav bar goes back to its logged-out state.
 
 ---
 ## 3. Contacts
