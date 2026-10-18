@@ -40,7 +40,12 @@
 - Sign up: insert a user with `first_name`, `last_name`, `email`, `display_name`, and `generate_password_hash(password)`. Catch the UNIQUE violation on `email` or `display_name` and show a friendly error.
 - Access methods needed: `get_user_by_email(email)`, `create_user(first_name, last_name, email, password_hash, display_name=None)`.
 
-**Links:** TODO
+**Links:**
+- Success (login or signup): redirect to Dashboard (`/`).
+- Failure: stay on `/login` with an error message and the typed email kept in the field.
+- A user who is already logged in and opens `/login` is redirected to `/`.
+- Log out (`/logout`) clears the session and returns to `/`.
+
 **Tests:** TODO
 
 ---
