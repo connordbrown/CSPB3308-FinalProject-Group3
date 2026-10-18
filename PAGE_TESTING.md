@@ -121,7 +121,10 @@
 
 **Description:** Displays details of a given job. Title, company, status, type, link, notes and a list of connected contacts. Edit button will be added to open same job in the add/edit form. 
 
-**Parameters:** TODO
+**Parameters:**
+- `job_id` (int, URL path): must be a whole number.
+- Session `user_id`: required. A logged-out visitor is redirected to `/login`.
+
 **Data needed:** TODO
 **Links:** TODO
 **Tests:** TODO
