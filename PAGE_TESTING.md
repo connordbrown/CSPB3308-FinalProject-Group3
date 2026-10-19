@@ -132,7 +132,11 @@
 - Access methods needed: `get_job(user_id, job_id)` (returns the job with its company, or None) and `get_contacts_for_job(user_id, job_id)` (returns a list, possibly empty).
 - Empty values (NULL `link`, `work_type`, `notes`, `date_applied`, or company `city`/`region`) are left out or shown as a dash. The page never shows "None".
 
-**Links:** TODO
+**Links:**
+- Edit button goes to `/jobs/<id>/edit`.
+- Each contact goes to `/contacts/<id>`.
+- A "back to dashboard" link goes to `/`.
+
 **Tests:** TODO
 
 ---
