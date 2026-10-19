@@ -137,7 +137,18 @@
 - Each contact goes to `/contacts/<id>`.
 - A "back to dashboard" link goes to `/`.
 
-**Tests:** TODO
+**Tests:**
+1. As the owner, `/jobs/1` returns 200 and shows "Junior Backend Developer", Acme, status "interviewing", type "hybrid", the link, and the notes.
+2. `/jobs/1` lists its three contacts (Jordan Rivera, Sam Okafor, Dana Whitfield), each linking to `/contacts/<id>`.
+3. `/jobs/10` (Support Engineer: no link, notes, work type, or date applied, and no contacts) returns 200, shows no "None" text, and shows an empty-contacts message.
+4. `/jobs/4` (Summit Cloud, no city or region) shows the company name with no stray comma.
+5. A job id that doesn't exist (e.g., `/jobs/9999`) returns 404.
+6. A job owned by another user (logged in as Alex, request `/jobs/11`) returns the same 404 and shows none of its data.
+7. Contacts from another user never appear, even if a contact row points at this job.
+8. A logged-out visitor requesting `/jobs/1` is redirected to `/login`.
+9. `/jobs/abc` returns 404.
+10. The Edit button points to `/jobs/<id>/edit` for the right id.
+11. A job `link` that doesn't start with http:// or https:// is not rendered as a clickable link.
 
 ---
 ## 8. Profile
