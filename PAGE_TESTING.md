@@ -133,10 +133,37 @@ Session: `user_id`
 
 **Description:** Displays saved details regarding a given contact. Name, company and associated job application as well as role, contact information and relevant notes.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:** 
+
+- Route: `contact_id` from `/contacts/<id>`
+
+**Data needed:** 
+
+-Session: `user_id`
+-Database:
+    - `get_contact(user_id, contact_id)`
+    - On delete `delete_contact(user_id, contact_id)
+
+**Links:** 
+
+- Job -> `/jobs/<job_id>` (only shown if a job is linked)
+- Edit -> `/contacts/<id>/edit`
+- Delete -> confirmation, then POST to `/contacts/<id>/delete`; redirects to `/contacts`
+- Back to contacts -> `/contacts`
+- Nav bar -> per `base.html`
+
+**Tests:** 
+
+1. Not logged in: redirects to `/login`
+2. Shows the contact's name, title, designation, company, job, email, phone, LinkedIn, and notes
+3. Empty optional fields display as blank, not "None"
+4. Job title links to the correct job page; no link shown when no job is linked
+5. Nonexistent `contact_id` returns "not found"
+6. Another user's `contact_id` returns "not found" and shows none of their data
+7. Edit opens `/contacts/<id>/edit` with the form prefilled
+8. Delete asks for confirmation; confirming removes the contact and returns to `/contacts`
+9. Cancelling the confirmation keeps the contact
+10. Deleting another user's contact fails and leaves it unchanged
 
 ---
 ## 6. Add / Edit Job

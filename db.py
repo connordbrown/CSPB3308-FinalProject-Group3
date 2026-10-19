@@ -98,6 +98,23 @@ def update_contact(conn, user_id, contact_id, name, title=None, designation=None
     """
     raise NotImplementedError
 
+
+def delete_contact(conn, user_id, contact_id):
+    """
+    Deletes an existing contact only if it belongs to the user.
+    The contact's linked company and job are not affected
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        contact_id (int)
+
+    Returns:
+        bool: True if the contact was deleted,
+            False if the contact doesn't exist or belongs to another user
+    
+    """
+    raise NotImplementedError
 # ---------- Companies ----------
  
 def get_or_create_company(conn, user_id, name):
