@@ -138,17 +138,18 @@
 - A "back to dashboard" link goes to `/`.
 
 **Tests:**
-1. As the owner, `/jobs/1` returns 200 and shows "Junior Backend Developer", Acme, status "interviewing", type "hybrid", the link, and the notes.
-2. `/jobs/1` lists its three contacts (Jordan Rivera, Sam Okafor, Dana Whitfield), each linking to `/contacts/<id>`.
-3. `/jobs/10` (Support Engineer: no link, notes, work type, or date applied, and no contacts) returns 200, shows no "None" text, and shows an empty-contacts message.
-4. `/jobs/4` (Summit Cloud, no city or region) shows the company name with no stray comma.
-5. A job id that doesn't exist (e.g., `/jobs/9999`) returns 404.
-6. A job owned by another user (logged in as Alex, request `/jobs/11`) returns the same 404 and shows none of its data.
-7. Contacts from another user never appear, even if a contact row points at this job.
-8. A logged-out visitor requesting `/jobs/1` is redirected to `/login`.
-9. `/jobs/abc` returns 404.
-10. The Edit button points to `/jobs/<id>/edit` for the right id.
-11. A job `link` that doesn't start with http:// or https:// is not rendered as a clickable link.
+1. A logged-in user opening one of their own jobs gets a 200 and sees the title, company, status, work type, link, and notes.
+2. A job with linked contacts lists each of them, and each one links to `/contacts/<id>`.
+3. A job with no linked contacts shows an empty-contacts message instead of a blank list.
+4. A job with empty optional fields (link, notes, work type, date applied) returns 200 and shows no "None" text.
+5. A company with no city or region shows just the company name, with no stray comma.
+6. A job id that doesn't exist returns 404.
+7. A job owned by another user returns the same 404 and shows none of its data.
+8. Contacts belonging to another user never appear, even if a contact row points at this job.
+9. A logged-out visitor is redirected to `/login`.
+10. A non-numeric id (e.g., `/jobs/abc`) returns 404.
+11. The Edit button points to `/jobs/<id>/edit` for the right job.
+12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
 
 ---
 ## 8. Profile
