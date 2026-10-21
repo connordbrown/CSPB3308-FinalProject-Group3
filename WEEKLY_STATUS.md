@@ -1,5 +1,31 @@
 # Weekly Status: Prospex (Team 3)
+-------
+## October 21 Sprint 3 Review
 
+**Meeting:** October 21, 3pm MT, 30 Minutes, Zoom. Scrum master: Leeza Etzenhouser
+
+**Sprint Goal:**  PAGE_TESTING.md complete, additional progress on pages tbd once requirements ironed out.
+
+**Next Sprint Goal** 
+
+![Trello board, Oct 21](docs/images/trello-2026-10-21.png)
+
+| Team member | Completed this sprint | Plan for next Sprint | Blocks |
+| --- | --- | --- | --- | 
+| Matthew Etter | base template with stub routes, README run steps, WEEKLY STATUS.md | mockups, detailed page descriptions | None |
+| Connor Brown | Created Sample Test Data set| Login page, job details page   | mockups |
+| Leeza Etzenhouser | schema.sql and db tests | contacts page, add contacts page| mockups |
+| Dane Neves | Created dynamic jobs list on dashboard with sample data | add job, dashboard | mockups |
+
+
+**Decisions:** 
+
+**Risks:** 
+
+**Retro:** 
+- Went well: 
+- Didn't work: 
+- Changing next sprint: 
 -------
 
 ## October 14 Sprint 2 Review
