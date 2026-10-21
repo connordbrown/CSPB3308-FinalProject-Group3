@@ -6,26 +6,29 @@
 
 **Sprint Goal:**  PAGE_TESTING.md complete, additional progress on pages tbd once requirements ironed out.
 
-**Next Sprint Goal** 
+**Next Sprint Goal** Implement data access functions 
 
 ![Trello board, Oct 21](docs/images/trello-2026-10-21.png)
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
 | --- | --- | --- | --- | 
-| Matthew Etter |  |  |  |
-| Connor Brown | |   |  |
-| Leeza Etzenhouser |  | |  |
-| Dane Neves |  |  |  |
-
+| Matthew Etter | Page mockups based on wireframes, profile section in README  |4-5 data access functions   | none |
+| Connor Brown | Wrote requirements for login and job details + access function stubs | 4-5 data access functions  | none  |
+| Leeza Etzenhouser | Wrote requirements for contacts pages + access function stubs  |4-5 data acss functions + add data access info to SQL_TESTING.md | none |
+| Dane Neves |Wrote requirements for job and dashboard pages  |4-5 data access functions | none |
+| | |  |  | 
 
 **Decisions:** 
+- We will have a single test file for access functions
+- SQL_TESTING.md will list test, but they do not need to be passing before turning in the document.
 
 **Risks:** 
+- Milestones are mostly taken care of which means we're more off leash for the remainder of the project. We'll need to make sure we stay on track.
 
 **Retro:** 
-- Went well: 
-- Didn't work: 
-- Changing next sprint: 
+- Went well: Precess went smoothly, we're getiting into a good groove with the PRs and Trello
+- Didn't work: Adding universal files to individual branches
+- Changing next sprint: Any new files created for everyone to use will be called out and added to main so that they are accessible. We'll try to get started on sprint tasks earlier in the week so that they are completed by the Wednesday meeting.
 -------
 
 ## October 14 Sprint 2 Review
