@@ -24,12 +24,42 @@
 
 ![Login page mockup](docs/images/login.jpg)
 
-**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dahsboard, otherwise they stay on this page.
+**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dashboard, otherwise they stay on this page.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:**
+- GET: none.
+- POST, form fields:
+  - `email` (str, required): lowercased and trimmed by the app before lookup.
+  - `password` (str, required).
+  - `action` (str): "login" or "signup", set by the name/value of the button clicked.
+  - Signup only: `first_name` (str, required), `last_name` (str, required), `display_name` (str, optional; an empty value is saved as NULL, not "").
+
+**Data needed:**
+- Table accessed: `users`.
+- Log in: look up one user by lowercased `email`, then check `password` against `password_hash` (`check_password_hash`). On success, store `user_id` in the session (not only the username).
+- Sign up: insert a user with `first_name`, `last_name`, `email`, `display_name`, and `generate_password_hash(password)`. Catch the UNIQUE violation on `email` or `display_name` and show a friendly error.
+- Access methods needed: `get_user_by_email(email)`, `create_user(first_name, last_name, email, password_hash, display_name=None)`.
+
+**Links:**
+- Success (login or signup): redirect to Dashboard (`/`).
+- Failure: stay on `/login` with an error message and the typed email kept in the field.
+- A user who is already logged in and opens `/login` is redirected to `/`.
+- Log out (`/logout`) clears the session and returns to `/`.
+
+**Tests:**
+1. GET `/login` returns 200 and shows the form with both buttons.
+2. Log in with a valid email and password (e.g., `alex.demo@example.com` / `DemoPass123!`) redirects to `/` and the session holds Alex's `user_id`.
+3. Log in with the right email in different case (`ALEX.DEMO@example.com`) succeeds.
+4. Log in with a wrong password stays on `/login`, shows an error, and creates no session.
+5. Log in with an unknown email gives the same generic error as test 4, so the page doesn't reveal which emails exist.
+6. Sign up with valid fields creates one new `users` row, logs the user in, and redirects to `/`.
+7. The new row's `password_hash` is a hash, not the plain password.
+8. Sign up with an email that already exists (including different case) stays on `/login`, shows an error, and adds no row.
+9. Sign up with a missing `first_name`, `last_name`, or `password` shows an error and adds no row.
+10. Sign up with a `display_name` already in use shows an error and adds no row.
+11. Two sign-ups with a blank `display_name` both succeed (stored as NULL).
+12. A logged-in user who opens `/login` is redirected to `/`.
+13. `/logout` clears the session; the nav bar goes back to its logged-out state.
 
 ---
 ## 3. Contacts
@@ -37,12 +67,37 @@
 
 ![Contacts page mockup](docs/images/contacts.jpg)
 
-**Description:** Provides a list of cnntacts with name, role and company displayed. An 'add new button' takes user to the add new contact page, see below. Clicking on a contact takes the user to the details page for that particular contact. 
+**Description:** Provides a list of contacts with name, title and company displayed. An 'add new button' takes user to the add new contact page, see below. Clicking on a contact takes the user to the details page for that particular contact. 
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:** 
+
+- Route: none
+- Query: none (filtering is a possible stretch goal)
+
+**Data needed:** 
+
+Session: `user_id`
+- Database: `get_contacts_for_user(user_id)` returns each contact's id, name, title, and company name
+    - Uses a LEFT JOIN to companies so contacts with no company still appear
+    - Sorted alphabetically by name
+
+**Links:** 
+
+- Contact row →`/contacts/<id>`
+- Add new → `/contacts/add`
+- Log out → `/logout`
+- Nav bar → per `base.html`
+
+**Tests:** 
+
+1. Not logged in redirects to `/login`
+2. Page loads with "Contacts" heading and "Add new" button
+3. Each contact shows name, title, and company
+4. Only the logged-in user's contacts appear
+5. Contact with no title or company still appears; empty fields are blank, not "None"
+6. User with no contacts sees an empty-state message; Add button still shows
+7. Clicking a contact opens its detail page
+8. "Add new" opens `/contacts/add`
 
 ---
 ## 4. Add / Edit Contact
@@ -52,10 +107,53 @@
 
 **Description:** Form allows user to save information about a new contact. Name is mandatory. Company, title, email, phone and Linked In are optional. A text field is provided for any relevant notes. Returns to /contacts on save or cancel. 
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:** 
+
+- Add (`/contacts/add`): none
+- Edit (`/contacts/<id>/edit`): route parameter `contact_id`
+- Form data on submit (POST), both modes:
+    - `name` (required)
+    - `title`, `designation`, `company_id`, `job_id`, `email`, `phone`, `linkedin_url`, `notes` (optional)
+  - `new_company_name` (used only when "+ Add new company" is selected)
+
+**Data needed:** 
+
+- Session: `user_id`
+-Database:
+    - `get_companies_for_user(user_id)` for Company dropdown
+    - `new_company_name
+    - `get_jobs_for_user(user_id)` for Job dropdown
+    - Edit only: `get_contact(user_id, contact_id)` to prefill the form
+    - On submit: `create_contact(...)` (add) or `update_contact(...)` (edit)
+    - On submit, if "+ Add new company" is selected: `get_or_create_company(user_id, new_company_name)`, then its id is saved as the contact's `company_id`
+        -(possible stretch goal → expand function to add city, region, website, notes or add an "Edit Companies" page)
+- Static: designation options for dropdown
+- Form state: validation error message and previously entered values
+
+**Links:** 
+
+- Save (add) → `/contacts`
+- Save (edit) → `/contacts/<id>`
+- Cancel → `/contacts` (add) or `/contacts<id>` (edit); nothing is saved
+- Nav bar → (dashboard, contacts, profile) -> their pages
+- Log Out → `/logout`
+
+**Tests:** 
+
+1. Not logged in: redirects to `/login`
+2. All fields render; Name is required
+3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option, and "+ Add Company" that shows a company name field for companies only 
+4. Submitting without a name shows an error, saves nothing, and keeps the other entered values
+5. Submitting with only a name succeeds
+6. A valid submit creates the contact, redirects to `/contacts`, and the new contact appears in the list
+7. Cancel saves nothing and returns to the previous page
+8. Submitting a `company_id` or `job_id` belonging to another user is rejected
+9. Edit: form is prefilled with the contact's current values
+10. Edit: saving changes updates the contact and redirects to its details page
+11. Edit: using another user's `contact_id` returns "not found"
+12. Selecting "+ Add new company" with a name creates the company and links the contact to it
+13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
+14. Selecting "+ Add new company" with a blank name shows an error and saves nothing
 
 ---
 ## 5. Contact Details
@@ -65,10 +163,37 @@
 
 **Description:** Displays saved details regarding a given contact. Name, company and associated job application as well as role, contact information and relevant notes.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:** 
+
+- Route: `contact_id` from `/contacts/<id>`
+
+**Data needed:** 
+
+-Session: `user_id`
+-Database:
+    - `get_contact(user_id, contact_id)`
+    - On delete `delete_contact(user_id, contact_id)
+
+**Links:** 
+
+- Job -> `/jobs/<job_id>` (only shown if a job is linked)
+- Edit -> `/contacts/<id>/edit`
+- Delete -> confirmation, then POST to `/contacts/<id>/delete`; redirects to `/contacts`
+- Back to contacts -> `/contacts`
+- Nav bar -> per `base.html`
+
+**Tests:** 
+
+1. Not logged in: redirects to `/login`
+2. Shows the contact's name, title, designation, company, job, email, phone, LinkedIn, and notes
+3. Empty optional fields display as blank, not "None"
+4. Job title links to the correct job page; no link shown when no job is linked
+5. Nonexistent `contact_id` returns "not found"
+6. Another user's `contact_id` returns "not found" and shows none of their data
+7. Edit opens `/contacts/<id>/edit` with the form prefilled
+8. Delete asks for confirmation; confirming removes the contact and returns to `/contacts`
+9. Cancelling the confirmation keeps the contact
+10. Deleting another user's contact fails and leaves it unchanged
 
 ---
 ## 6. Add / Edit Job
@@ -91,10 +216,35 @@
 
 **Description:** Displays details of a given job. Title, company, status, type, link, notes and a list of connected contacts. Edit button will be added to open same job in the add/edit form. 
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:**
+- `job_id` (int, URL path): must be a whole number.
+- Session `user_id`: required. A logged-out visitor is redirected to `/login`.
+
+**Data needed:**
+- Tables accessed: `jobs`, `companies`, `contacts`. Every query also filters on the session `user_id`.
+- Job: `title`, `status`, `work_type`, `link`, `notes`, `date_applied`, joined to the company's `name`, `city`, `region`.
+- Linked contacts: `id`, `name`, `title`, `designation` for contacts where `job_id` = the job and `user_id` = the session user.
+- Access methods needed: `get_job(user_id, job_id)` (returns the job with its company, or None) and `get_contacts_for_job(user_id, job_id)` (returns a list, possibly empty).
+- Empty values (NULL `link`, `work_type`, `notes`, `date_applied`, or company `city`/`region`) are left out or shown as a dash. The page never shows "None".
+
+**Links:**
+- Edit button goes to `/jobs/<id>/edit`.
+- Each contact goes to `/contacts/<id>`.
+- A "back to dashboard" link goes to `/`.
+
+**Tests:**
+1. A logged-in user opening one of their own jobs gets a 200 and sees the title, company, status, work type, link, and notes.
+2. A job with linked contacts lists each of them, and each one links to `/contacts/<id>`.
+3. A job with no linked contacts shows an empty-contacts message instead of a blank list.
+4. A job with empty optional fields (link, notes, work type, date applied) returns 200 and shows no "None" text.
+5. A company with no city or region shows just the company name, with no stray comma.
+6. A job id that doesn't exist returns 404.
+7. A job owned by another user returns the same 404 and shows none of its data.
+8. Contacts belonging to another user never appear, even if a contact row points at this job.
+9. A logged-out visitor is redirected to `/login`.
+10. A non-numeric id (e.g., `/jobs/abc`) returns 404.
+11. The Edit button points to `/jobs/<id>/edit` for the right job.
+12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
 
 ---
 ## 8. Profile
