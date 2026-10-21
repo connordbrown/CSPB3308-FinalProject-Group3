@@ -24,12 +24,42 @@
 
 ![Login page mockup](docs/images/login.jpg)
 
-**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dahsboard, otherwise they stay on this page.
+**Description:** Fields for password and username allow user to either log in or create a new account using the respective buttons. Successful login/account creation takes user to dashboard, otherwise they stay on this page.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:**
+- GET: none.
+- POST, form fields:
+  - `email` (str, required): lowercased and trimmed by the app before lookup.
+  - `password` (str, required).
+  - `action` (str): "login" or "signup", set by the name/value of the button clicked.
+  - Signup only: `first_name` (str, required), `last_name` (str, required), `display_name` (str, optional; an empty value is saved as NULL, not "").
+
+**Data needed:**
+- Table accessed: `users`.
+- Log in: look up one user by lowercased `email`, then check `password` against `password_hash` (`check_password_hash`). On success, store `user_id` in the session (not only the username).
+- Sign up: insert a user with `first_name`, `last_name`, `email`, `display_name`, and `generate_password_hash(password)`. Catch the UNIQUE violation on `email` or `display_name` and show a friendly error.
+- Access methods needed: `get_user_by_email(email)`, `create_user(first_name, last_name, email, password_hash, display_name=None)`.
+
+**Links:**
+- Success (login or signup): redirect to Dashboard (`/`).
+- Failure: stay on `/login` with an error message and the typed email kept in the field.
+- A user who is already logged in and opens `/login` is redirected to `/`.
+- Log out (`/logout`) clears the session and returns to `/`.
+
+**Tests:**
+1. GET `/login` returns 200 and shows the form with both buttons.
+2. Log in with a valid email and password (e.g., `alex.demo@example.com` / `DemoPass123!`) redirects to `/` and the session holds Alex's `user_id`.
+3. Log in with the right email in different case (`ALEX.DEMO@example.com`) succeeds.
+4. Log in with a wrong password stays on `/login`, shows an error, and creates no session.
+5. Log in with an unknown email gives the same generic error as test 4, so the page doesn't reveal which emails exist.
+6. Sign up with valid fields creates one new `users` row, logs the user in, and redirects to `/`.
+7. The new row's `password_hash` is a hash, not the plain password.
+8. Sign up with an email that already exists (including different case) stays on `/login`, shows an error, and adds no row.
+9. Sign up with a missing `first_name`, `last_name`, or `password` shows an error and adds no row.
+10. Sign up with a `display_name` already in use shows an error and adds no row.
+11. Two sign-ups with a blank `display_name` both succeed (stored as NULL).
+12. A logged-in user who opens `/login` is redirected to `/`.
+13. `/logout` clears the session; the nav bar goes back to its logged-out state.
 
 ---
 ## 3. Contacts
@@ -186,10 +216,35 @@ Session: `user_id`
 
 **Description:** Displays details of a given job. Title, company, status, type, link, notes and a list of connected contacts. Edit button will be added to open same job in the add/edit form. 
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Parameters:**
+- `job_id` (int, URL path): must be a whole number.
+- Session `user_id`: required. A logged-out visitor is redirected to `/login`.
+
+**Data needed:**
+- Tables accessed: `jobs`, `companies`, `contacts`. Every query also filters on the session `user_id`.
+- Job: `title`, `status`, `work_type`, `link`, `notes`, `date_applied`, joined to the company's `name`, `city`, `region`.
+- Linked contacts: `id`, `name`, `title`, `designation` for contacts where `job_id` = the job and `user_id` = the session user.
+- Access methods needed: `get_job(user_id, job_id)` (returns the job with its company, or None) and `get_contacts_for_job(user_id, job_id)` (returns a list, possibly empty).
+- Empty values (NULL `link`, `work_type`, `notes`, `date_applied`, or company `city`/`region`) are left out or shown as a dash. The page never shows "None".
+
+**Links:**
+- Edit button goes to `/jobs/<id>/edit`.
+- Each contact goes to `/contacts/<id>`.
+- A "back to dashboard" link goes to `/`.
+
+**Tests:**
+1. A logged-in user opening one of their own jobs gets a 200 and sees the title, company, status, work type, link, and notes.
+2. A job with linked contacts lists each of them, and each one links to `/contacts/<id>`.
+3. A job with no linked contacts shows an empty-contacts message instead of a blank list.
+4. A job with empty optional fields (link, notes, work type, date applied) returns 200 and shows no "None" text.
+5. A company with no city or region shows just the company name, with no stray comma.
+6. A job id that doesn't exist returns 404.
+7. A job owned by another user returns the same 404 and shows none of its data.
+8. Contacts belonging to another user never appear, even if a contact row points at this job.
+9. A logged-out visitor is redirected to `/login`.
+10. A non-numeric id (e.g., `/jobs/abc`) returns 404.
+11. The Edit button points to `/jobs/<id>/edit` for the right job.
+12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
 
 ---
 ## 8. Profile
