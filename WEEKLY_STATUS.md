@@ -12,10 +12,10 @@
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
 | --- | --- | --- | --- | 
-| Matthew Etter | base template with stub routes, README run steps, WEEKLY STATUS.md | mockups, detailed page descriptions | None |
-| Connor Brown | Created Sample Test Data set| Login page, job details page   | mockups |
-| Leeza Etzenhouser | schema.sql and db tests | contacts page, add contacts page| mockups |
-| Dane Neves | Created dynamic jobs list on dashboard with sample data | add job, dashboard | mockups |
+| Matthew Etter |  |  |  |
+| Connor Brown | |   |  |
+| Leeza Etzenhouser |  | |  |
+| Dane Neves |  |  |  |
 
 
 **Decisions:** 
