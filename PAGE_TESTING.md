@@ -13,10 +13,25 @@
 
 **Description:** The homepage. Logged-out users see a prompt to log in. Logged in users see a list of job applications with Role/Title and company filterable by status and optionally other criteria. A button allows users to add new job applications.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+
+**Parameters:**
+- Route: None
+- Query: optional filter status (preferably implementing this with JavaScript instead)
+
+**Data needed:**
+- user isLoggedIn status
+- list of user's jobs
+
+**Links:**
+- dynamic - each job card is a link to its own Job Detail page (/job/<:id>)
+- Add Job - last card links to Add Job page
+
+**Tests:**
+1. user not logged in
+2. show jobs list
+3. filter status active - show only those jobs
+4. individual job cards link correctly
+5. add job button links correctly
 
 ---
 ## 2. Login
@@ -197,16 +212,41 @@ Session: `user_id`
 
 ---
 ## 6. Add / Edit Job
-**Routes:** `/jobs/add`, `/jobs/<id>edit`
+**Routes:** `/jobs/add`, `/jobs/<id>/edit`
 
 ![Add Job mockup](docs/images/jobs_new.jpg)
 
 **Description:** Form allowing user to save details of a new job application or edit current job. Has fields for role, company and a link to the application itself. Dropdowns for worktype and status. Date defaults to current. Search field or dropdown to add relevant contacts. Notes field allows free-form notes on job. Returns to dashboard on save or cancel.
+**Parameters:**
+- Route: None
+- Query: optional saved data from previous link (example: adding a job from Contacts page could transfer over the same Company name). REACH
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+**Data needed:**
+- user isLoggedIn status
+- ? transfer values - status, company
+- current job details to prefill forms
+- list of associated contacts with Company
+  - MVP - edit only
+  - Reach - after user types in Company name, update this list with a GET request
+
+**Links:**
+- Save - check and submit form
+- Cancel - discard changes and route to dashboard
+
+**Tests:**
+1. User not logged in - redirect to Login (`/login`).
+2. Form input fields should be of correct type - give validation error if wrong type or null.
+    1. Forms should be pre-filled for Edit Mode
+3. Submit button should display "Save" for Add Mode and "Update" for Edit Mode
+4. On submit, form should not submit if any fields are invalid.
+5. On submit, redirect to Job Details (`/jobs/<id>`)
+6. On cancel, discard form input and redirect to:
+    1. Dashboard (`/`) for Add Mode
+    2. Job Details (`/jobs/<id>`) for Edit Mode
+
+
+
+
 
 ---
 ## 7. Job Details
