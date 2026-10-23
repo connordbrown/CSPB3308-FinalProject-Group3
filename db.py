@@ -24,6 +24,19 @@ def get_connection(db_path):
 
 # ---------- Contacts ----------
 
+def get_contacts_for_job(conn, user_id, job_id):
+    """
+    Returns all associated contacts for a user's job.
+        Parameters:
+            conn (sqlite3.Connection)
+            user_id (int)
+            job_id (int)
+        Returns:
+            - List of contacts
+            - Empty list if no contacts
+    """
+    raise NotImplementedError
+
 def get_contacts_for_user(conn, user_id):
     """
     Return all of the user's contacts for the Contacts list page.
@@ -144,7 +157,7 @@ def get_or_create_company(conn, user_id, name):
 
 def get_jobs(conn, user_id, job_id):
     """
-    Return a job with a given id associated with the user.
+    Returns a job with a given id associated with the user.
 
     Parameters:
         conn (sqlite3.Connection)
