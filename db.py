@@ -115,6 +115,7 @@ def delete_contact(conn, user_id, contact_id):
     
     """
     raise NotImplementedError
+
 # ---------- Companies ----------
  
 def get_or_create_company(conn, user_id, name):
@@ -139,6 +140,22 @@ def get_or_create_company(conn, user_id, name):
     """
     raise NotImplementedError
 
+# ---------- Jobs ----------
+
+def get_jobs(conn, user_id, job_id):
+    """
+    Return a job with a given id associated with the user.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        job_id (int)
+
+    Returns:
+        - Dictionary containing data for job
+        - None if job does not exist
+    """
+    raise NotImplementedError
 
 # ---------- Dropdown data ----------
 
