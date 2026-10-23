@@ -49,18 +49,6 @@ def generate_password_hash(password):
     """
     raise NotImplementedError
 
-def login():
-    """
-    Log the user in to the system.
-    """
-    raise NotImplementedError
-
-def logout():
-    """
-    Log the user out of the system.
-    """
-    raise NotImplementedError
-
 # ---------- Contacts ----------
 
 def get_contacts_for_job(conn, user_id, job_id):
