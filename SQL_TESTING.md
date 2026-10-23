@@ -1458,5 +1458,3 @@ All tests are planned for `tests/test_pages.py`. Each test uses the Flask test c
 **Post-conditions:** A's `password_hash` updated
 
 ---
-
-
