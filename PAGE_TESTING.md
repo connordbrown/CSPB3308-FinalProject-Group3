@@ -90,11 +90,13 @@
 - Query: none (filtering is a possible stretch goal)
 
 **Data needed:** 
+  - On delete: `delete_contact(user_id, contact_id)` 
 
 Session: `user_id`
 - Database: `get_contacts_for_user(user_id)` returns each contact's id, name, title, and company name
     - Uses a LEFT JOIN to companies so contacts with no company still appear
     - Sorted alphabetically by name
+    - On delete `delete_contact(user_id, contact_id)
 
 **Links:** 
 
@@ -102,6 +104,7 @@ Session: `user_id`
 - Add new → `/contacts/add`
 - Log out → `/logout`
 - Nav bar → per `base.html`
+- Delete (each row) -> confirmation, then POST to `/contacts/<id>/delete`; returns to `/contacts`
 
 **Tests:** 
 
@@ -113,6 +116,12 @@ Session: `user_id`
 6. User with no contacts sees an empty-state message; Add button still shows
 7. Clicking a contact opens its detail page
 8. "Add new" opens `/contacts/add`
+9. Each contact row shows a Delete button
+10. The confirmation names the contact being deleted
+11. Confirming removes only that contact; the rest of the list is unchanged
+12. Cancelling the confirmation keeps the contact
+13. Clicking Delete does not open the contact's details page
+14. Deleting the last contact shows the empty-state message
 
 ---
 ## 4. Add / Edit Contact
