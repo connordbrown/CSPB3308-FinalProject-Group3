@@ -11,27 +11,32 @@
 
 ![Dashboard mockup](docs/images/dashboard.jpg)
 
-**Description:** The homepage. Logged-out users see a prompt to log in. Logged in users see a list of job applications with Role/Title and company filterable by status and optionally other criteria. A button allows users to add new job applications.
+**Description:** The homepage for Prospex which shows the most central feature--the user's list of jobs. Logged-out users see a prompt to log in. Logged in users see a list of job applications highlighting the Role/Title and Company for each. The list of cards is sorted by job status and can optionally be filtered to show jobs matching for a focused job view. The last card in the list is an "Add Job" button to add new job applications.
 
 
 **Parameters:**
 - Route: None
-- Query: optional filter status (preferably implementing this with JavaScript instead)
+- Query: optional filter status (preferably implementing this with JavaScript)
 
 **Data needed:**
-- user isLoggedIn status
-- list of user's jobs
+- Session - `user_id` / isLoggedIn status
+- Database - `get_jobs_for_user(user_id)`
+    - returns list of user's jobs
 
 **Links:**
-- dynamic - each job card is a link to its own Job Detail page (/job/<:id>)
-- Add Job - last card links to Add Job page
+- Individual job card - `jobs/<id>` each job card is a link to its own Job Detail page
+- Add Job - `/jobs/add` last card links to Add Job page
 
 **Tests:**
-1. user not logged in
-2. show jobs list
-3. filter status active - show only those jobs
-4. individual job cards link correctly
-5. add job button links correctly
+1. User not logged in - redirect to (`/login`).
+2. Page displays list of all jobs
+3. Each job card shows Role, Company, and Status (indicated by color)
+4. Filter status selection appears above job list
+    - Changing filter value updates job list
+5. individual job cards link correctly to their specific job detail page
+6. add job button links correctly
+    - Add Job button displays if job list is empty
+7. Navigation / Header - Page should display navigation with project title, links to contacts and profile pages, and a logout button.
 
 ---
 ## 2. Login
@@ -216,36 +221,41 @@ Session: `user_id`
 
 ![Add Job mockup](docs/images/jobs_new.jpg)
 
-**Description:** Form allowing user to save details of a new job application or edit current job. Has fields for role, company and a link to the application itself. Dropdowns for worktype and status. Date defaults to current. Search field or dropdown to add relevant contacts. Notes field allows free-form notes on job. Returns to dashboard on save or cancel.
+**Description:** An input form for saving a new job or editing an existing job. It should prompt the logged-in user for job details, some of which are required. New jobs should have status as a dropdown option as users may add an application that's already in progress.
+
+The text inputs are role/title, company, application link. The dropdown inputs are work type, status, and contacts. There is a datepicker input for the date that defaults to the current date. The textbox input allows for more detailed comments and notes.
+
+
 **Parameters:**
-- Route: None
-- Query: optional saved data from previous link (example: adding a job from Contacts page could transfer over the same Company name). REACH
+- Route (Add): None
+- Route (Edit): `job_id` for existing job
 
 **Data needed:**
-- user isLoggedIn status
-- ? transfer values - status, company
-- current job details to prefill forms
-- list of associated contacts with Company
-  - MVP - edit only
-  - Reach - after user types in Company name, update this list with a GET request
+- Session - `user_id` / isLoggedIn status
+- Job - `get_job(user_id, job_id)`
+- Contacts - list of associated contacts for company
+  - MVP - `get_contacts_for_job(user_id, job_id)` - for Edit Mode only
+  - Reach - after user types in company name, search DB for matching contacts. Input needs to be debounced to prevent back-to-back searches
 
 **Links:**
-- Save - check and submit form
-- Cancel - discard changes and route to dashboard
+- Save - check and submit form then redirect to Job Details `jobs/<id>`
+- Cancel - discard changes and redirect to:
+    - (Add Mode) - Dashboard (`/`)
+    - (Edit Mode) - Job Details (`/jobs/<id>`)
+
 
 **Tests:**
-1. User not logged in - redirect to Login (`/login`).
-2. Form input fields should be of correct type - give validation error if wrong type or null.
-    1. Forms should be pre-filled for Edit Mode
+1. User not logged in - redirect to Login (`/login`)
+2. Form input fields should be of correct type
+    - Raise validation error if wrong type or null
+    - Forms should be pre-filled for Edit Mode
 3. Submit button should display "Save" for Add Mode and "Update" for Edit Mode
-4. On submit, form should not submit if any fields are invalid.
-5. On submit, redirect to Job Details (`/jobs/<id>`)
-6. On cancel, discard form input and redirect to:
-    1. Dashboard (`/`) for Add Mode
-    2. Job Details (`/jobs/<id>`) for Edit Mode
-
-
-
+4. On submit,
+    - form should not submit if any fields are invalid
+    - redirect to Job Details (`/jobs/<id>`)
+5. On cancel, discard form input and redirect to correct page
+    - Dashboard (`/`) for Add Mode
+    - Job Details (`/jobs/<id>`) for Edit Mode
 
 
 ---
