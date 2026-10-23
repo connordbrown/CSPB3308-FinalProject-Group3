@@ -21,6 +21,23 @@ def get_connection(db_path):
     conn.row_factory = sqlite3.Row
     return conn
 
+# ---------- User ----------
+
+def create_user(conn, first_name, last_bame, email, password_hash):
+    """
+    Create a user with supplied data.
+        Parameters:
+            conn (sqlite3.Connection)
+            first_name (string)
+            last_name (string)
+            email (string)
+            password_hash (string)
+            display_name=None
+        Returns:
+            - (User object/User dictionary, "") if successful
+            - (None, Exception) if failure
+    """
+    raise NotImplementedError
 
 # ---------- Contacts ----------
 
@@ -36,6 +53,7 @@ def get_contacts_for_job(conn, user_id, job_id):
             - Empty list if no contacts
     """
     raise NotImplementedError
+
 
 def get_contacts_for_user(conn, user_id):
     """
