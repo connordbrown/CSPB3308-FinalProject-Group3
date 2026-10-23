@@ -39,6 +39,16 @@ def create_user(conn, first_name, last_bame, email, password_hash):
     """
     raise NotImplementedError
 
+def generate_password_hash(password):
+    """
+    Generate a password hash from a user's password.
+    Parameters:
+        password (string)
+    Returns:
+        - Password hash (string) of original password
+    """
+    raise NotImplementedError
+
 # ---------- Contacts ----------
 
 def get_contacts_for_job(conn, user_id, job_id):
