@@ -167,7 +167,7 @@ def get_jobs_for_user(conn, user_id):
         user_id (int)
 
     Returns:
-        list of rows with: id, title, company_name
+        list of rows with: id, title, company_name, status
         (company name helps tell apart jobs with the same title)
         - Sorted by company name, then title
         - Empty list if none
