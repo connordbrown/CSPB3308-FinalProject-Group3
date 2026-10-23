@@ -12,6 +12,11 @@ Stubs: raise NotImplementedError until implemented.
 import sqlite3
 
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
+# Added since last SCRUM meeting
+STATUSES = ("saved", "applied", "interviewing", "offer", "rejected",
+            "accepted", "declined", "withdrawn")
+# Added since last SCRUM meeting
+WORK_TYPES = ("remote", "hybrid", "in person")
 
 
 def get_connection(db_path):
@@ -20,6 +25,178 @@ def get_connection(db_path):
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
+
+
+# ---------- Users ----------
+
+# Added since last SCRUM meeting
+def get_user_by_email(conn, email):
+    """
+    Return one user by email for login.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        email (str): lowercased and trimmed by the route before the call
+
+    Returns:
+        one row with: id, first_name, last_name, email, password_hash, display_name
+        - Match is case-insensitive (email column is COLLATE NOCASE)
+        - None if no user has that email
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def create_user(conn, first_name, last_name, email, password_hash, display_name=None):
+    """
+    Insert a new user at signup.
+    The route hashes the password with generate_password_hash before calling.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        first_name (str, required)
+        last_name (str, required)
+        email (str, required): lowercased and trimmed
+        password_hash (str, required)
+        display_name (str, optional): empty string stored as NULL
+
+    Returns:
+        int: the new user's id
+
+    Raises:
+        ValueError if a required field is empty.
+        sqlite3.IntegrityError if the email (any case) or display_name is already
+        in use; the route catches it and shows a friendly error.
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def get_user(conn, user_id):
+    """
+    Return the user's details for the Profile page. Never returns password_hash.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+
+    Returns:
+        one row with: id, first_name, last_name, email, display_name,
+        or None if the user does not exist.
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def update_user(conn, user_id, first_name, last_name, email):
+    """
+    Save changes to the user's name and email from the Profile page.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        first_name (str, required)
+        last_name (str, required)
+        email (str, required): lowercased and trimmed
+
+    Returns:
+        bool: True if the user was updated, False if the user does not exist.
+
+    Raises:
+        ValueError if a field is empty.
+        sqlite3.IntegrityError if another user already has that email (any case).
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def change_password(conn, user_id, current_password, new_password):
+    """
+    Change the user's password if current_password is correct.
+    Checks with check_password_hash and stores generate_password_hash(new_password).
+    The route checks that new_password matches its confirmation before calling.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        current_password (str)
+        new_password (str, required)
+
+    Returns:
+        bool: True if the password was changed,
+              False if current_password is wrong or the user does not exist.
+
+    Raises:
+        ValueError if new_password is empty.
+    """
+    raise NotImplementedError
+
+
+# ---------- Jobs ----------
+
+# Added since last SCRUM meeting
+def get_job(conn, user_id, job_id):
+    """
+    Return one job with its company, only if it belongs to the user.
+    Used by Job Details and to prefill the Edit Job form.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        job_id (int)
+
+    Returns:
+        one row with: id, title, status, work_type, link, notes, date_applied,
+        company_id, company_name, city, region,
+        or None if the job does not exist or belongs to another user.
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
+               link=None, notes=None, date_applied=None):
+    """
+    Insert a new job for the user.
+    If the user typed a new company, the route calls get_or_create_company first
+    (same transaction) and passes its id.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        company_id (int, required)
+        title (str, required)
+        status (str): defaults to 'saved'
+        work_type, link, notes (str, optional)
+        date_applied (str 'YYYY-MM-DD', optional)
+
+    Returns:
+        int: the new job's id
+
+    Raises:
+        ValueError if title is empty, status is not in STATUSES,
+        work_type is not in WORK_TYPES, or company_id does not belong to the user.
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def update_job(conn, user_id, job_id, company_id, title, status="saved", work_type=None,
+               link=None, notes=None, date_applied=None):
+    """
+    Replace an existing job's fields, only if it belongs to the user.
+
+    Parameters:
+        same as create_job, plus job_id (int)
+
+    Returns:
+        bool: True if the job was updated,
+              False if it does not exist or belongs to another user.
+
+    Raises:
+        ValueError for the same validation rules as create_job.
+    """
+    raise NotImplementedError
 
 
 # ---------- Contacts ----------
@@ -37,6 +214,26 @@ def get_contacts_for_user(conn, user_id):
         - Includes contacts with no company (company_name is None) -> LEFT JOIN
         - Sorted by name
         - Empty list if the user has no contacts or does not exist
+    """
+    raise NotImplementedError
+
+
+# Added since last SCRUM meeting
+def get_contacts_for_job(conn, user_id, job_id):
+    """
+    Return the contacts linked to one job, only if the job and contacts belong to the user.
+    Used by Job Details and the Edit Job form.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        job_id (int)
+
+    Returns:
+        list of rows with: id, name, title, designation
+        - Sorted by name
+        - Empty list if no contacts are linked, or the job does not exist
+          or belongs to another user
     """
     raise NotImplementedError
 
