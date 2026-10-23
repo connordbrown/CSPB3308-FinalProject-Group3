@@ -99,7 +99,7 @@ Stores individual users so that only an individuals own data is available to the
 |last_name | TEXT | [the user's typed last name] | NOT NULL |
 | email | TEXT | [  the user's email address] | NOT NULL, UNIQUE; lowercased by the app |
 | password_hash | TEXT | [hashkey to password for login ] | NOT NULL |
-| display_name | TEXT | [the user's preferred display name] | UNIQUE |
+|display_name | the user's preferred display name | TEXT | UNIQUE |
 | created_at | TIMESTAMP | [records date of user creation ] | NOT NULL, DEFAULT current timestamp |
 
 
@@ -580,882 +580,93 @@ All tests are in `test_schema.py` (class `TestCompanies`). Each test starts with
 
 # Data Access Methods
 
-Routes call these Python functions in `db.py` instead of writing SQL. Each method below comes from the "Data needed" section of a page in `PAGE_TESTING.md`.
-
-**Conventions for every method:**
-- The first parameter is `conn` (`sqlite3.Connection` from `db.get_connection`, with foreign keys on and rows readable by column name).
-- Every method except the login/signup lookups takes the session `user_id` and only reads or changes that user's rows. Another user's row is treated exactly like a row that doesn't exist (None, False, or an empty list), so a page never reveals that it exists.
-- Optional values passed as `None` are stored as NULL.
-
-**Planned tests:** All tests below are planned for `tests/test_db.py`. Each test runs on a fresh in-memory database built from `schema.sql` with `PRAGMA foreign_keys = ON`, seeded with two users (A and B) so every method can be checked against another user's data. Results will be filled in once the methods are implemented; until then, **Actual Result** and **Status** are **Pending** for every test.
-
-### Summary
-
-| Table | Access Methods |
-|---|---|
-| `users` | `get_user_by_email`, `create_user`, `get_user`, `update_user`, `change_password` |
-| `jobs` | `get_jobs_for_user`, `get_job`, `create_job`, `update_job` |
-| `contacts` | `get_contacts_for_user`, `get_contacts_for_job`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
-| `companies` | `get_companies_for_user`, `get_or_create_company` |
+<!--
+Need at least one per table. Derive them from the user stories:
+for each page/story, what query does it run? Each one becomes a method here.
+Test each for: normal case, empty case, and "cannot see another user's data".
+-->
 
 ---
 
-## Access Method: get_user_by_email
+## Access Method: [name]
 
 ### Description
-Looks up one user by email for login. Email matching ignores case (the app lowercases the email, and the column is `COLLATE NOCASE`).
+[ ]
 
 ### Parameters
-- `conn` (sqlite3.Connection)
-- `email` (str): lowercased and trimmed by the route before the call
+- [name] ([type])
 
 ### Return Values
-- One row with `id`, `first_name`, `last_name`, `email`, `password_hash`, `display_name`
-- None if no user has that email
+- [ ]
 
 ### Used By
-- Login (`/login`), User Story #2
+- [Page(s) / user story #]
 
 ### Tests
 
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Existing email returns the user | User A exists | Call with A's email | Row with A's id and `password_hash` |
-| 2 | Email in different case returns the same user | User A exists with `alex.demo@example.com` | Call with `ALEX.DEMO@example.com` | Row with A's id |
-| 3 | Unknown email returns None | User A exists | Call with `nobody@example.com` | None |
+**Use Case Name:** [ ]
+**Pre-conditions:** [ ]
+**Test Steps:**
+1. [ ]
+
+**Expected Result:** [ ]
+**Actual Result:** Pending
+**Status:** Pending
 
 ---
 
-## Access Method: create_user
+## Access Method: [name]
 
 ### Description
-Inserts a new user at signup. The route hashes the password with `generate_password_hash` before calling, so the plain password never reaches the database.
+[ ]
 
 ### Parameters
-- `conn` (sqlite3.Connection)
-- `first_name` (str, required)
-- `last_name` (str, required)
-- `email` (str, required): lowercased and trimmed
-- `password_hash` (str, required)
-- `display_name` (str, optional): an empty string is saved as NULL
+- [ ]
 
 ### Return Values
-- int: the new user's id
-- Raises `ValueError` if a required field is empty
-- Raises `sqlite3.IntegrityError` if the email (any case) or display name is already in use; the route catches it and shows a friendly error
+- [ ]
 
 ### Used By
-- Signup (`/login`, "signup" action), User Story #2
+- [ ]
 
 ### Tests
 
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid signup creates a user | No user with this email | Call with all fields; select the row by returned id | One new row; values match; `password_hash` is the hash passed in |
-| 2 | Duplicate email is rejected, including different case | User A exists | Call with A's email, then with it in upper case | `IntegrityError` both times; user count unchanged |
-| 3 | Missing required field is rejected | None | Call with an empty `first_name`, then `last_name`, then `password_hash` | `ValueError` each time; no row added |
-| 4 | Duplicate display name is rejected | User A has display name `alex` | Call with a new email and display name `alex` | `IntegrityError`; no row added |
-| 5 | Blank display names don't collide | None | Create two users with `display_name` = "" | Both succeed; both `display_name` values are NULL |
-
----
-
-## Access Method: get_user
-
-### Description
-Returns the logged-in user's details to prefill the Profile forms. Never returns the password hash.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-
-### Return Values
-- One row with `id`, `first_name`, `last_name`, `email`, `display_name`
-- None if the user doesn't exist
-
-### Used By
-- Profile (`/profile`), User Story #2
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Returns the right user | Users A and B exist | Call with A's id | A's names and email, not B's |
-| 2 | Password hash is not returned | User A exists | Call with A's id; check the row's keys | No `password_hash` column |
-| 3 | Unknown id returns None | No user has id 9999 | Call with 9999 | None |
-
----
-
-## Access Method: update_user
-
-### Description
-Saves changes to the logged-in user's first name, last name, and email from the Profile page.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `first_name` (str, required)
-- `last_name` (str, required)
-- `email` (str, required): lowercased and trimmed
-
-### Return Values
-- bool: True if updated, False if the user doesn't exist
-- Raises `ValueError` if a field is empty
-- Raises `sqlite3.IntegrityError` if another user already has that email (any case)
-
-### Used By
-- Profile (`/profile` POST), User Story #2
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid changes are saved | User A exists | Call with new names and email; reselect A | Returns True; row shows the new values |
-| 2 | Changing names but keeping the same email works | User A exists | Call with new names and A's current email | Returns True; no error |
-| 3 | Email used by another user is rejected, including different case | Users A and B exist | Update A with B's email in upper case | `IntegrityError`; A's row unchanged |
-| 4 | Empty required field is rejected | User A exists | Call with an empty `last_name` | `ValueError`; A's row unchanged |
-| 5 | Only the given user changes | Users A and B exist | Update A | B's row unchanged |
-| 6 | Unknown id returns False | No user has id 9999 | Call with 9999 | False; no rows changed |
-
----
-
-## Access Method: change_password
-
-### Description
-Changes the user's password if the current password is correct. Checks `current_password` with `check_password_hash` and stores `generate_password_hash(new_password)`. The route checks that the new password and its confirmation match before calling.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `current_password` (str)
-- `new_password` (str, required)
-
-### Return Values
-- bool: True if changed; False if the current password is wrong or the user doesn't exist
-- Raises `ValueError` if `new_password` is empty
-
-### Used By
-- Profile (`/profile/password` POST), User Story #2
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Correct current password changes it | User A exists with a known password | Call with the right current password and a new one | True; new password verifies against the stored hash; old one doesn't |
-| 2 | Wrong current password changes nothing | User A exists | Call with a wrong current password | False; `password_hash` unchanged |
-| 3 | New password is stored as a hash | User A exists | Change the password; select `password_hash` | Value is not the plain new password |
-| 4 | Empty new password is rejected | User A exists | Call with `new_password` = "" | `ValueError`; `password_hash` unchanged |
-
----
-
-## Access Method: get_jobs_for_user
-
-### Description
-Returns all of the user's jobs with their company name and status. Used for the Dashboard job cards (filtered by status on the page) and for the Job dropdown on the Add/Edit Contact form.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-
-### Return Values
-- List of rows with `id`, `title`, `company_name`, `status`
-- Sorted by company name, then title
-- Empty list if the user has no jobs
-
-### Used By
-- Dashboard (`/`), User Stories #1, #3, #4
-- Add/Edit Contact (`/contacts/add`, `/contacts/<id>/edit`) Job dropdown, User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Returns the user's jobs with company and status | User A has 3 jobs at 2 companies | Call with A's id | 3 rows, each with the right `company_name` and `status` |
-| 2 | Results are sorted | User A has jobs at "Zeta" and "Acme" | Call with A's id | "Acme" jobs first; titles in order within each company |
-| 3 | No jobs returns an empty list | User A has no jobs | Call with A's id | `[]` |
-| 4 | Another user's jobs are excluded | Users A and B each have jobs | Call with A's id | Only A's jobs |
-
----
-
-## Access Method: get_job
-
-### Description
-Returns one job with its company details, only if it belongs to the user. Used to show the Job Details page and to prefill the Edit Job form.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `job_id` (int)
-
-### Return Values
-- One row with `id`, `title`, `status`, `work_type`, `link`, `notes`, `date_applied`, `company_id`, `company_name`, `city`, `region`
-- None if the job doesn't exist or belongs to another user
-
-### Used By
-- Job Details (`/jobs/<id>`), User Stories #1, #4
-- Edit Job (`/jobs/<id>/edit`), User Story #3
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Own job returns all fields and company | User A has a job with every field filled | Call with A's id and the job id | All job fields plus company name, city, region |
-| 2 | Empty optional fields come back as None | User A has a job with only title and company; company has no city or region | Call with A's id and the job id | `link`, `work_type`, `notes`, `date_applied`, `city`, `region` are None |
-| 3 | Nonexistent job returns None | No job has id 9999 | Call with A's id and 9999 | None |
-| 4 | Another user's job returns None | User B has a job | Call with A's id and B's job id | None |
-
----
-
-## Access Method: create_job
-
-### Description
-Inserts a new job for the user. If the user typed a new company name, the route first calls `get_or_create_company` in the same transaction and passes the resulting id.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `company_id` (int, required)
-- `title` (str, required)
-- `status` (str, optional): defaults to 'saved'
-- `work_type`, `link`, `notes` (str, optional)
-- `date_applied` (str `YYYY-MM-DD`, optional)
-
-### Return Values
-- int: the new job's id
-- Raises `ValueError` if `title` is empty, `status` or `work_type` isn't on the allowed list, or `company_id` doesn't belong to the user
-
-### Used By
-- Add Job (`/jobs/add`), User Story #3
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid job is created | User A has a company | Call with every field; select by returned id | Row exists; values match |
-| 2 | Title and company only uses defaults | User A has a company | Call with only `company_id` and `title` | `status` is 'saved'; optional fields are NULL |
-| 3 | Empty title is rejected | User A has a company | Call with `title` = "" | `ValueError`; no row added |
-| 4 | Another user's company is rejected | User B has a company | Call with A's id and B's `company_id` | `ValueError`; no row added |
-| 5 | Status or work type not on the list is rejected | User A has a company | Call with `status` = 'appiled', then `work_type` = 'onsite' | `ValueError` each time; no row added |
-
----
-
-## Access Method: update_job
-
-### Description
-Replaces an existing job's fields, only if it belongs to the user. Also covers changing just the status.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `job_id` (int)
-- Same fields as `create_job`
-
-### Return Values
-- bool: True if updated, False if the job doesn't exist or belongs to another user
-- Raises `ValueError` for the same rules as `create_job`
-
-### Used By
-- Edit Job (`/jobs/<id>/edit`), User Stories #3, #4
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid changes are saved | User A has a job | Change title, status, and notes; reselect | True; row shows the new values |
-| 2 | Status change moves the job | User A has a 'saved' job | Update with `status` = 'applied' and a `date_applied` | True; status is 'applied'; date saved |
-| 3 | Another user's job is not changed | User B has a job | Call with A's id and B's job id | False; B's job unchanged |
-| 4 | Nonexistent job returns False | No job has id 9999 | Call with A's id and 9999 | False |
-| 5 | Invalid values are rejected | User A has a job | Update with an empty title, then another user's `company_id` | `ValueError` each time; job unchanged |
-
----
-
-## Access Method: get_contacts_for_user
-
-### Description
-Returns all of the user's contacts for the Contacts list page. Uses a LEFT JOIN to `companies` so contacts with no company still appear.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-
-### Return Values
-- List of rows with `id`, `name`, `title`, `company_name` (None if no company)
-- Sorted by name
-- Empty list if the user has no contacts
-
-### Used By
-- Contacts (`/contacts`), User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Returns the user's contacts with company names | User A has 3 contacts | Call with A's id | 3 rows with the right `name`, `title`, `company_name` |
-| 2 | Contact with no company or title is included | User A has a contact with only a name | Call with A's id | Contact is listed; `title` and `company_name` are None |
-| 3 | Results are sorted by name | User A has contacts "Zoe" and "Ann" | Call with A's id | "Ann" before "Zoe" |
-| 4 | No contacts returns an empty list | User A has no contacts | Call with A's id | `[]` |
-| 5 | Another user's contacts are excluded | Users A and B each have contacts | Call with A's id | Only A's contacts |
-
----
-
-## Access Method: get_contacts_for_job
-
-### Description
-Returns the contacts linked to one job, only if both the job and the contacts belong to the user.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `job_id` (int)
-
-### Return Values
-- List of rows with `id`, `name`, `title`, `designation`
-- Sorted by name
-- Empty list if no contacts are linked, or the job doesn't exist or belongs to another user
-
-### Used By
-- Job Details (`/jobs/<id>`), User Story #5
-- Edit Job (`/jobs/<id>/edit`), User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Returns the job's linked contacts | User A's job has 2 linked contacts; A has a third, unlinked contact | Call with A's id and the job id | The 2 linked contacts only |
-| 2 | Job with no contacts returns an empty list | User A's job has no contacts | Call with A's id and the job id | `[]` |
-| 3 | Another user's contact pointing at the job is excluded | A contact row owned by B has `job_id` = A's job (inserted directly) | Call with A's id and the job id | B's contact not listed |
-| 4 | Another user's job returns an empty list | User B's job has contacts | Call with A's id and B's job id | `[]` |
-
----
-
-## Access Method: get_contact
-
-### Description
-Returns one contact with its company name and job title, only if it belongs to the user. Used for the Contact Details page and to prefill the Edit Contact form.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `contact_id` (int)
-
-### Return Values
-- One row with all contact fields plus `company_name` and `job_title` (LEFT JOIN; None if not linked)
-- None if the contact doesn't exist or belongs to another user
-
-### Used By
-- Contact Details (`/contacts/<id>`), User Story #5
-- Edit Contact (`/contacts/<id>/edit`), User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Own contact returns all fields | User A has a contact linked to a company and job | Call with A's id and the contact id | All fields, plus the right `company_name` and `job_title` |
-| 2 | Unlinked contact returns None for company and job | User A has a contact with only a name | Call with A's id and the contact id | `company_name` and `job_title` are None |
-| 3 | Nonexistent contact returns None | No contact has id 9999 | Call with A's id and 9999 | None |
-| 4 | Another user's contact returns None | User B has a contact | Call with A's id and B's contact id | None |
-
----
-
-## Access Method: create_contact
-
-### Description
-Inserts a new contact for the user. If "+ Add new company" was chosen, the route first calls `get_or_create_company` and passes the resulting id.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `name` (str, required)
-- `title`, `designation`, `email`, `phone`, `linkedin_url`, `notes` (str, optional)
-- `company_id`, `job_id` (int, optional)
-
-### Return Values
-- int: the new contact's id
-- Raises `ValueError` if `name` is empty, `designation` isn't on the allowed list, or `company_id` / `job_id` doesn't belong to the user
-
-### Used By
-- Add Contact (`/contacts/add`), User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid contact is created | User A has a company and job | Call with every field; select by returned id | Row exists; values match |
-| 2 | Name only succeeds | User A exists | Call with only `name` | Row exists; optional fields are NULL |
-| 3 | Empty name is rejected | User A exists | Call with `name` = "" | `ValueError`; no row added |
-| 4 | Another user's company or job is rejected | User B has a company and job | Call with A's id and B's `company_id`, then B's `job_id` | `ValueError` each time; no row added |
-| 5 | Designation not on the list is rejected | User A exists | Call with `designation` = 'hiring managers' | `ValueError`; no row added |
-
----
-
-## Access Method: update_contact
-
-### Description
-Replaces an existing contact's fields, only if it belongs to the user.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `contact_id` (int)
-- Same fields as `create_contact`
-
-### Return Values
-- bool: True if updated, False if the contact doesn't exist or belongs to another user
-- Raises `ValueError` for the same rules as `create_contact`
-
-### Used By
-- Edit Contact (`/contacts/<id>/edit`), User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Valid changes are saved | User A has a contact | Change name, title, and job link; reselect | True; row shows the new values |
-| 2 | Another user's contact is not changed | User B has a contact | Call with A's id and B's contact id | False; B's contact unchanged |
-| 3 | Nonexistent contact returns False | No contact has id 9999 | Call with A's id and 9999 | False |
-| 4 | Invalid values are rejected | User A has a contact | Update with an empty name, then another user's `job_id` | `ValueError` each time; contact unchanged |
-
----
-
-## Access Method: delete_contact
-
-### Description
-Deletes one contact, only if it belongs to the user. The contact's linked company and job are not affected.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `contact_id` (int)
-
-### Return Values
-- bool: True if deleted, False if the contact doesn't exist or belongs to another user
-
-### Used By
-- Contacts (`/contacts`) and Contact Details (`/contacts/<id>`), via POST to `/contacts/<id>/delete`, User Story #5
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Deletes only that contact | User A has 3 contacts; one is linked to a company and job | Delete the linked contact | True; 2 contacts remain; the company and job still exist |
-| 2 | Another user's contact is not deleted | User B has a contact | Call with A's id and B's contact id | False; B's contact still exists |
-| 3 | Nonexistent contact returns False | No contact has id 9999 | Call with A's id and 9999 | False; contact count unchanged |
-
----
-
-## Access Method: get_companies_for_user
-
-### Description
-Returns the user's companies for the Company dropdowns.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-
-### Return Values
-- List of rows with `id`, `name`
-- Sorted by name
-- Empty list if the user has no companies
-
-### Used By
-- Add/Edit Contact (`/contacts/add`, `/contacts/<id>/edit`), User Story #5
-- Add/Edit Job (`/jobs/add`, `/jobs/<id>/edit`), User Story #3
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | Returns the user's companies sorted by name | User A has "Zeta" and "Acme" | Call with A's id | "Acme", then "Zeta" |
-| 2 | No companies returns an empty list | User A has no companies | Call with A's id | `[]` |
-| 3 | Another user's companies are excluded | Users A and B each have companies | Call with A's id | Only A's companies |
-
----
-
-## Access Method: get_or_create_company
-
-### Description
-Returns the id of the user's company with this name, creating it if needed. Used by the "+ Add new company" option on the contact and job forms.
-
-### Parameters
-- `conn` (sqlite3.Connection)
-- `user_id` (int)
-- `name` (str): leading and trailing whitespace is stripped
-
-### Return Values
-- int: id of the existing or new company
-- Name matching ignores case ("spotify" reuses "Spotify") and only checks the user's own companies
-- Raises `ValueError` if `name` is empty or only whitespace
-
-### Used By
-- Add/Edit Contact (`/contacts/add`, `/contacts/<id>/edit`), User Story #5
-- Add/Edit Job (`/jobs/add`, `/jobs/<id>/edit`), User Story #3
-
-### Tests
-
-| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
-|---|---|---|---|---|
-| 1 | New name creates a company | User A has no companies | Call with "Spotify" | Returns an id; one company named "Spotify" |
-| 2 | Existing name in any case is reused | User A has "Spotify" | Call with "spotify" | Returns the existing id; company count unchanged |
-| 3 | Whitespace is stripped | User A has "Spotify" | Call with "  Spotify  " | Returns the existing id |
-| 4 | Another user's company is never reused | User B has "Spotify" | Call with A's id and "Spotify" | New company for A; B's id not returned |
-| 5 | Blank name is rejected | User A exists | Call with "" and "   " | `ValueError` each time; no company added |
+**Use Case Name:** [ ]
+**Pre-conditions:** [ ]
+**Test Steps:**
+1. [ ]
+
+**Expected Result:** [ ]
+**Actual Result:** Pending
+**Status:** Pending
 
 ---
 
 # Page-to-Database Mapping
 
-Pages and routes come from `PAGE_TESTING.md`. The nav bar and `/logout` use only the session and don't access the database.
+<!-- Coordinate with the Milestone 4 page designs. -->
 
-| Page | Route | Tables Accessed | Access Methods Used |
-|---|---|---|---|
-| Dashboard | `/` | `jobs`, `companies` | `get_jobs_for_user` |
-| Login / Signup | `/login` | `users` | `get_user_by_email`, `create_user` |
-| Contacts | `/contacts` | `contacts`, `companies` | `get_contacts_for_user`, `delete_contact` |
-| Add / Edit Contact | `/contacts/add`, `/contacts/<id>/edit` | `contacts`, `companies`, `jobs` | `get_companies_for_user`, `get_jobs_for_user`, `get_or_create_company`, `create_contact` (add), `get_contact` and `update_contact` (edit) |
-| Contact Details | `/contacts/<id>` | `contacts`, `companies`, `jobs` | `get_contact`, `delete_contact` |
-| Add / Edit Job | `/jobs/add`, `/jobs/<id>/edit` | `jobs`, `companies`, `contacts` | `get_companies_for_user`, `get_or_create_company`, `create_job` (add), `get_job`, `get_contacts_for_job`, and `update_job` (edit) |
-| Job Details | `/jobs/<id>` | `jobs`, `companies`, `contacts` | `get_job`, `get_contacts_for_job` |
-| Profile | `/profile`, `/profile/password` | `users` | `get_user`, `update_user`, `change_password` |
+| Page | Tables Accessed | Access Methods Used |
+|---|---|---|
+| [Login / Signup] | | |
+| [Dashboard] | | |
+| [Add / Edit Job] | | |
+| [ ] | | |
 
 ---
 
 # Page Data Access Tests
 
-These tests check that each page reads and writes the right data through its access methods. The page layout and links themselves are covered in `PAGE_TESTING.md`.
-
-All tests are planned for `tests/test_pages.py`. Each test uses the Flask test client against a fresh temporary database built from `schema.sql`, seeded with two users: A (`alex.demo@example.com` / `DemoPass123!`) and B. Each user has their own companies, jobs, and contacts. Results will be filled in once the pages are implemented; until then, **Actual Result** and **Status** are **Pending** for every test.
-
-## Dashboard (`/`)
-
-#### Dashboard #1
-
-**Use Case Name:** Dashboard lists only the logged-in user's jobs  
-**Description:** `get_jobs_for_user` supplies the job cards, each with its company and status  
-**Pre-conditions:** User A has 2 jobs at different companies; user B has 1 job  
+**Use Case Name:** [ ]
+**Description:** [ ]
+**Pre-conditions:** [ ]
 **Test Steps:**
-1. Log in as A
-2. GET `/`
-
-**Expected Result:** 200; both of A's job titles appear with their company names and statuses; B's job title does not appear  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Dashboard #2
-
-**Use Case Name:** Logged-out visitor sees no job data  
-**Description:** The page doesn't query jobs without a session `user_id`  
-**Pre-conditions:** User A has jobs; no one is logged in  
-**Test Steps:**
-1. GET `/`
-
-**Expected Result:** 200 with the login prompt; none of A's job titles appear  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-## Login / Signup (`/login`)
-
-#### Login #1
-
-**Use Case Name:** Login finds the user by email in any case  
-**Description:** `get_user_by_email` looks up the user and the password is checked against `password_hash`  
-**Pre-conditions:** User A exists  
-**Test Steps:**
-1. POST `/login` with `action=login`, `email=ALEX.DEMO@example.com`, `password=DemoPass123!`
-
-**Expected Result:** Redirect to `/`; the session holds A's `user_id`  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** `users` table unchanged
-
-#### Login #2
-
-**Use Case Name:** Signup creates one user with a hashed password  
-**Description:** `create_user` inserts the new user  
-**Pre-conditions:** No user has the email `new.user@example.com`  
-**Test Steps:**
-1. POST `/login` with `action=signup`, first and last name, `email=new.user@example.com`, a password, and a blank `display_name`
-2. Select the new row from `users`
-
-**Expected Result:** Redirect to `/`; one new row; `password_hash` is not the plain password; `display_name` is NULL; the session holds the new `user_id`  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** `users` has one more row
-
-#### Login #3
-
-**Use Case Name:** Signup with an existing email adds no row  
-**Description:** The route catches the UNIQUE error from `create_user`  
-**Pre-conditions:** User A exists  
-**Test Steps:**
-1. POST `/login` with `action=signup` and A's email in upper case
-2. Count rows in `users`
-
-**Expected Result:** Stays on `/login` with an error message; user count unchanged; no session created  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** `users` table unchanged
-
-## Contacts (`/contacts`)
-
-#### Contacts #1
-
-**Use Case Name:** Contacts list shows only the user's contacts  
-**Description:** `get_contacts_for_user` supplies the list, including contacts with no company  
-**Pre-conditions:** User A has 2 contacts, one with no title or company; user B has 1 contact  
-**Test Steps:**
-1. Log in as A
-2. GET `/contacts`
-
-**Expected Result:** 200; both of A's contacts appear with their title and company; the contact with no company shows blank fields, not "None"; B's contact does not appear  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Contacts #2
-
-**Use Case Name:** Deleting a contact removes only that row  
-**Description:** `delete_contact` runs on POST to `/contacts/<id>/delete`  
-**Pre-conditions:** User A has 2 contacts; one is linked to a company and job  
-**Test Steps:**
-1. Log in as A
-2. POST `/contacts/<linked contact id>/delete`
-3. Count A's contacts, companies, and jobs
-
-**Expected Result:** Redirect to `/contacts`; the deleted contact is gone; the other contact, the company, and the job still exist  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** A has 1 contact
-
-#### Contacts #3
-
-**Use Case Name:** A user can't delete another user's contact  
-**Description:** `delete_contact` returns False for a contact the user doesn't own  
-**Pre-conditions:** User B has a contact  
-**Test Steps:**
-1. Log in as A
-2. POST `/contacts/<B's contact id>/delete`
-
-**Expected Result:** "Not found" response; B's contact still exists  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-## Add / Edit Contact (`/contacts/add`, `/contacts/<id>/edit`)
-
-#### Add/Edit Contact #1
-
-**Use Case Name:** Dropdowns list only the user's companies and jobs  
-**Description:** `get_companies_for_user` and `get_jobs_for_user` fill the Company and Job dropdowns  
-**Pre-conditions:** Users A and B each have companies and jobs with different names  
-**Test Steps:**
-1. Log in as A
-2. GET `/contacts/add`
-
-**Expected Result:** 200; dropdowns list A's companies and jobs plus "None" and "+ Add new company"; none of B's appear  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Add/Edit Contact #2
-
-**Use Case Name:** New company name reuses an existing company in any case  
-**Description:** `get_or_create_company` runs before `create_contact`  
-**Pre-conditions:** User A has a company named "Spotify"  
-**Test Steps:**
-1. Log in as A
-2. POST `/contacts/add` with a name, "+ Add new company" selected, and `new_company_name=spotify`
-3. Select the new contact and count A's companies
-
-**Expected Result:** Redirect to `/contacts`; one new contact linked to the existing "Spotify" id; company count unchanged  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** A has one more contact
-
-#### Add/Edit Contact #3
-
-**Use Case Name:** Another user's company or job can't be linked  
-**Description:** `create_contact` rejects a `company_id` or `job_id` the user doesn't own  
-**Pre-conditions:** User B has a company and a job  
-**Test Steps:**
-1. Log in as A
-2. POST `/contacts/add` with a name and B's `company_id`
-3. POST `/contacts/add` with a name and B's `job_id`
-
-**Expected Result:** Each POST shows an error and keeps the entered values; no contact added  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Add/Edit Contact #4
-
-**Use Case Name:** Edit prefills the form and saves changes  
-**Description:** `get_contact` prefills the form; `update_contact` saves it  
-**Pre-conditions:** User A has a contact with a title and notes  
-**Test Steps:**
-1. Log in as A
-2. GET `/contacts/<id>/edit`
-3. POST `/contacts/<id>/edit` with a new title
-4. Select the contact
-
-**Expected Result:** The GET shows the current values in the form; the POST redirects to `/contacts/<id>`; the row has the new title and its other fields unchanged  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Contact's title updated
-
-## Contact Details (`/contacts/<id>`)
-
-#### Contact Details #1
-
-**Use Case Name:** Details show the contact's company and linked job  
-**Description:** `get_contact` returns the contact joined to its company name and job title  
-**Pre-conditions:** User A has a contact linked to a company and job  
-**Test Steps:**
-1. Log in as A
-2. GET `/contacts/<id>`
-
-**Expected Result:** 200; every saved field, the company name, and the job title appear; the job title links to `/jobs/<job id>`  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Contact Details #2
-
-**Use Case Name:** Another user's contact is not shown  
-**Description:** `get_contact` returns None for a contact the user doesn't own  
-**Pre-conditions:** User B has a contact  
-**Test Steps:**
-1. Log in as A
-2. GET `/contacts/<B's contact id>`
-
-**Expected Result:** "Not found" response; none of B's contact data appears  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-## Add / Edit Job (`/jobs/add`, `/jobs/<id>/edit`)
-
-#### Add/Edit Job #1
-
-**Use Case Name:** Adding a job with a new company creates both  
-**Description:** `get_or_create_company` and `create_job` run in one transaction  
-**Pre-conditions:** User A has no company named "Acme"  
-**Test Steps:**
-1. Log in as A
-2. POST `/jobs/add` with a title, company "Acme", status 'applied', and a date applied
-3. Select the new job and A's companies
-
-**Expected Result:** Redirect to `/jobs/<new id>`; one new job with the entered values, linked to a new "Acme" company  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** A has one more job and one more company
-
-#### Add/Edit Job #2
-
-**Use Case Name:** Edit prefills the form and saves a status change  
-**Description:** `get_job` and `get_contacts_for_job` prefill the form; `update_job` saves it  
-**Pre-conditions:** User A has a 'saved' job with one linked contact  
-**Test Steps:**
-1. Log in as A
-2. GET `/jobs/<id>/edit`
-3. POST `/jobs/<id>/edit` with status 'interviewing'
-4. Select the job
-
-**Expected Result:** The GET shows the job's current values and its linked contact; the POST redirects to `/jobs/<id>`; status is 'interviewing' and other fields are unchanged  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Job's status updated
-
-#### Add/Edit Job #3
-
-**Use Case Name:** A user can't edit another user's job  
-**Description:** `get_job` returns None and `update_job` returns False for a job the user doesn't own  
-**Pre-conditions:** User B has a job  
-**Test Steps:**
-1. Log in as A
-2. GET `/jobs/<B's job id>/edit`
-3. POST `/jobs/<B's job id>/edit` with a new title
-
-**Expected Result:** Both return 404; none of B's data appears; B's job unchanged  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-## Job Details (`/jobs/<id>`)
-
-#### Job Details #1
-
-**Use Case Name:** Details show the job, its company, and only the user's linked contacts  
-**Description:** `get_job` and `get_contacts_for_job` supply the page  
-**Pre-conditions:** User A has a job with 2 linked contacts; a contact owned by B has `job_id` set to A's job (inserted directly)  
-**Test Steps:**
-1. Log in as A
-2. GET `/jobs/<id>`
-
-**Expected Result:** 200; title, company, status, work type, link, and notes appear; A's 2 contacts are listed; B's contact is not  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Job Details #2
-
-**Use Case Name:** Another user's job is not shown  
-**Description:** `get_job` returns None for a job the user doesn't own  
-**Pre-conditions:** User B has a job  
-**Test Steps:**
-1. Log in as A
-2. GET `/jobs/<B's job id>`
-
-**Expected Result:** 404, the same as for a job id that doesn't exist; none of B's data appears  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-## Profile (`/profile`, `/profile/password`)
-
-#### Profile #1
-
-**Use Case Name:** Profile shows the user's details without the password hash  
-**Description:** `get_user` prefills the forms  
-**Pre-conditions:** User A exists  
-**Test Steps:**
-1. Log in as A
-2. GET `/profile`
-
-**Expected Result:** 200; A's first name, last name, and email are in the form fields; A's `password_hash` does not appear in the HTML  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Profile #2
-
-**Use Case Name:** Changing to another user's email is rejected  
-**Description:** The route catches the UNIQUE error from `update_user`  
-**Pre-conditions:** Users A and B exist  
-**Test Steps:**
-1. Log in as A
-2. POST `/profile` with A's names and B's email in upper case
-3. Select A's row
-
-**Expected Result:** Error message shown; A's row unchanged  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** Database unchanged
-
-#### Profile #3
-
-**Use Case Name:** Password change saves a new hash  
-**Description:** `change_password` checks the current password and stores the new hash  
-**Pre-conditions:** User A exists with password `DemoPass123!`  
-**Test Steps:**
-1. Log in as A
-2. POST `/profile/password` with the correct current password and a matching new password and confirmation
-3. Log out, then log in with the new password
-
-**Expected Result:** "Password changed" message; `password_hash` is different and is not the plain new password; login with the new password succeeds and with the old one fails  
-**Actual Result:** Pending  
-**Status:** Pending  
-**Post-conditions:** A's `password_hash` updated
+1. [ ]
+
+**Expected Result:** [ ]
+**Actual Result:** Pending
+**Status:** Pending
+**Post-conditions:** [ ]
 
 ---
 

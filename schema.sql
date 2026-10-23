@@ -4,7 +4,7 @@ CREATE TABLE `users` (
   `last_name` text NOT NULL,
   `email` text UNIQUE NOT NULL COLLATE NOCASE,
   `password_hash` text NOT NULL,
-  `display_name` text UNIQUE,
+  `display_name` text,
   `created_at` timestamp NOT NULL DEFAULT (CURRENT_TIMESTAMP)
 );
 
