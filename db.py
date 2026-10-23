@@ -26,6 +26,33 @@ def get_connection(db_path):
     conn.row_factory = sqlite3.Row
     return conn
 
+# ---------- User ----------
+
+def create_user(conn, first_name, last_bame, email, password_hash):
+    """
+    Create a user with supplied data.
+        Parameters:
+            conn (sqlite3.Connection)
+            first_name (string)
+            last_name (string)
+            email (string)
+            password_hash (string)
+            display_name=None
+        Returns:
+            - (User object/User dictionary, "") if successful
+            - (None, Exception) if failure
+    """
+    raise NotImplementedError
+
+def generate_password_hash(password):
+    """
+    Generate a password hash from a user's password.
+    Parameters:
+        password (string)
+    Returns:
+        - Password hash (string) of original password
+    """
+    raise NotImplementedError
 
 # ---------- Users ----------
 
@@ -201,6 +228,20 @@ def update_job(conn, user_id, job_id, company_id, title, status="saved", work_ty
 
 # ---------- Contacts ----------
 
+def get_contacts_for_job(conn, user_id, job_id):
+    """
+    Returns all associated contacts for a user's job.
+        Parameters:
+            conn (sqlite3.Connection)
+            user_id (int)
+            job_id (int)
+        Returns:
+            - List of contacts
+            - Empty list if no contacts
+    """
+    raise NotImplementedError
+
+
 def get_contacts_for_user(conn, user_id):
     """
     Return all of the user's contacts for the Contacts list page.
@@ -312,6 +353,7 @@ def delete_contact(conn, user_id, contact_id):
     
     """
     raise NotImplementedError
+
 # ---------- Companies ----------
  
 def get_or_create_company(conn, user_id, name):
@@ -336,6 +378,22 @@ def get_or_create_company(conn, user_id, name):
     """
     raise NotImplementedError
 
+# ---------- Jobs ----------
+
+def get_jobs(conn, user_id, job_id):
+    """
+    Returns a job with a given id associated with the user.
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        job_id (int)
+
+    Returns:
+        - Dictionary containing data for job
+        - None if job does not exist
+    """
+    raise NotImplementedError
 
 # ---------- Dropdown data ----------
 
