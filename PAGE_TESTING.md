@@ -95,11 +95,13 @@
 - Query: none (filtering is a possible stretch goal)
 
 **Data needed:** 
+  - On delete: `delete_contact(user_id, contact_id)` 
 
 Session: `user_id`
 - Database: `get_contacts_for_user(user_id)` returns each contact's id, name, title, and company name
     - Uses a LEFT JOIN to companies so contacts with no company still appear
     - Sorted alphabetically by name
+    - On delete `delete_contact(user_id, contact_id)
 
 **Links:** 
 
@@ -107,6 +109,7 @@ Session: `user_id`
 - Add new → `/contacts/add`
 - Log out → `/logout`
 - Nav bar → per `base.html`
+- Delete (each row) -> confirmation, then POST to `/contacts/<id>/delete`; returns to `/contacts`
 
 **Tests:** 
 
@@ -118,6 +121,12 @@ Session: `user_id`
 6. User with no contacts sees an empty-state message; Add button still shows
 7. Clicking a contact opens its detail page
 8. "Add new" opens `/contacts/add`
+9. Each contact row shows a Delete button
+10. The confirmation names the contact being deleted
+11. Confirming removes only that contact; the rest of the list is unchanged
+12. Cancelling the confirmation keeps the contact
+13. Clicking Delete does not open the contact's details page
+14. Deleting the last contact shows the empty-state message
 
 ---
 ## 4. Add / Edit Contact
@@ -302,9 +311,52 @@ The text inputs are role/title, company, application link. The dropdown inputs a
 
 ![Profile page mockup](docs/images/profile.jpg)
 
-**Description:** Currently just shows the username and password with buttons to edit each. Could add more details later. 
+**Description:** Shows logged-in user's first name, last name, email in pre-filled editable forms with save buttons to change either. Change password form also displayed. The password and hash are never shown. Possibly display some additional stats as a stretch goal for this page.
 
-**Parameters:** TODO
-**Data needed:** TODO
-**Links:** TODO
-**Tests:** TODO
+
+**Parameters:** 
+
+- Route Parameters: None (user comes from session)
+
+- Form data on edits (POST):
+    - `first_name` (required)
+    - `last_name` (required)
+    - `email` (required)
+- password form:   `(profile/password)`
+    - `current_password` (required)
+    - `new_password` (required)
+    - `confirmation` (required, must match new)
+
+**Data needed:** 
+
+- Session: `user_id`
+- Database:
+    - `get_user(user_id)` to fill forms with `email`, `first_name`, `last_name`.
+    - `update_user(user_id, first_name, last_name, email)` to change email and/or name
+    - `change_password(user_id, current_password, new_password)` change the password
+
+**Links:** 
+
+- Edit → `/profile` GET shows the saved info, POST updates name, email and redirects back to profile
+- Change password → `/profile/password` changes password and redirects back to profile
+
+**Tests:** 
+
+1. Logged in GET for `/profile` returns 200
+2. Logged out GET or POST does not change db and redirects to `/login`
+3. Shows the correct first name, last name and email for the logged in user
+4. password not accessible in html
+
+- Editing
+5. valid inputs for name, email save to db, redirect to `/profile` and page shows new info
+6. if any required field is empty on POST, error displayed, nothing saved to db
+7. email already in use: error displayed, nothing saved
+8. email in different case (M.cspb vs m.cspb): error, no save
+9. changing other fields without changing email does not result in error
+
+- Password
+
+10. unchanged password results in no changes on save
+11. matching new passwords result new saved password  with displayed message "password changed"
+12. wrong current password entered: Error, no change in db
+13. new and confirmation don't match: Error, no change
