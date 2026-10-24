@@ -267,7 +267,14 @@ def get_contact(conn, user_id, contact_id):
         (None if not linked), or None if the contact does not exist
         or belongs to another user.
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT c.*, co.name AS company_name, j.title AS job_title
+        FROM contacts c
+        LEFT JOIN companies co ON c.company_id = co.id
+        LEFT JOIN jobs j ON c.job_id = j.id
+        WHERE c.id = ? AND c.user_id = ?
+        """, (contact_id, user_id)).fetchone()
 
 
 def create_contact(conn, user_id, name, title=None, designation=None,

@@ -445,7 +445,7 @@ class TestGetContact(AccessTestCase):
     def test_returns_contact_without_company_or_job(self):
         # Insert a contact without linking it to a company or job.
         contact_id = self._insert_contact(
-            self.user_a, name="Alice Smith", title="Manager", designation="hr", email="alice@example.com"
+            self.user_a, name="Alice Smith", title="Manager", designation="recruiter", email="alice@example.com"
         )
         # Check that get_contact returns the correct contact.
         result = db.get_contact(self.conn, self.user_a, contact_id)
