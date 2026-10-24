@@ -567,7 +567,168 @@ class TestCreateContact(AccessTestCase):
         self.assertEqual(self._count("contacts"), initial_count)
 
 class TestUpdateContact(AccessTestCase):
-    """Tests for db.update_contact (SQL_TESTING.md, Access Method: update_contact)."""
+    def test_updates_contact(self):
+        # Insert a company and a job for user A, then insert a contact for user A linked to that job, and update the contact's attributes using db.update_contact.
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        contact_id = self._insert_contact(
+            self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", email="charlie.brown@example.com", company_id=company_id, job_id=job_id
+        )
+        # Update the contact's attributes.
+        update = db.update_contact(
+            self.conn, self.user_a, contact_id, name="Charlie Brown Jr.", title="Senior Developer", designation="recruiter", email="charlie.brown.jr@example.com"
+        )
+        self.assertTrue(update, "Expected update_contact to return True for successful update")
+        # Check that the contact's attributes have been updated in the database.
+        result = db.get_contact(self.conn, self.user_a, contact_id)
+        self.assertEqual(result['name'], "Charlie Brown Jr.", "Contact name was not updated")
+        self.assertEqual(result['title'], "Senior Developer", "Contact title was not updated")
+        self.assertEqual(result['email'], "charlie.brown.jr@example.com", "Contact email was not updated")
+
+    def test_nonexistent_contact(self):
+        # Check that db.update_contact returns False when attempting to update a non-existent contact.
+        update = db.update_contact(
+            self.conn, self.user_a, NONEXISTENT_ID, name="Nonexistent Contact", title="N/A", designation="recruiter"
+        )
+        self.assertFalse(update, "Expected update_contact to return False for non-existent contact")
+
+    def test_contact_belongs_to_another_user(self):
+        # Check that db.update_contact returns False when attempting to update a contact that belongs to another user.
+        # Insert a company and a job for user B, then insert a contact for user B linked to that job.
+        company_id_b = self._insert_company(self.user_b, name="Beta Ltd")
+        job_id_b = self._insert_job(self.user_b, title="Product Manager", company_id=company_id_b)
+        contact_id_b = self._insert_contact(
+            self.user_b, name="David Wilson", title="Analyst", designation="recruiter", email="david.wilson@example.com", company_id=company_id_b, job_id=job_id_b
+        )
+        # Attempt to update the contact that belongs to user B using user A's credentials.
+        update = db.update_contact(
+            self.conn, self.user_a, contact_id_b, name="Updated Contact", title="Updated Title", designation="other"
+        )
+        self.assertFalse(update, "Expected update_contact to return False for contact belonging to another user")
+
+
+    def test_contact_belongs_to_user_after_update(self):
+        # Insert a company and a job for user A, then insert a contact for user A linked to that job.
+        company_id_a = self._insert_company(self.user_a, name="Alpha Inc")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        # Update the contact that belongs to user A.
+        update = db.update_contact(
+            self.conn, self.user_a, contact_id_a, name="Updated Alice Smith", title="Senior Developer", designation="other"
+        )
+        self.assertTrue(update, "Expected update_contact to return True for successful update")
+        # Check that the contact still belongs to user A after the update.
+        result = db.get_contact(self.conn, self.user_a, contact_id_a)
+        self.assertEqual(result['user_id'], self.user_a, "Contact does not belong to the correct user after update")        
+
+    def test_only_updates_target_contact(self):
+        # Insert a company and a job for user A, then insert two contacts for user A linked to that job.
+        company_id_a = self._insert_company(self.user_a, name="Alpha Inc")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        contact_id_1 = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        contact_id_2 = self._insert_contact(
+            self.user_a, name="Bob Johnson", title="Analyst", designation="recruiter", email="bob.johnson@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        # Update only the first contact.
+        update = db.update_contact(
+            self.conn, self.user_a, contact_id_1, name="Updated Alice Smith", title="Senior Developer", designation="other"
+        )
+        self.assertTrue(update, "Expected update_contact to return True for successful update")
+        # Check that the first contact has been updated.
+        result_1 = db.get_contact(self.conn, self.user_a, contact_id_1)
+        self.assertEqual(result_1['name'], "Updated Alice Smith", "First contact was not updated")
+        # Check that the second contact has not been updated.
+        result_2 = db.get_contact(self.conn, self.user_a, contact_id_2)
+        self.assertEqual(result_2['name'], "Bob Johnson", "Second contact was incorrectly updated")
+
+    def test_empty_or_invalid_updated_name(self):
+        # Insert a company and a job for user A, then insert a contact for user A linked to that job.
+        company_id_a = self._insert_company(self.user_a, name="Alpha Inc")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        # Check that db.update_contact raises a ValueError when the updated name is not a string.
+        invalid_data_type = [123, [], {}, True, False]
+        for type in invalid_data_type:
+            with self.subTest(type=type):
+                with self.assertRaises(ValueError):
+                    db.update_contact(self.conn, self.user_a, contact_id_a, name=type, title="Senior Developer", designation="other")
+
+        # Check that db.update_contact raises an error when the updated name is empty.
+        with self.assertRaises(ValueError):
+            db.update_contact(self.conn, self.user_a, contact_id_a, name="", title="Senior Developer", designation="other")
+        with self.assertRaises(ValueError):
+            db.update_contact(self.conn, self.user_a, contact_id_a, name=None, title="Senior Developer", designation="other")
+
+    def test_updated_designation_invalid(self):
+        # Insert a company and a job for user A, then insert a contact for user A linked to that job.
+        company_id_a = self._insert_company(self.user_a, name="Alpha Inc")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        # Check that db.update_contact raises a ValueError when the updated designation is not in the allowed set of values.
+        invalid_designations = ["invalid", "manager", 123, [], {}, True, False]
+        for designation in invalid_designations:
+            with self.subTest(designation=designation):
+                with self.assertRaises(ValueError):
+                    db.update_contact(self.conn, self.user_a, contact_id_a, name="Alice Smith", title="Senior Developer", designation=designation)
+
+    def test_updated_job_id_does_not_belong_to_user(self):
+        # Insert a company and a job for user B.
+        company_id_b = self._insert_company(self.user_b, name="Beta Corp")
+        job_id_b = self._insert_job(self.user_b, title="Data Analyst", company_id=company_id_b)
+        # Insert a contact for user A.
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com"
+        )
+        # Check that db.update_contact raises a ValueError when the updated job ID does not belong to the user.
+        with self.assertRaises(ValueError):
+            db.update_contact(self.conn, self.user_a, contact_id_a, name="Alice Smith", title="Senior Developer", designation="other", job_id=job_id_b)
+
+    def test_Updated_company_id_does_not_belong_to_user(self):
+        # Insert a company for user B.
+        company_id_b = self._insert_company(self.user_b, name="Beta Corp")
+        # Insert a contact for user A.
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com"
+        )
+        # Check that db.update_contact raises a ValueError when the updated company ID does not belong to the user.
+        with self.assertRaises(ValueError):
+            db.update_contact(self.conn, self.user_a, contact_id_a, name="Alice Smith", title="Senior Developer", designation="other", company_id=company_id_b)
+
+    def test_succeeds_with_name_only(self):
+        # Check that db.update_contact succeeds when only the name is provided, and other optional fields are omitted.
+        # Insert a contact for user A.
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com"
+        )
+        # Check that db.update_contact succeeds when only the name is provided, and other optional fields are omitted.
+        db.update_contact(self.conn, self.user_a, contact_id_a, name="Alice Johnson")
+
+    def test_failure_leaves_contact_unchanged(self):
+        # Insert a company and a job for user A, then insert a contact for user A linked to that job.
+        company_id_a = self._insert_company(self.user_a, name="Alpha Inc")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        contact_id_a = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Developer", designation="recruiter", email="alice.smith@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        # Attempt to update the contact with an invalid designation, which should raise a ValueError.
+        with self.assertRaises(ValueError):
+            db.update_contact(self.conn, self.user_a, contact_id_a, name="Alice Smith", title="Senior Developer", designation="invalid_designation")
+        # Check that the contact's attributes have not changed.
+        result = db.get_contact(self.conn, self.user_a, contact_id_a)
+        self.assertEqual(result['name'], "Alice Smith", "Contact name should not have changed")
+        self.assertEqual(result['title'], "Developer", "Contact title should not have changed")
+        self.assertEqual(result['designation'], "recruiter", "Contact designation should not have changed")
+        self.assertEqual(result['email'], "alice.smith@example.com", "Contact email should not have changed")
+        self.assertEqual(result['company_id'], company_id_a, "Contact company_id should not have changed")
+        self.assertEqual(result['job_id'], job_id_a, "Contact job_id should not have changed")
 
 
 class TestDeleteContact(AccessTestCase):
