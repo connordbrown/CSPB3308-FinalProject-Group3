@@ -299,6 +299,71 @@ class TestChangePassword(AccessTestCase):
 
 class TestGetJob(AccessTestCase):
     """Tests for db.get_job (SQL_TESTING.md, Access Method: get_job)."""
+ 
+    def setUp(self):
+        super().setUp()
+        # One fully filled job for user A and one job for user B
+        self.company_a = self._insert_company(self.user_a, name="Acme Corp", city="Denver", region="CO")
+        self.job_a = self._insert_job(
+            self.user_a, self.company_a, title="Junior Backend Developer", status="interviewing",
+            work_type="hybrid", link="https://www.acme-example.com/careers/junior-backend",
+            notes="Python and Flask stack.", date_applied="2026-09-10",
+        )
+        self.company_b = self._insert_company(self.user_b, name="Beta Ltd", city="Seattle", region="WA")
+        self.job_b = self._insert_job(self.user_b, self.company_b, title="Data Analyst")
+ 
+    def test_returns_job_fields(self):
+        result = db.get_job(self.conn, self.user_a, self.job_a)
+        self.assertEqual(result["id"], self.job_a)
+        self.assertEqual(result["title"], "Junior Backend Developer")
+        self.assertEqual(result["status"], "interviewing")
+        self.assertEqual(result["work_type"], "hybrid")
+        self.assertEqual(result["link"], "https://www.acme-example.com/careers/junior-backend")
+        self.assertEqual(result["notes"], "Python and Flask stack.")
+        self.assertEqual(result["date_applied"], "2026-09-10")
+ 
+    def test_returns_company_fields(self):
+        result = db.get_job(self.conn, self.user_a, self.job_a)
+        self.assertEqual(result["company_id"], self.company_a)
+        self.assertEqual(result["company_name"], "Acme Corp")
+        self.assertEqual(result["city"], "Denver")
+        self.assertEqual(result["region"], "CO")
+ 
+    def test_returns_only_the_documented_columns(self):
+        result = db.get_job(self.conn, self.user_a, self.job_a)
+        expected = {"id", "title", "status", "work_type", "link", "notes", "date_applied",
+                    "company_id", "company_name", "city", "region"}
+        self.assertSetEqual(set(result.keys()), expected)
+ 
+    def test_returns_the_requested_job_when_user_has_several(self):
+        other_company = self._insert_company(self.user_a, name="Northwind")
+        other_job = self._insert_job(self.user_a, other_company, title="Data Analyst")
+        first = db.get_job(self.conn, self.user_a, self.job_a)
+        second = db.get_job(self.conn, self.user_a, other_job)
+        self.assertEqual((first["title"], first["company_name"]), ("Junior Backend Developer", "Acme Corp"))
+        self.assertEqual((second["title"], second["company_name"]), ("Data Analyst", "Northwind"))
+ 
+    def test_empty_optional_fields_are_none(self):
+        # A job with only the required fields, at a company with no location
+        bare_company = self._insert_company(self.user_a, name="Summit Cloud")
+        bare_job = self._insert_job(self.user_a, bare_company, title="Support Engineer")
+        result = db.get_job(self.conn, self.user_a, bare_job)
+        self.assertEqual(result["title"], "Support Engineer")
+        self.assertEqual(result["status"], "saved", "Status should default to 'saved'")
+        for column in ("work_type", "link", "notes", "date_applied", "city", "region"):
+            with self.subTest(column=column):
+                self.assertIsNone(result[column])
+ 
+    def test_returns_none_if_job_does_not_exist(self):
+        self.assertIsNone(db.get_job(self.conn, self.user_a, NONEXISTENT_ID))
+ 
+    def test_returns_none_if_job_belongs_to_another_user(self):
+        # User A cannot see user B's job, but user B can.
+        self.assertIsNone(db.get_job(self.conn, self.user_a, self.job_b))
+        self.assertIsNotNone(db.get_job(self.conn, self.user_b, self.job_b))
+ 
+    def test_returns_none_if_user_does_not_exist(self):
+        self.assertIsNone(db.get_job(self.conn, NONEXISTENT_ID, self.job_a))
 
 
 class TestCreateJob(AccessTestCase):
