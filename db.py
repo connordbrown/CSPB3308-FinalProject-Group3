@@ -342,7 +342,37 @@ def update_contact(conn, user_id, contact_id, name, title=None, designation=None
     Raises:
         ValueError for the same validation rules as create_contact.
     """
-    raise NotImplementedError
+    # Check if company_id and job_id belong to the user
+    if company_id is not None:
+        company = conn.execute(
+            "SELECT id FROM companies WHERE id = ? AND user_id = ?", (company_id, user_id)
+        ).fetchone()
+        if company is None:
+            raise ValueError("Company does not belong to the user.")
+    if job_id is not None:
+        job = conn.execute(
+            "SELECT id FROM jobs WHERE id = ? AND user_id = ?", (job_id, user_id)
+        ).fetchone()
+        if job is None:
+            raise ValueError("Job does not belong to the user.")
+
+    # Validate name and designation
+    if name is None or not isinstance(name, str) or name.strip() == "":
+        raise ValueError("Name is required and cannot be empty.")
+    if designation == "":
+        designation = None  # Treat empty string as None
+    if designation is not None and designation not in DESIGNATIONS:
+        raise ValueError("Invalid designation.")
+        
+    cursor = conn.execute(
+        """
+        UPDATE contacts
+        SET name = ?, title = ?, designation = ?, company_id = ?, job_id = ?, email = ?, phone = ?, linkedin_url = ?, notes = ?
+        WHERE id = ? AND user_id = ?
+        """, (name, title, designation, company_id, job_id, email, phone, linkedin_url, notes, contact_id, user_id)
+    )
+
+    return cursor.rowcount == 1  # True if one row was updated, False otherwise
 
 
 def delete_contact(conn, user_id, contact_id):
