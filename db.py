@@ -11,6 +11,8 @@ Stubs: raise NotImplementedError until implemented.
 
 import sqlite3
 
+from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash
+
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
 # Added since last SCRUM meeting
 STATUSES = ("saved", "applied", "interviewing", "offer", "rejected",
@@ -51,8 +53,15 @@ def generate_password_hash(password):
         password (string)
     Returns:
         - Password hash (string) of original password
+        - Salted, so the same password gives a different hash each time;
+          check it with werkzeug's check_password_hash
+
+    Raises:
+        ValueError if password is empty or not a string.
     """
-    raise NotImplementedError
+    if not isinstance(password, str) or password == "":
+        raise ValueError("Password is required and cannot be empty.")
+    return _werkzeug_generate_password_hash(password)
 
 # Added since last SCRUM meeting
 def create_user(conn, first_name, last_name, email, password_hash, display_name=None):
