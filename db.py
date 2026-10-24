@@ -63,6 +63,10 @@ def generate_password_hash(password):
         raise ValueError("Password is required and cannot be empty.")
     return _werkzeug_generate_password_hash(password)
 
+def _is_blank(value):
+    """True if value is not a string, or is empty or only whitespace."""
+    return not isinstance(value, str) or value.strip() == ""
+
 # Added since last SCRUM meeting
 def create_user(conn, first_name, last_name, email, password_hash, display_name=None):
     """
@@ -85,7 +89,19 @@ def create_user(conn, first_name, last_name, email, password_hash, display_name=
         sqlite3.IntegrityError if the email (any case) or display_name is already
         in use; the route catches it and shows a friendly error.
     """
-    raise NotImplementedError
+    for field_name, value in (("first_name", first_name), ("last_name", last_name),
+                              ("email", email), ("password_hash", password_hash)):
+        if _is_blank(value):
+            raise ValueError(f"{field_name} is required and cannot be empty.")
+    if isinstance(display_name, str) and display_name.strip() == "":
+        display_name = None  # Treat empty string as None (display_name is UNIQUE, "" would collide)
+
+    return conn.execute(
+        """
+        INSERT INTO users (first_name, last_name, email, password_hash, display_name)
+        VALUES (?, ?, ?, ?, ?)
+        """, (first_name, last_name, email, password_hash, display_name)
+    ).lastrowid
 
 
 # Added since last SCRUM meeting
