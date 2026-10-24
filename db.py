@@ -44,7 +44,12 @@ def get_user_by_email(conn, email):
         - Match is case-insensitive (email column is COLLATE NOCASE)
         - None if no user has that email
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT id, first_name, last_name, email, password_hash, display_name
+        FROM users
+        WHERE email = ?
+        """, (email,)).fetchone()
 
 def generate_password_hash(password):
     """
