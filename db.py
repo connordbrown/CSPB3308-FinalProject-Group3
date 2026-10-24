@@ -296,7 +296,34 @@ def create_contact(conn, user_id, name, title=None, designation=None,
         ValueError if name is empty, designation is not in DESIGNATIONS,
         or company_id / job_id does not belong to the user.
     """
-    raise NotImplementedError
+    if name is None or not isinstance(name, str) or name.strip() == "":
+        raise ValueError("Name is required and cannot be empty.")
+    if designation == "":
+        designation = None  # Treat empty string as None
+    if designation is not None and designation not in DESIGNATIONS:
+        raise ValueError("Invalid designation.")
+    # Check if the provided job_id and company_id belong to the user
+    if job_id is not None:
+        job = conn.execute(
+            "SELECT id FROM jobs WHERE id = ? AND user_id = ?", (job_id, user_id)
+        ).fetchone()
+        if job is None:
+            raise ValueError("Job does not belong to the user.")
+    if company_id is not None:
+        company = conn.execute(
+            "SELECT id FROM companies WHERE id = ? AND user_id = ?", (company_id, user_id)
+        ).fetchone()
+        if company is None:
+            raise ValueError("Company does not belong to the user.")
+    # Insert the new contact
+    contact_id = conn.execute(
+        """
+        INSERT INTO contacts (user_id, name, title, designation, company_id, job_id,
+                              email, phone, linkedin_url, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, name, title, designation, company_id, job_id, email, phone, linkedin_url, notes)
+    ).lastrowid
+    return contact_id
 
 
 def update_contact(conn, user_id, contact_id, name, title=None, designation=None,
