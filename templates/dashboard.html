@@ -2,8 +2,37 @@
 
 {% block title %}Dashboard - Prospex{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/jobs.css') }}">
+{% endblock %}
+
 {% block content %}
 <h1>Dashboard</h1>
 <p>Where your job search lives</p>
+
+<!-- FILTER TOGGLE -->
+<div class="filter">
+    <div>ALL</div>
+    <div>applied</div>
+    <div>interviewing</div>
+    <div>offer</div>
+    <div>declined</div>
+</div>
+
+<div class="jobs-list">
+{% for job in jobs %}
+    <button
+        class="job-tile {{ job.status }}"
+        onclick="window.location.href='jobs/{{ job.id }}' ">
+
+        <div>{{ job.title }}</div>
+
+        <!-- Temporary - to confirm links for now -->
+        <div>Job ID: {{ job.id }}</div>
+
+        <div>Company ID: {{ job.company_id }}</div>
+    </button>
+{% endfor %}
+</div>
 
 {% endblock %}

@@ -1,0 +1,57 @@
+.filter {
+    width: 350px;
+    border: 2px solid black;
+    padding: 5px;
+    margin: 20px;
+    margin-left: auto;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.filter > div {
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.jobs-list {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.job-tile {
+    border-radius: 10px;
+    width: 500px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.saved {
+    background-color: lightgrey;
+}
+
+.applied {
+    background-color: lightblue;
+}
+
+.interviewing {
+    background-color: blue;
+}
+
+.accepted {
+    background-color: green;
+}
+
+.offer {
+    background-color: lightgreen;
+}
+
+.declined, .withdrawn, .rejected {
+    background-color: lightcoral;
+}
+

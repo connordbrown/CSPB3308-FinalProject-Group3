@@ -1,7 +1,9 @@
 <!doctype html>
 <head>
 <title>{% block title %}{% endblock %} - Prospex</title>
+{% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% endblock %}
 </head>
 <body>
     <header>
@@ -19,11 +21,11 @@
                         <li> <a href="{{ url_for('logout') }}">Log out</a></li>
                         <li> <a href="{{ url_for('profile', username=username) }}"> View User Profile </a></li>
                     </ul>
-                {% else %} 
+                {% else %}
                     <p> Please login in order to use Prospex</p>
                     <a href="{{ url_for('login') }}">Log in</a>
 
-                {% endif %} 
+                {% endif %}
         </nav>
 </header>
 
