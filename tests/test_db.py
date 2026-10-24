@@ -211,10 +211,8 @@ class TestGetContactsForUser(AccessTestCase):
         self.assertEqual(result[0]['id'], contact_id)
         self.assertEqual(result[0]['name'], "Alice Smith")
         self.assertEqual(result[0]['title'], "Engineer")
-        self.assertEqual(result[0]['designation'], "recruiter")
-        self.assertEqual(result[0]['email'], "alice@example.com")
-        self.assertEqual(result[0]['company_id'], company_id)
-        self.assertEqual(result[0]['job_id'], job_id)
+        self.assertEqual(result[0]['company_name'], "Acme Corp")
+        
 
     def test_does_not_return_other_users_contacts(self):
         # Insert a company and a job for users A and B

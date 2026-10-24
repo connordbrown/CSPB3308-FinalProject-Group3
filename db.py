@@ -215,7 +215,15 @@ def get_contacts_for_user(conn, user_id):
         - Sorted by name
         - Empty list if the user has no contacts or does not exist
     """
-    raise NotImplementedError
+
+    return conn.execute(
+        """
+        SELECT c.id, c.name, c.title, co.name AS company_name 
+        FROM contacts c
+        LEFT JOIN companies co ON c.company_id = co.id
+        WHERE c.user_id = ?
+        ORDER BY c.name
+    """, (user_id,)).fetchall() 
 
 
 # Added since last SCRUM meeting
