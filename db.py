@@ -183,7 +183,14 @@ def get_job(conn, user_id, job_id):
         company_id, company_name, city, region,
         or None if the job does not exist or belongs to another user.
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT j.id, j.title, j.status, j.work_type, j.link, j.notes, j.date_applied,
+               j.company_id, co.name AS company_name, co.city, co.region
+        FROM jobs j
+        JOIN companies co ON j.company_id = co.id
+        WHERE j.id = ? AND j.user_id = ?
+        """, (job_id, user_id)).fetchone()
 
 
 # Added since last SCRUM meeting
