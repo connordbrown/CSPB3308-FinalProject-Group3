@@ -453,8 +453,118 @@ class TestGetContact(AccessTestCase):
 
 
 class TestCreateContact(AccessTestCase):
-    """Tests for db.create_contact (SQL_TESTING.md, Access Method: create_contact)."""
+    def test_creates_contact(self):
+        # Insert a company and a job for user A, then create a contact for user A linked to that job using db.create_contact.
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        contact_id = db.create_contact(
+            self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", company_id=company_id, job_id=job_id, email="charlie@example.com"
+        )
+        # Check that the contact is created in the database.
+        result = db.get_contact(self.conn, self.user_a, contact_id)
+        self.assertEqual(result['id'], contact_id, "Created contact id does not match expected id")
 
+    def test_contact_belongs_to_user(self):
+        # Insert a company and a job for user A, then create a contact for user A linked to that job using db.create_contact.
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        contact_id = db.create_contact(
+            self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", company_id=company_id, job_id=job_id, email="charlie@example.com"
+        )
+        # Check that the contact belongs to the correct user.
+        result = db.get_contact(self.conn, self.user_a, contact_id)
+        self.assertEqual(result['user_id'], self.user_a, "Contact does not belong to the correct user")
+
+    def test_contact_attributes(self):
+        # Insert a company and a job for user A, then create a contact for user A linked to that job using db.create_contact.
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        contact_id = db.create_contact(
+            self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", company_id=company_id, job_id=job_id, email="charlie@example.com"
+        )
+        # Check that the contact has the correct attributes.
+        result = db.get_contact(self.conn, self.user_a, contact_id)
+        self.assertEqual(result['name'], "Charlie Brown", "Contact name does not match")
+        self.assertEqual(result['title'], "Developer", "Contact title does not match")
+        self.assertEqual(result['designation'], "recruiter", "Contact designation does not match")
+        self.assertEqual(result['company_id'], company_id, "Contact company_id does not match")
+        self.assertEqual(result['job_id'], job_id, "Contact job_id does not match")
+        self.assertEqual(result['email'], "charlie@example.com", "Contact email does not match")
+
+    def test_empty_or_invalid_name(self):
+        # Check that db.create_contact raises a ValueError when the name is not a string.
+        invalid_data_type = [123, [], {}, True, False]
+        for type in invalid_data_type:
+            with self.subTest(type=type):
+                with self.assertRaises(ValueError):
+                    db.create_contact(self.conn, self.user_a, name=type, title="Developer", designation="recruiter")
+        # Check that db.create_contact raises an error when the name is empty.
+        with self.assertRaises(ValueError):
+            db.create_contact(self.conn, self.user_a, name="", title="Developer", designation="recruiter")
+        with self.assertRaises(ValueError):
+            db.create_contact(self.conn, self.user_a, name=None, title="Developer", designation="recruiter")    
+
+    def test_designation_invalid(self):
+        # Check that db.create_contact raises a ValueError when the designation is not in the allowed set of values.
+        invalid_designations = ["invalid", "manager", 123, [], {}, True, False]
+        for designation in invalid_designations:
+            with self.subTest(designation=designation):
+                with self.assertRaises(ValueError):
+                    db.create_contact(self.conn, self.user_a, name="Charlie Brown", title="Developer", designation=designation)
+
+    def test_designation_none_or_empty(self):
+        # Check that db.create_contact allows designation to be None or an empty string.
+        try:
+            contact_id_none = db.create_contact(self.conn, self.user_a, name="Charlie Brown", title="Developer", designation=None)
+            contact_id_empty = db.create_contact(self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="")
+            result_none = db.get_contact(self.conn, self.user_a, contact_id_none)
+            result_empty = db.get_contact(self.conn, self.user_a, contact_id_empty)   
+        except Exception as e:
+            self.fail(f"Unexpected exception raised: {e}")
+
+    def test_job_id_does_not_belong_to_user(self):
+        # Insert a company and a job for user B, then attempt to create a contact for user A linked to that job.
+        company_id_b = self._insert_company(self.user_b, name="Beta Ltd")
+        job_id_b = self._insert_job(self.user_b, title="Product Manager", company_id=company_id_b)
+        # Insert a company for user A to use in the contact creation.
+        company_id_a = self._insert_company(self.user_a, name="Acme Corp")
+        # Check that db.create_contact raises a ValueError when the job_id does not belong to the user.
+        with self.assertRaises(ValueError):
+            db.create_contact(
+                self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", company_id=company_id_a, job_id=job_id_b,
+            )
+
+    def test_company_id_does_not_belong_to_user(self):
+        # Insert a company for user B, then attempt to create a contact for user A linked to that company.
+        company_id_b = self._insert_company(self.user_b, name="Beta Ltd")
+        # Check that db.create_contact raises a ValueError when the company_id does not belong to the user.
+        with self.assertRaises(ValueError):
+            db.create_contact(
+                self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", company_id=company_id_b
+            )
+
+    def test_succeeds_with_name_only(self):
+        # Check that db.create_contact succeeds when only the name is provided, and other optional fields are omitted.
+        try:
+            contact_id = db.create_contact(self.conn, self.user_a, name="Charlie Brown")
+            result = db.get_contact(self.conn, self.user_a, contact_id)
+            self.assertEqual(result['name'], "Charlie Brown", "Contact name does not match")
+            self.assertIsNone(result['title'], "Contact title should be None")
+            self.assertIsNone(result['designation'], "Contact designation should be None")
+            self.assertIsNone(result['company_id'], "Contact company_id should be None")
+            self.assertIsNone(result['job_id'], "Contact job_id should be None")
+            self.assertIsNone(result['email'], "Contact email should be None")
+        except Exception as e:
+            self.fail(f"Unexpected exception raised: {e}")
+
+    def test_failure_creates_no_rows(self):
+        # Check that db.create_contact does not create any rows in the contacts table when it raises an error.
+        initial_count = self._count("contacts")
+        # Attempt to create a contact with an invalid designation, which should raise a ValueError.
+        with self.assertRaises(ValueError):
+            db.create_contact(self.conn, self.user_a, name="Charlie Brown", designation="invalid_designation")
+        # Check that the number of rows in the contacts table has not changed.
+        self.assertEqual(self._count("contacts"), initial_count)
 
 class TestUpdateContact(AccessTestCase):
     """Tests for db.update_contact (SQL_TESTING.md, Access Method: update_contact)."""
