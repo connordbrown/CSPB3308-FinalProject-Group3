@@ -24,7 +24,7 @@ import os
 import sqlite3
 import unittest
 
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import db
 
@@ -142,6 +142,48 @@ class AccessTestCase(unittest.TestCase):
 class TestGetUserByEmail(AccessTestCase):
     """Tests for db.get_user_by_email (SQL_TESTING.md, Access Method: get_user_by_email)."""
 
+class TestGeneratePasswordHash(AccessTestCase):
+    """Tests for db.generate_password_hash (SQL_TESTING.md, Access Method: generate_password_hash)."""
+ 
+    def test_returns_a_nonempty_string(self):
+        result = db.generate_password_hash("DemoPass123!")
+        self.assertIsInstance(result, str)
+        self.assertNotEqual(result, "", "Hash should not be empty")
+ 
+    def test_hash_is_not_the_plain_password(self):
+        password = "DemoPass123!"
+        result = db.generate_password_hash(password)
+        self.assertNotEqual(result, password, "Hash must not equal the plain password")
+        self.assertNotIn(password, result, "Hash must not contain the plain password")
+ 
+    def test_hash_verifies_only_with_the_original_password(self):
+        password = "DemoPass123!"
+        result = db.generate_password_hash(password)
+        self.assertTrue(check_password_hash(result, password))
+        self.assertFalse(check_password_hash(result, "WrongPass123!"))
+        # Passwords are case sensitive
+        self.assertFalse(check_password_hash(result, password.lower()))
+ 
+    def test_same_password_gives_different_hashes(self):
+        # Each hash is salted, so two hashes of one password differ but both still verify.
+        password = "DemoPass123!"
+        hash_1 = db.generate_password_hash(password)
+        hash_2 = db.generate_password_hash(password)
+        self.assertNotEqual(hash_1, hash_2, "Hashes should be salted")
+        self.assertTrue(check_password_hash(hash_1, password))
+        self.assertTrue(check_password_hash(hash_2, password))
+ 
+    def test_handles_unicode_and_long_passwords(self):
+        for password in ["p\u00e4ssw\u00f6rd\U0001F511", "a" * 200]:
+            with self.subTest(length=len(password)):
+                result = db.generate_password_hash(password)
+                self.assertTrue(check_password_hash(result, password))
+ 
+    def test_empty_or_non_string_password_raises_value_error(self):
+        for password in ["", None, 123, [], {}, True]:
+            with self.subTest(password=password):
+                with self.assertRaises(ValueError):
+                    db.generate_password_hash(password)
 
 class TestCreateUser(AccessTestCase):
     """Tests for db.create_user (SQL_TESTING.md, Access Method: create_user)."""
