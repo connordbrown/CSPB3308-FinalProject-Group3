@@ -187,6 +187,100 @@ class TestGeneratePasswordHash(AccessTestCase):
 
 class TestCreateUser(AccessTestCase):
     """Tests for db.create_user (SQL_TESTING.md, Access Method: create_user)."""
+ 
+    def _new_user_args(self, **overrides):
+        """Valid arguments for a user who is not one of the seeded users A and B."""
+        args = {
+            "first_name": "Jamie",
+            "last_name": "Fox",
+            "email": "jamie.fox@example.com",
+            "password_hash": "not-a-real-hash-value",
+            "display_name": "jamie_f",
+        }
+        args.update(overrides)
+        return args
+ 
+    def test_returns_new_user_id_and_saves_fields(self):
+        user_id = db.create_user(self.conn, **self._new_user_args())
+        self.assertIsInstance(user_id, int)
+        row = self._fetch("users", user_id)
+        self.assertIsNotNone(row, "Row was not saved")
+        self.assertEqual(row["first_name"], "Jamie")
+        self.assertEqual(row["last_name"], "Fox")
+        self.assertEqual(row["email"], "jamie.fox@example.com")
+        self.assertEqual(row["display_name"], "jamie_f")
+ 
+    def test_new_user_gets_new_id_and_created_at(self):
+        user_id = db.create_user(self.conn, **self._new_user_args())
+        self.assertNotIn(user_id, (self.user_a, self.user_b))
+        self.assertIsNotNone(self._fetch("users", user_id)["created_at"])
+ 
+    def test_stores_given_password_hash_unchanged(self):
+        # create_user must not hash again: the route already hashed the password.
+        user_id = db.create_user(self.conn, **self._new_user_args(password_hash="already-hashed-value"))
+        self.assertEqual(self._fetch("users", user_id)["password_hash"], "already-hashed-value")
+ 
+    def test_display_name_is_optional(self):
+        args = self._new_user_args()
+        del args["display_name"]
+        user_id = db.create_user(self.conn, **args)
+        self.assertIsNone(self._fetch("users", user_id)["display_name"])
+ 
+    def test_empty_display_name_is_stored_as_null(self):
+        for i, display_name in enumerate(["", "   "]):
+            with self.subTest(display_name=display_name):
+                user_id = db.create_user(
+                    self.conn, **self._new_user_args(email=f"blank{i}@example.com", display_name=display_name)
+                )
+                self.assertIsNone(self._fetch("users", user_id)["display_name"])
+ 
+    def test_two_users_without_display_name_succeed(self):
+        # display_name is UNIQUE, but NULL is not a duplicate of NULL.
+        id_1 = db.create_user(self.conn, **self._new_user_args(email="one@example.com", display_name=None))
+        id_2 = db.create_user(self.conn, **self._new_user_args(email="two@example.com", display_name=None))
+        self.assertNotEqual(id_1, id_2)
+ 
+    def test_same_name_with_different_email_succeeds(self):
+        user_id = db.create_user(
+            self.conn,
+            **self._new_user_args(first_name=USER_A["first_name"], last_name=USER_A["last_name"], display_name=None),
+        )
+        self.assertIsNotNone(self._fetch("users", user_id))
+ 
+    def test_missing_required_field_raises_value_error(self):
+        for field in ("first_name", "last_name", "email", "password_hash"):
+            for bad_value in ("", "   ", None, 123):
+                with self.subTest(field=field, value=bad_value):
+                    with self.assertRaises(ValueError):
+                        db.create_user(self.conn, **self._new_user_args(**{field: bad_value}))
+ 
+    def test_invalid_input_adds_no_row(self):
+        before = self._count("users")
+        with self.assertRaises(ValueError):
+            db.create_user(self.conn, **self._new_user_args(first_name=""))
+        self.assertEqual(self._count("users"), before)
+ 
+    def test_duplicate_email_raises_integrity_error(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user(self.conn, **self._new_user_args(email=USER_A["email"]))
+ 
+    def test_duplicate_email_in_different_case_raises_integrity_error(self):
+        # Needs email to be COLLATE NOCASE in schema.sql
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user(self.conn, **self._new_user_args(email=USER_A["email"].upper()))
+ 
+    def test_duplicate_display_name_raises_integrity_error(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user(self.conn, **self._new_user_args(display_name=USER_B["display_name"]))
+ 
+    def test_duplicate_failure_adds_no_row_and_leaves_connection_usable(self):
+        before = self._count("users")
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.create_user(self.conn, **self._new_user_args(email=USER_A["email"]))
+        self.assertEqual(self._count("users"), before)
+        # The route shows an error and carries on, so a valid signup must still work afterwards.
+        user_id = db.create_user(self.conn, **self._new_user_args())
+        self.assertIsNotNone(self._fetch("users", user_id))
 
 
 class TestGetUser(AccessTestCase):
