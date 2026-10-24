@@ -141,6 +141,64 @@ class AccessTestCase(unittest.TestCase):
 
 class TestGetUserByEmail(AccessTestCase):
     """Tests for db.get_user_by_email (SQL_TESTING.md, Access Method: get_user_by_email)."""
+ 
+    def test_returns_user_fields(self):
+        result = db.get_user_by_email(self.conn, USER_A["email"])
+        self.assertEqual(result["id"], self.user_a)
+        self.assertEqual(result["first_name"], USER_A["first_name"])
+        self.assertEqual(result["last_name"], USER_A["last_name"])
+        self.assertEqual(result["email"], USER_A["email"])
+        self.assertEqual(result["display_name"], USER_A["display_name"])
+ 
+    def test_returns_password_hash_that_verifies_the_password(self):
+        # The login route checks this hash, so it must be the stored one.
+        result = db.get_user_by_email(self.conn, USER_A["email"])
+        self.assertTrue(check_password_hash(result["password_hash"], USER_A["password"]))
+        self.assertFalse(check_password_hash(result["password_hash"], USER_B["password"]))
+ 
+    def test_returns_only_the_documented_columns(self):
+        result = db.get_user_by_email(self.conn, USER_A["email"])
+        expected = {"id", "first_name", "last_name", "email", "password_hash", "display_name"}
+        self.assertSetEqual(set(result.keys()), expected)
+ 
+    def test_returns_the_user_with_that_email_when_there_are_several(self):
+        result_a = db.get_user_by_email(self.conn, USER_A["email"])
+        result_b = db.get_user_by_email(self.conn, USER_B["email"])
+        self.assertEqual(result_a["id"], self.user_a)
+        self.assertEqual(result_b["id"], self.user_b)
+ 
+    def test_match_is_case_insensitive(self):
+        # Needs email to be COLLATE NOCASE in schema.sql
+        for email in (USER_A["email"].upper(), "Alex.Demo@Example.com"):
+            with self.subTest(email=email):
+                result = db.get_user_by_email(self.conn, email)
+                self.assertIsNotNone(result)
+                self.assertEqual(result["id"], self.user_a)
+ 
+    def test_user_without_display_name_has_none(self):
+        user_id = self._insert_user("Marcus", "Lee", "marcus.demo@example.com", "MarcusPass789!")
+        result = db.get_user_by_email(self.conn, "marcus.demo@example.com")
+        self.assertEqual(result["id"], user_id)
+        self.assertIsNone(result["display_name"])
+ 
+    def test_returns_none_if_email_not_found(self):
+        self.assertIsNone(db.get_user_by_email(self.conn, "nobody@example.com"))
+ 
+    def test_returns_none_for_empty_email(self):
+        for email in ("", None):
+            with self.subTest(email=email):
+                self.assertIsNone(db.get_user_by_email(self.conn, email))
+ 
+    def test_only_exact_emails_match(self):
+        # Partial emails and wildcard characters must not match anyone
+        for email in ("alex.demo", "alex.demo@example", "%", "alex.demo@example.co", "%@example.com"):
+            with self.subTest(email=email):
+                self.assertIsNone(db.get_user_by_email(self.conn, email))
+ 
+    def test_sql_in_email_is_treated_as_plain_text(self):
+        email = USER_A["email"] + "' OR '1'='1"
+        self.assertIsNone(db.get_user_by_email(self.conn, email))
+        self.assertEqual(self._count("users"), 2, "Users table should be untouched")
 
 class TestGeneratePasswordHash(AccessTestCase):
     """Tests for db.generate_password_hash (SQL_TESTING.md, Access Method: generate_password_hash)."""
