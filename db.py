@@ -226,7 +226,7 @@ def get_contacts_for_user(conn, user_id):
     """, (user_id,)).fetchall() 
 
 
-# Added since last SCRUM meeting
+
 def get_contacts_for_job(conn, user_id, job_id):
     """
     Return the contacts linked to one job, only if the job and contacts belong to the user.
@@ -243,7 +243,14 @@ def get_contacts_for_job(conn, user_id, job_id):
         - Empty list if no contacts are linked, or the job does not exist
           or belongs to another user
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT c.id, c.name, c.title, c.designation
+        FROM contacts c
+        JOIN jobs j ON c.job_id = j.id
+        WHERE j.id = ? AND j.user_id = ?
+        ORDER BY c.name
+    """, (job_id, user_id)).fetchall()
 
 
 def get_contact(conn, user_id, contact_id):
