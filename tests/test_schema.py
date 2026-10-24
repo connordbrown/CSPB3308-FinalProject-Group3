@@ -5,7 +5,7 @@ Each test class covers one table, and each test maps to a numbered
 "Table Tests" entry in SQL_TESTING.md (e.g. "Users #3"). Every test runs
 against a fresh in-memory SQLite database, so tests never share data.
 
-Run with:  python3 -m unittest test_schema.py -v
+Run with:  python3 -m unittest tests.test_schema.py -v
 """
 
 import os

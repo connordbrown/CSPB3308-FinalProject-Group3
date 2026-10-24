@@ -176,7 +176,116 @@ class TestUpdateJob(AccessTestCase):
 # ---------- Contacts ----------
 
 class TestGetContactsForUser(AccessTestCase):
-    """Tests for db.get_contacts_for_user (SQL_TESTING.md, Access Method: get_contacts_for_user)."""
+    def test_returns_user_contacts(self):
+        # Insert three contacts for user A and check that get_contacts_for_user returns them all with the correct attributes.
+        contact_1 = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Engineer", designation="recruiter", email="alice@example.com"
+            )
+        contact_2 = self._insert_contact(
+            self.user_a, name="Bob Johnson", title="Designer", designation="recruiter", email="bob@example.com"
+        )
+        contact_3 = self._insert_contact(
+            self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", email="charlie@example.com"
+        )
+
+        result = db.get_contacts_for_user(self.conn, self.user_a)
+        # Check that the result contains all three contacts.
+        self.assertEqual(len(result), 3)
+        # Check that the returned contacts are the same as the inserted contacts by comparing their ids.
+        # Checks agains ID set to avoid ordering issues
+        returned_ids = {contact['id'] for contact in result}
+        self.assertSetEqual(returned_ids, {contact_1, contact_2, contact_3})
+        
+
+    def test_returns_contact_attributes(self):
+        # Insert a company and a job for user A, then insert a contact for user A with those company_id and job_id.
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        # Insert a contact for user A and check that get_contacts_for_user returns the correct attributes.
+        contact_id = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Engineer", designation="recruiter", email="alice@example.com", company_id=company_id, job_id=job_id
+        )
+
+        result = db.get_contacts_for_user(self.conn, self.user_a)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['id'], contact_id)
+        self.assertEqual(result[0]['name'], "Alice Smith")
+        self.assertEqual(result[0]['title'], "Engineer")
+        self.assertEqual(result[0]['designation'], "recruiter")
+        self.assertEqual(result[0]['email'], "alice@example.com")
+        self.assertEqual(result[0]['company_id'], company_id)
+        self.assertEqual(result[0]['job_id'], job_id)
+
+    def test_does_not_return_other_users_contacts(self):
+        # Insert a company and a job for users A and B
+        company_id_a = self._insert_company(self.user_a, name="Acme Corp")
+        job_id_a = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id_a)
+        company_id_b = self._insert_company(self.user_b, name="Beta Ltd")
+        job_id_b = self._insert_job(self.user_b, title="Product Manager", company_id=company_id_b)
+        # Insert a contact for user A and a contact for user B, and check that get_contacts_for_user only returns user A's contact.
+        contact_a_id = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Engineer", designation="recruiter", email="alice@example.com", company_id=company_id_a, job_id=job_id_a
+        )
+        contact_b_id = self._insert_contact(
+            self.user_b, name="Bob Johnson", title="Designer", designation="recruiter", email="bob@example.com", company_id=company_id_b, job_id=job_id_b
+        )
+        # Check that get_contacts_for_user only returns user A's contact.
+        result_a = db.get_contacts_for_user(self.conn, self.user_a)
+        self.assertEqual(len(result_a), 1)
+        self.assertEqual(result_a[0]['id'], contact_a_id)
+        # Check that get_contacts_for_user only returns user B's contact.
+        result_b = db.get_contacts_for_user(self.conn, self.user_b)
+        self.assertEqual(len(result_b), 1)
+        self.assertEqual(result_b[0]['id'], contact_b_id)
+
+
+
+    def test_returns_empty_list_if_no_contacts(self):
+        # Run get_contacts_for_user for user A when no contacts exist and check that it returns an empty list.
+        result = db.get_contacts_for_user(self.conn, self.user_a)
+        self.assertEqual(result, [])
+        
+
+    def test_returns_empty_list_if_user_does_not_exist(self):
+        # Run get_contacts_for_user for a non-existent user and check that it returns an empty list.
+        result = db.get_contacts_for_user(self.conn, NONEXISTENT_ID)
+        self.assertEqual(result, [])    
+
+    def test_returns_contacts_without_company_or_job(self):
+        # Insert a contact for user A without a company_id
+        contact_id = self._insert_contact(
+            self.user_a, name="Alice Smith", title="Engineer", designation="recruiter", email="alice@example.com"
+        )
+        # Insert a contact for user A without a job_id
+        contact_id_2 = self._insert_contact(
+            self.user_a, name="Bob Johnson", title="Designer", designation="recruiter", email="bob@example.com"
+        )
+        # Check that get_contacts_for_user returns both contacts without company_id or job_id.
+        result = db.get_contacts_for_user(self.conn, self.user_a)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['id'], contact_id, "Contact not returned with no company_id")
+        self.assertEqual(result[1]['id'], contact_id_2, "Contact not returned with no job_id")
+
+    def test_results_are_ordered_by_name(self):
+        # Insert companies and jobs for user A to associate with contacts
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
+        # Insert three contacts for user A with different names and check that get_contacts_for_user returns them ordered by name.
+        contact_1 = self._insert_contact(
+            self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", email="charlie@example.com", company_id=company_id, job_id=job_id
+        )
+        contact_2 = self._insert_contact(
+            self.user_a, name="David Wilson", title="Analyst", designation="recruiter", email="david@example.com", company_id=company_id, job_id=job_id
+        )
+        contact_3 = self._insert_contact(
+            self.user_a, name="Eve Davis", title="Coordinator", designation="recruiter", email="eve@example.com", company_id=company_id, job_id=job_id
+        )
+        # Check that get_contacts_for_user returns the contacts ordered by name.
+        result = db.get_contacts_for_user(self.conn, self.user_a)
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0]['name'], "Charlie Brown")
+        self.assertEqual(result[1]['name'], "David Wilson")
+        self.assertEqual(result[2]['name'], "Eve Davis")
 
 
 class TestGetContactsForJob(AccessTestCase):
