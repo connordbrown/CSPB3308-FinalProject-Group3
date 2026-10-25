@@ -13,7 +13,7 @@ import sqlite3
 import unittest
 
 # Resolve schema.sql relative to this file so tests run from any directory
-SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "schema.sql")
+SCHEMA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema.sql")
 
 # Matches SQLite's CURRENT_TIMESTAMP format: "YYYY-MM-DD HH:MM:SS"
 TIMESTAMP_REGEX = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"

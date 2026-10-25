@@ -12,8 +12,8 @@ def index():
     """Dashboard, will show filterable list of job applications"""
 
     path = app.static_folder + '/testing/sample_data.json'
-    sample_data_file = open(path, "r")
-    sample_data = json.load(sample_data_file)
+    with open(path, "r", encoding="utf-8") as sample_data_file:
+        sample_data = json.load(sample_data_file)
 
     # Sort by status - in set order
     sort_order = {

@@ -11,6 +11,8 @@ Stubs: raise NotImplementedError until implemented.
 
 import sqlite3
 
+from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash
+
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
 # Added since last SCRUM meeting
 STATUSES = ("saved", "applied", "interviewing", "offer", "rejected",
@@ -25,34 +27,6 @@ def get_connection(db_path):
     conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     return conn
-
-# ---------- User ----------
-
-def create_user(conn, first_name, last_bame, email, password_hash):
-    """
-    Create a user with supplied data.
-        Parameters:
-            conn (sqlite3.Connection)
-            first_name (string)
-            last_name (string)
-            email (string)
-            password_hash (string)
-            display_name=None
-        Returns:
-            - (User object/User dictionary, "") if successful
-            - (None, Exception) if failure
-    """
-    raise NotImplementedError
-
-def generate_password_hash(password):
-    """
-    Generate a password hash from a user's password.
-    Parameters:
-        password (string)
-    Returns:
-        - Password hash (string) of original password
-    """
-    raise NotImplementedError
 
 # ---------- Users ----------
 
@@ -70,8 +44,33 @@ def get_user_by_email(conn, email):
         - Match is case-insensitive (email column is COLLATE NOCASE)
         - None if no user has that email
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT id, first_name, last_name, email, password_hash, display_name
+        FROM users
+        WHERE email = ?
+        """, (email,)).fetchone()
 
+def generate_password_hash(password):
+    """
+    Generate a password hash from a user's password.
+    Parameters:
+        password (string)
+    Returns:
+        - Password hash (string) of original password
+        - Salted, so the same password gives a different hash each time;
+          check it with werkzeug's check_password_hash
+
+    Raises:
+        ValueError if password is empty or not a string.
+    """
+    if not isinstance(password, str) or password == "":
+        raise ValueError("Password is required and cannot be empty.")
+    return _werkzeug_generate_password_hash(password)
+
+def _is_blank(value):
+    """True if value is not a string, or is empty or only whitespace."""
+    return not isinstance(value, str) or value.strip() == ""
 
 # Added since last SCRUM meeting
 def create_user(conn, first_name, last_name, email, password_hash, display_name=None):
@@ -95,7 +94,19 @@ def create_user(conn, first_name, last_name, email, password_hash, display_name=
         sqlite3.IntegrityError if the email (any case) or display_name is already
         in use; the route catches it and shows a friendly error.
     """
-    raise NotImplementedError
+    for field_name, value in (("first_name", first_name), ("last_name", last_name),
+                              ("email", email), ("password_hash", password_hash)):
+        if _is_blank(value):
+            raise ValueError(f"{field_name} is required and cannot be empty.")
+    if isinstance(display_name, str) and display_name.strip() == "":
+        display_name = None  # Treat empty string as None (display_name is UNIQUE, "" would collide)
+
+    return conn.execute(
+        """
+        INSERT INTO users (first_name, last_name, email, password_hash, display_name)
+        VALUES (?, ?, ?, ?, ?)
+        """, (first_name, last_name, email, password_hash, display_name)
+    ).lastrowid
 
 
 # Added since last SCRUM meeting
@@ -177,7 +188,14 @@ def get_job(conn, user_id, job_id):
         company_id, company_name, city, region,
         or None if the job does not exist or belongs to another user.
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT j.id, j.title, j.status, j.work_type, j.link, j.notes, j.date_applied,
+               j.company_id, co.name AS company_name, co.city, co.region
+        FROM jobs j
+        JOIN companies co ON j.company_id = co.id
+        WHERE j.id = ? AND j.user_id = ?
+        """, (job_id, user_id)).fetchone()
 
 
 # Added since last SCRUM meeting
@@ -228,20 +246,6 @@ def update_job(conn, user_id, job_id, company_id, title, status="saved", work_ty
 
 # ---------- Contacts ----------
 
-def get_contacts_for_job(conn, user_id, job_id):
-    """
-    Returns all associated contacts for a user's job.
-        Parameters:
-            conn (sqlite3.Connection)
-            user_id (int)
-            job_id (int)
-        Returns:
-            - List of contacts
-            - Empty list if no contacts
-    """
-    raise NotImplementedError
-
-
 def get_contacts_for_user(conn, user_id):
     """
     Return all of the user's contacts for the Contacts list page.
@@ -265,7 +269,6 @@ def get_contacts_for_user(conn, user_id):
         WHERE c.user_id = ?
         ORDER BY c.name
     """, (user_id,)).fetchall() 
-
 
 
 def get_contacts_for_job(conn, user_id, job_id):
@@ -454,23 +457,6 @@ def get_or_create_company(conn, user_id, name):
  
     Raises:
         ValueError if name is empty or only whitespace.
-    """
-    raise NotImplementedError
-
-# ---------- Jobs ----------
-
-def get_jobs(conn, user_id, job_id):
-    """
-    Returns a job with a given id associated with the user.
-
-    Parameters:
-        conn (sqlite3.Connection)
-        user_id (int)
-        job_id (int)
-
-    Returns:
-        - Dictionary containing data for job
-        - None if job does not exist
     """
     raise NotImplementedError
 
