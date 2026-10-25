@@ -437,6 +437,33 @@ class TestUpdateUser(AccessTestCase):
 class TestChangePassword(AccessTestCase):
     """Tests for db.change_password (SQL_TESTING.md, Access Method: change_password)."""
 
+    def test_returns_true_if_success(self):
+        result = db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        self.assertTrue(result)
+
+    def test_new_password_works_old_doesnt(self):
+        db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        new_hash = self._fetch("users", self.user_a)["password_hash"]
+        self.assertTrue(check_password_hash(new_hash, "hunter21"))
+        self.assertFalse(check_password_hash(new_hash, USER_A["password"]))
+
+
+    def test_wrong_password_errors(self):
+        with self.assertRaises(ValueError):
+            db.change_password(self.conn, self.user_a, "hunter23", "hunter21")
+
+    def test_short_password_error(self):
+        with self.assertRaises(ValueError):
+            db.change_password(self.conn, self.user_a, USER_A["password"], "hunter2")
+
+    def test_only_changes_target_password(self):
+        b_before = self._fetch("users", self.user_b)["password_hash"]
+        db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        b_after = self._fetch("users", self.user_b)["password_hash"]
+        self.assertEqual(b_before, b_after)
+
+    def test_false_if_no_user(self):
+        self.assertFalse(db.change_password(self.conn, NONEXISTENT_ID, USER_A["password"], "hunter21"))
 
 # ---------- Jobs ----------
 
