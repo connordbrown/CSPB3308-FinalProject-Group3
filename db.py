@@ -11,7 +11,7 @@ Stubs: raise NotImplementedError until implemented.
 
 import sqlite3
 
-from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash
+from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash, check_password_hash
 
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
 # Added since last SCRUM meeting
@@ -109,7 +109,6 @@ def create_user(conn, first_name, last_name, email, password_hash, display_name=
     ).lastrowid
 
 
-# Added since last SCRUM meeting
 def get_user(conn, user_id):
     """
     Return the user's details for the Profile page. Never returns password_hash.
@@ -130,7 +129,6 @@ def get_user(conn, user_id):
         """, (user_id,)).fetchone()
 
 
-# Added since last SCRUM meeting
 def update_user(conn, user_id, first_name, last_name, email):
     """
     Save changes to the user's name and email from the Profile page.
@@ -182,7 +180,23 @@ def change_password(conn, user_id, current_password, new_password):
     Raises:
         ValueError if new_password is empty.
     """
-    raise NotImplementedError
+    # check password parameters
+    if len(new_password) < 8:
+        raise ValueError("New Password must be 8 or more characters.")
+    
+    # fetch stored hash
+    row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    # check that password exists
+    if row is None:
+        return False
+    
+    # check password
+    if not check_password_hash(row["password_hash"], current_password):
+        raise ValueError("Incorrect password entered.")
+
+    new_hash = generate_password_hash(new_password)
+
+    return conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
 
 
 # ---------- Jobs ----------
