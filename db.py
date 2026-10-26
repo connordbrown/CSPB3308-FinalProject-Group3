@@ -504,7 +504,13 @@ def get_companies_for_user(conn, user_id):
         - Sorted by name
         - Empty list if none
     """
-    raise NotImplementedError
+    return conn.execute(
+    """
+    SELECT c.id, c.name
+    FROM companies c
+    WHERE user_id = ?
+    ORDER BY c.name
+    """, (user_id,)).fetchall()
 
 
 def get_jobs_for_user(conn, user_id):
