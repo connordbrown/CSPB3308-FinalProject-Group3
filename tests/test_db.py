@@ -387,7 +387,7 @@ class TestUpdateUser(AccessTestCase):
         updated_user = self._fetch("users", self.user_a)
         self.assertEqual(updated_user["first_name"], "New_First_Name")
         self.assertEqual(updated_user["last_name"], "New_last_name")
-        self.assertEqual(updated_user["email"], "new_email")
+        self.assertEqual(updated_user["email"], "new.email@bob.com")
 
     def test_only_changes_target_user(self):
         db.update_user(self.conn, self.user_a, "New_First_Name", "New_last_name", "new.email@bob.com")
@@ -1116,6 +1116,43 @@ class TestGetOrCreateCompany(AccessTestCase):
 
 class TestGetCompaniesForUser(AccessTestCase):
     """Tests for db.get_companies_for_user (SQL_TESTING.md, Access Method: get_companies_for_user)."""
+    # create some test data 
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+
+    # Returns all of user's companies and only those companies
+    def test_returns_all_companies(self):
+        # add a company to user b
+        self.turing = self._insert_company(self.user_b, name = "Turing Registry")
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        companies = {row["id"] for row in result}
+        self.assertEqual(companies, {self.maas, self.hosaka, self.tessier})
+
+    # Returns an empty list for user with no companies
+    def  test_return_empty_if_no_companies(self):
+        result = db.get_companies_for_user(self.conn, self.user_b)
+        self.assertEqual(result, [])
+
+    # Returns an empty list for nonexistent user
+    def test_return_empty_if_no_user(self):
+        result = db.get_companies_for_user(self.conn, NONEXISTENT_ID)
+        self.assertEqual(result, [])
+
+    # Results sorted alphabetically by name
+    def test_companies_sorted(self):
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        companies = [row["name"] for row in result]
+        self.assertEqual(companies, ["Hosaka", "Maas Biolabs", "Tessier-Ashpool"])
+
+    # Each row has all documented columns
+    def test_columns_present(self):
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        for row in result:
+            self.assertSetEqual(set(row.keys()), {"id", "name"})
+
 
 
 class TestGetJobsForUser(AccessTestCase):
