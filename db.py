@@ -508,7 +508,7 @@ def get_companies_for_user(conn, user_id):
     """
     SELECT c.id, c.name
     FROM companies c
-    WHERE user_id = ?
+    WHERE c.user_id = ?
     ORDER BY c.name
     """, (user_id,)).fetchall()
 
@@ -527,4 +527,11 @@ def get_jobs_for_user(conn, user_id):
         - Sorted by company name, then title
         - Empty list if none
     """
-    raise NotImplementedError
+    return conn.execute(
+    """
+    SELECT j.id, j.title, co.name AS company_name
+    FROM jobs j
+    JOIN companies co ON j.company_id = co.id
+    WHERE j.user_id = ?
+    ORDER BY co.name, j.title
+    """, (user_id,)).fetchall()
