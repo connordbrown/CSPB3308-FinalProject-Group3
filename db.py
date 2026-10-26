@@ -122,7 +122,12 @@ def get_user(conn, user_id):
         one row with: id, first_name, last_name, email, display_name,
         or None if the user does not exist.
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT id, first_name, last_name, email, display_name, created_at
+        FROM users
+        WHERE id = ?
+        """, (user_id,)).fetchone()
 
 
 # Added since last SCRUM meeting
@@ -144,7 +149,17 @@ def update_user(conn, user_id, first_name, last_name, email):
         ValueError if a field is empty.
         sqlite3.IntegrityError if another user already has that email (any case).
     """
-    raise NotImplementedError
+    for field_name, value in (("first_name", first_name), ("last_name", last_name),
+                              ("email", email)):
+        if _is_blank(value):
+            raise ValueError(f"{field_name} is required and cannot be empty.")
+
+    return conn.execute(
+        """
+        UPDATE users SET first_name = ?, last_name = ?, email = ?
+        WHERE id = ?
+        """, (first_name, last_name, email, user_id)
+    ).rowcount == 1 # will return 1 if user was updated.
 
 
 # Added since last SCRUM meeting
