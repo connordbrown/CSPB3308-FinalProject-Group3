@@ -1154,9 +1154,55 @@ class TestGetCompaniesForUser(AccessTestCase):
             self.assertSetEqual(set(row.keys()), {"id", "name"})
 
 
-
 class TestGetJobsForUser(AccessTestCase):
     """Tests for db.get_jobs_for_user (SQL_TESTING.md, Access Method: get_jobs_for_user)."""
+
+    # create some test data 
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev")
+        self.job_3 = self._insert_job(self.user_a, self.tessier, title="AI Administrator")
+
+    # Returns all of user's jobs and only those jobs
+    def test_returns_user_jobs(self):
+        # give b a job to check for bleed-over
+        self.job_4 = self._insert_job(self.user_b, self.sense, title = "Archivist")
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        ids = {row["id"] for row in result}
+        self.assertSetEqual(ids, {self.job_1, self.job_2, self.job_3})
+
+    # Returns an empty list for user with no jobs
+    def test_no_jobs(self):
+        result = db.get_jobs_for_user(self.conn, self.user_b)
+        self.assertEqual(result, [])
+
+    # Returns an empty list for nonexistent user
+    def test_no_user(self):
+        result = db.get_jobs_for_user(self.conn, NONEXISTENT_ID)
+        self.assertEqual(result, [])
+
+    # Results sorted alphabetically by company name, then title
+    def test_jobs_sorted(self):
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        jobs = [row["name"] for row in result]
+        self.assertEqual(jobs, ["Firmware Dev", "AI Administrator", "ICE Security"])
+
+    # Each row has all documented columns
+    def test_columns_present(self):
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        for row in result:
+            self.assertSetEqual(set(row.keys()), {"id", "title", "company_name", "status"})
+
+
+
+
 
 
 if __name__ == "__main__":
