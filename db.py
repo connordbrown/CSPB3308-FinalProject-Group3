@@ -529,7 +529,7 @@ def get_jobs_for_user(conn, user_id):
     """
     return conn.execute(
     """
-    SELECT j.id, j.title, co.name AS company_name
+    SELECT j.id, j.title, co.name AS company_name, j.status
     FROM jobs j
     JOIN companies co ON j.company_id = co.id
     WHERE j.user_id = ?

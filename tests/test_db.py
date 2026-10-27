@@ -1150,7 +1150,9 @@ class TestGetCompaniesForUser(AccessTestCase):
     # Each row has all documented columns
     def test_columns_present(self):
         result = db.get_companies_for_user(self.conn, self.user_a)
-        for row in result:
+        # check that we have something to test
+        self.assertGreater(len(result), 0)
+        for row in result:  
             self.assertSetEqual(set(row.keys()), {"id", "name"})
 
 
@@ -1166,7 +1168,7 @@ class TestGetJobsForUser(AccessTestCase):
         self.sense = self._insert_company(self.user_b, name= "Sense/Net")
 
         # add jobs
-        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security")
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security", status="Rejected")
         self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev")
         self.job_3 = self._insert_job(self.user_a, self.tessier, title="AI Administrator")
 
@@ -1191,7 +1193,7 @@ class TestGetJobsForUser(AccessTestCase):
     # Results sorted alphabetically by company name, then title
     def test_jobs_sorted(self):
         result = db.get_jobs_for_user(self.conn, self.user_a)
-        jobs = [row["name"] for row in result]
+        jobs = [row["title"] for row in result]
         self.assertEqual(jobs, ["Firmware Dev", "AI Administrator", "ICE Security"])
 
     # Each row has all documented columns
