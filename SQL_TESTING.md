@@ -669,7 +669,7 @@ Returns the logged-in user's details to prefill the Profile forms. Never returns
 - `user_id` (int)
 
 ### Return Values
-- One row with `id`, `first_name`, `last_name`, `email`, `display_name`
+- One row with `id`, `first_name`, `last_name`, `email`, `display_name`, `created_at`
 - None if the user doesn't exist
 
 ### Used By
@@ -730,7 +730,7 @@ Changes the user's password if the current password is correct. Checks `current_
 - `new_password` (str, required)
 
 ### Return Values
-- bool: True if changed; False if the current password is wrong or the user doesn't exist
+- bool: True if changed; False if user doesn't exist. Raises a ValueError if current password is wrong or new password is less than 8 chars.
 - Raises `ValueError` if `new_password` is empty
 
 ### Used By
@@ -741,9 +741,9 @@ Changes the user's password if the current password is correct. Checks `current_
 | # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
 |---|---|---|---|---|
 | 1 | Correct current password changes it | User A exists with a known password | Call with the right current password and a new one | True; new password verifies against the stored hash; old one doesn't |
-| 2 | Wrong current password changes nothing | User A exists | Call with a wrong current password | False; `password_hash` unchanged |
+| 2 | Wrong current password changes nothing | User A exists | Call with a wrong current password | ValueError; `password_hash` unchanged |
 | 3 | New password is stored as a hash | User A exists | Change the password; select `password_hash` | Value is not the plain new password |
-| 4 | Empty new password is rejected | User A exists | Call with `new_password` = "" | `ValueError`; `password_hash` unchanged |
+| 4 | New password under 8 characters is rejected | User A exists | Call with `new_password` = "" | `ValueError`; `password_hash` unchanged |
 
 ---
 

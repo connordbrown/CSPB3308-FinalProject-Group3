@@ -1168,7 +1168,7 @@ class TestGetJobsForUser(AccessTestCase):
         self.sense = self._insert_company(self.user_b, name= "Sense/Net")
 
         # add jobs
-        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security", status="Rejected")
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security", status="rejected")
         self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev")
         self.job_3 = self._insert_job(self.user_a, self.tessier, title="AI Administrator")
 
@@ -1201,8 +1201,6 @@ class TestGetJobsForUser(AccessTestCase):
         result = db.get_jobs_for_user(self.conn, self.user_a)
         for row in result:
             self.assertSetEqual(set(row.keys()), {"id", "title", "company_name", "status"})
-
-
 
 
 
