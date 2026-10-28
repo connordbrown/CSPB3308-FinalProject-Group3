@@ -1,4 +1,37 @@
 # Weekly Status: Prospex (Team 3)
+
+-------
+## October 28 Sprint 3 Review
+
+**Meeting:** October 28, 3pm MT, 30 Minutes, Zoom. Scrum master: Matthew Etter
+
+**Sprint Goal:**  SQL_TESTING.md complete, data access functions complete
+
+**Next Sprint Goal** Get real login working, basic functionality for four pages, add script to insert test data into db. 
+
+![Trello board, Oct 21](docs/images/trello-2026-10-28.png)
+
+| Team member | Completed this sprint | Plan for next Sprint | Blocks |
+| --- | --- | --- | --- | 
+| Matthew Etter | data access functions and testing   | login/out, profile page | none |
+| Connor Brown | data access functions and testing/ cleanup of test suite | job details page, script to add test data to db | data access functions  |
+| Leeza Etzenhouser | data access functions with tests, completed SQL_TESTING.md  | edit/create contacts page | none |
+| Dane Neves | Improvements for dashboard, added job pages, data access functions  | data  access functions/ add job page  | none |
+| | |  |  | 
+
+**Decisions:** 
+- implement new system for open questions in Trello
+- add stretch goals column to Trello
+
+**Risks:** 
+- Moving into less familiar territory for most of team, difficulty estimating timelines
+
+**Retro:** 
+- Went well: Organization with PR's 
+- Didn't work: Open questions in PR's 
+- Changing next sprint: if decisions need made async make new card in Trello
+-------
+
 -------
 ## October 21 Sprint 3 Review
 
