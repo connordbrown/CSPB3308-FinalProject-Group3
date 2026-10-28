@@ -13,8 +13,7 @@ class Page_Tests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_pages_load(self):
-        urls = ["/", "/login", "/contacts", "/contacts/add", "/contacts/1", "/user/John_Doe", "/jobs/add", "/jobs/1", 
-                "jobs/THIS SHOULD FAIL"]   # added just to make sure it fails appropriately.
+        urls = ["/", "/login", "/contacts", "/contacts/add", "/contacts/1", "/user/John_Doe", "/jobs/add", "/jobs/1"]
         for url in urls:
             with self.subTest(url=url):
                 self.check_page_loads(url)

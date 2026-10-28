@@ -343,15 +343,127 @@ class TestCreateUser(AccessTestCase):
 
 class TestGetUser(AccessTestCase):
     """Tests for db.get_user (SQL_TESTING.md, Access Method: get_user)."""
+    def test_returns_correct_user(self):
+        result = db.get_user(self.conn, self.user_a)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["id"], self.user_a)
+        self.assertEqual(result["first_name"], USER_A["first_name"])
+        self.assertEqual(result["last_name"], USER_A["last_name"])
+        self.assertEqual(result["display_name"], USER_A["display_name"])
+        self.assertEqual(result["email"], USER_A["email"])
+        self.assertIsNotNone(result["created_at"])
+
+    def returns_the_user_requested(self):
+        result = db.get_user(self.conn, self.user_b)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["id"], self.user_b)
+
+    # check no password hash included
+    def test_returns_no_extra_info(self):
+        result = db.get_user(self.conn, self.user_a)
+        self.assertSetEqual(set(result.keys()), {
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "display_name",
+            "created_at"
+        })
+
+    def test_returns_none_if_no_user(self):
+        result = db.get_user(self.conn, NONEXISTENT_ID)
+        self.assertIsNone(result)
 
 
 class TestUpdateUser(AccessTestCase):
     """Tests for db.update_user (SQL_TESTING.md, Access Method: update_user)."""
+    def test_false_if_no_user(self):
+        result = db.update_user(self.conn, NONEXISTENT_ID, "New_First_Name", "New_last_name", "new.email@bob.com")
+        self.assertFalse(result)
+
+    def test_updates_fields(self):
+        result = db.update_user(self.conn, self.user_a, "New_First_Name", "New_last_name", "new.email@bob.com")
+        self.assertTrue(result)
+        updated_user = self._fetch("users", self.user_a)
+        self.assertEqual(updated_user["first_name"], "New_First_Name")
+        self.assertEqual(updated_user["last_name"], "New_last_name")
+        self.assertEqual(updated_user["email"], "new.email@bob.com")
+
+    def test_only_changes_target_user(self):
+        db.update_user(self.conn, self.user_a, "New_First_Name", "New_last_name", "new.email@bob.com")
+        unchanged_user = self._fetch("users", self.user_b)
+        self.assertEqual(unchanged_user["first_name"], USER_B["first_name"])
+        self.assertEqual(unchanged_user["last_name"], USER_B["last_name"])
+        self.assertEqual(unchanged_user["email"], USER_B["email"])
+
+    def test_unchanged_email_succeeds(self):
+        result = db.update_user(self.conn, self.user_a, "New_First_Name", "New_last_name", USER_A["email"])
+        self.assertTrue(result)
+        updated_user = self._fetch("users", self.user_a)
+        self.assertEqual(updated_user["first_name"], "New_First_Name")
+        self.assertEqual(updated_user["last_name"], "New_last_name")
+        self.assertEqual(updated_user["email"], USER_A["email"])
+
+    def test_blank_name_error(self):
+        for blank in ["", " ", None]:
+            with self.subTest(first_name=blank):
+                with self.assertRaises(ValueError):
+                    db.update_user(self.conn, self.user_a, blank, USER_A["last_name"], USER_A["email"])
+            with self.subTest(last_name=blank):
+                with self.assertRaises(ValueError):
+                    db.update_user(self.conn, self.user_a, USER_A["first_name"], blank, USER_A["email"])
+    
+    def test_duplicated_email(self):
+        for dup in [USER_B["email"], USER_B["email"].upper()]:
+            with self.subTest(email=dup):
+                with self.assertRaises(sqlite3.IntegrityError):
+                    db.update_user(self.conn, self.user_a, USER_A["first_name"], USER_A["last_name"], dup)
+
+    def test_fail_does_not_change_user(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.update_user(self.conn, self.user_a, USER_A["first_name"], USER_A["last_name"], USER_B["email"])
+        
+        updated_user = self._fetch("users", self.user_a)
+        self.assertEqual(updated_user["email"], USER_A["email"])
+
+    def test_hash_unchanged(self):
+        before = self._fetch("users", self.user_a)["password_hash"]
+        db.update_user(self.conn, self.user_a, "Bob", "Smith", "bobsmith@bob.com")
+        after = self._fetch("users", self.user_a)["password_hash"]
+
+        self.assertEqual(before, after)
 
 
 class TestChangePassword(AccessTestCase):
     """Tests for db.change_password (SQL_TESTING.md, Access Method: change_password)."""
 
+    def test_returns_true_if_success(self):
+        result = db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        self.assertTrue(result)
+
+    def test_new_password_works_old_doesnt(self):
+        db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        new_hash = self._fetch("users", self.user_a)["password_hash"]
+        self.assertTrue(check_password_hash(new_hash, "hunter21"))
+        self.assertFalse(check_password_hash(new_hash, USER_A["password"]))
+
+
+    def test_wrong_password_errors(self):
+        with self.assertRaises(ValueError):
+            db.change_password(self.conn, self.user_a, "hunter23", "hunter21")
+
+    def test_short_password_error(self):
+        with self.assertRaises(ValueError):
+            db.change_password(self.conn, self.user_a, USER_A["password"], "hunter2")
+
+    def test_only_changes_target_password(self):
+        b_before = self._fetch("users", self.user_b)["password_hash"]
+        db.change_password(self.conn, self.user_a, USER_A["password"], "hunter21")
+        b_after = self._fetch("users", self.user_b)["password_hash"]
+        self.assertEqual(b_before, b_after)
+
+    def test_false_if_no_user(self):
+        self.assertFalse(db.change_password(self.conn, NONEXISTENT_ID, USER_A["password"], "hunter21"))
 
 # ---------- Jobs ----------
 
@@ -1004,10 +1116,95 @@ class TestGetOrCreateCompany(AccessTestCase):
 
 class TestGetCompaniesForUser(AccessTestCase):
     """Tests for db.get_companies_for_user (SQL_TESTING.md, Access Method: get_companies_for_user)."""
+    # create some test data 
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+
+    # Returns all of user's companies and only those companies
+    def test_returns_all_companies(self):
+        # add a company to user b
+        self.turing = self._insert_company(self.user_b, name = "Turing Registry")
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        companies = {row["id"] for row in result}
+        self.assertEqual(companies, {self.maas, self.hosaka, self.tessier})
+
+    # Returns an empty list for user with no companies
+    def  test_return_empty_if_no_companies(self):
+        result = db.get_companies_for_user(self.conn, self.user_b)
+        self.assertEqual(result, [])
+
+    # Returns an empty list for nonexistent user
+    def test_return_empty_if_no_user(self):
+        result = db.get_companies_for_user(self.conn, NONEXISTENT_ID)
+        self.assertEqual(result, [])
+
+    # Results sorted alphabetically by name
+    def test_companies_sorted(self):
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        companies = [row["name"] for row in result]
+        self.assertEqual(companies, ["Hosaka", "Maas Biolabs", "Tessier-Ashpool"])
+
+    # Each row has all documented columns
+    def test_columns_present(self):
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        # check that we have something to test
+        self.assertGreater(len(result), 0)
+        for row in result:  
+            self.assertSetEqual(set(row.keys()), {"id", "name"})
 
 
 class TestGetJobsForUser(AccessTestCase):
     """Tests for db.get_jobs_for_user (SQL_TESTING.md, Access Method: get_jobs_for_user)."""
+
+    # create some test data 
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="ICE Security", status="Rejected")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev")
+        self.job_3 = self._insert_job(self.user_a, self.tessier, title="AI Administrator")
+
+    # Returns all of user's jobs and only those jobs
+    def test_returns_user_jobs(self):
+        # give b a job to check for bleed-over
+        self.job_4 = self._insert_job(self.user_b, self.sense, title = "Archivist")
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        ids = {row["id"] for row in result}
+        self.assertSetEqual(ids, {self.job_1, self.job_2, self.job_3})
+
+    # Returns an empty list for user with no jobs
+    def test_no_jobs(self):
+        result = db.get_jobs_for_user(self.conn, self.user_b)
+        self.assertEqual(result, [])
+
+    # Returns an empty list for nonexistent user
+    def test_no_user(self):
+        result = db.get_jobs_for_user(self.conn, NONEXISTENT_ID)
+        self.assertEqual(result, [])
+
+    # Results sorted alphabetically by company name, then title
+    def test_jobs_sorted(self):
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        jobs = [row["title"] for row in result]
+        self.assertEqual(jobs, ["Firmware Dev", "AI Administrator", "ICE Security"])
+
+    # Each row has all documented columns
+    def test_columns_present(self):
+        result = db.get_jobs_for_user(self.conn, self.user_a)
+        for row in result:
+            self.assertSetEqual(set(row.keys()), {"id", "title", "company_name", "status"})
+
+
+
+
 
 
 if __name__ == "__main__":

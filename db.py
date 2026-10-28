@@ -11,7 +11,7 @@ Stubs: raise NotImplementedError until implemented.
 
 import sqlite3
 
-from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash
+from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash, check_password_hash
 
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
 # Added since last SCRUM meeting
@@ -109,7 +109,6 @@ def create_user(conn, first_name, last_name, email, password_hash, display_name=
     ).lastrowid
 
 
-# Added since last SCRUM meeting
 def get_user(conn, user_id):
     """
     Return the user's details for the Profile page. Never returns password_hash.
@@ -122,10 +121,14 @@ def get_user(conn, user_id):
         one row with: id, first_name, last_name, email, display_name,
         or None if the user does not exist.
     """
-    raise NotImplementedError
+    return conn.execute(
+        """
+        SELECT id, first_name, last_name, email, display_name, created_at
+        FROM users
+        WHERE id = ?
+        """, (user_id,)).fetchone()
 
 
-# Added since last SCRUM meeting
 def update_user(conn, user_id, first_name, last_name, email):
     """
     Save changes to the user's name and email from the Profile page.
@@ -144,7 +147,17 @@ def update_user(conn, user_id, first_name, last_name, email):
         ValueError if a field is empty.
         sqlite3.IntegrityError if another user already has that email (any case).
     """
-    raise NotImplementedError
+    for field_name, value in (("first_name", first_name), ("last_name", last_name),
+                              ("email", email)):
+        if _is_blank(value):
+            raise ValueError(f"{field_name} is required and cannot be empty.")
+
+    return conn.execute(
+        """
+        UPDATE users SET first_name = ?, last_name = ?, email = ?
+        WHERE id = ?
+        """, (first_name, last_name, email, user_id)
+    ).rowcount == 1 # will return 1 if user was updated.
 
 
 # Added since last SCRUM meeting
@@ -167,7 +180,23 @@ def change_password(conn, user_id, current_password, new_password):
     Raises:
         ValueError if new_password is empty.
     """
-    raise NotImplementedError
+    # check password parameters
+    if len(new_password) < 8:
+        raise ValueError("New Password must be 8 or more characters.")
+    
+    # fetch stored hash
+    row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    # check that password exists
+    if row is None:
+        return False
+    
+    # check password
+    if not check_password_hash(row["password_hash"], current_password):
+        raise ValueError("Incorrect password entered.")
+
+    new_hash = generate_password_hash(new_password)
+
+    return conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
 
 
 # ---------- Jobs ----------
@@ -475,7 +504,13 @@ def get_companies_for_user(conn, user_id):
         - Sorted by name
         - Empty list if none
     """
-    raise NotImplementedError
+    return conn.execute(
+    """
+    SELECT c.id, c.name
+    FROM companies c
+    WHERE c.user_id = ?
+    ORDER BY c.name
+    """, (user_id,)).fetchall()
 
 
 def get_jobs_for_user(conn, user_id):
@@ -492,4 +527,11 @@ def get_jobs_for_user(conn, user_id):
         - Sorted by company name, then title
         - Empty list if none
     """
-    raise NotImplementedError
+    return conn.execute(
+    """
+    SELECT j.id, j.title, co.name AS company_name, j.status
+    FROM jobs j
+    JOIN companies co ON j.company_id = co.id
+    WHERE j.user_id = ?
+    ORDER BY co.name, j.title
+    """, (user_id,)).fetchall()
