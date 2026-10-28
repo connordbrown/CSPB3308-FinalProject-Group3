@@ -14,12 +14,12 @@
                 <li> <a href="{{ url_for('add_job') }}"> Add a job application - stub for now </a></li>
                 <li> <a href="{{ url_for('contacts') }}"> view list of contacts - stub for now </a></li>
             </ul>
-                {% if username %}
+                {% if session.user_id %}
 
-                    <p>Welcome to Prospex {{username}}!</p>
+                    <p>Welcome to Prospex {{session.first_name}}!</p>
                     <ul>
                         <li> <a href="{{ url_for('logout') }}">Log out</a></li>
-                        <li> <a href="{{ url_for('profile', username=username) }}"> View User Profile </a></li>
+                        <li> <a href="{{ url_for('profile' )}}"> View User Profile </a></li>
                     </ul>
                 {% else %}
                     <p> Please login in order to use Prospex</p>
