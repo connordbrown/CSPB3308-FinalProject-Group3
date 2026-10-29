@@ -4,10 +4,24 @@
 
 {% block content %}
 <title> Log in </title>
-<h1>Log in to Prospex</h1>
-        <form method="post">
-            <p><input type=text name=username>
-            <p><input type=submit value=Login>
+<h2>Log in to Prospex</h2>
+        <form method="post" action="{{url_for('login')}}">
+            <input type="hidden" name="action" value="login" >
+
+            <label>Email<input type="email" name="email"> required></label>
+            <label>Password<input type="password" name="password"> required></label>
+            <button type="submit">Log in</button>
         </form>
+        <form method="post" action="{{url_for('login')}}">
+            <input type="hidden" name="action" value="signup" >
+            <label>First Name<input type="text" name="first_name"> required></label>
+            <label>Last Name<input type="text" name="last_name"> required></label>
+            <label>Email<input type="email" name="email"> required></label>
+            <label>Password<input type="password" name="password"> required></label>
+            <label>Dispaly Name<input type="text" name="display_name"> required></label>
+
+            <button type="submit">Sign up</button>
+        </form>
+        {% if error %} <p class="error"> {{ error }} </p>{% endif %}
 
 {% endblock %}

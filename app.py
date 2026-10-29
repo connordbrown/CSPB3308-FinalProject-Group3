@@ -1,11 +1,16 @@
+import db
 from flask import Flask, request, render_template, session, redirect, url_for
-
 from markupsafe import escape
 import json
-
+from contextlib import closing
+import sqlite3
 
 app = Flask(__name__)
 app.secret_key = "Incredibly-private-and-secure-key"
+app.config["DATABASE"] = "prospex.db"
+
+def get_conn():
+    return db.get_connection(app.config["DATABASE"])
 
 @app.route("/")
 def index():
@@ -30,27 +35,61 @@ def index():
 
     return render_template(
         "dashboard.html",
-        username=session.get("username"),
         jobs=jobs)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
+    error = None
+    status = 200
     if request.method == 'POST':
-        session['username'] = request.form['username']
-        return redirect(url_for('index'))
-    return render_template("login.html")
+        email = request.form["email"].strip().lower()
+        action = request.form.get("action")
+        with closing(get_conn()) as conn:
+
+            if action == 'login':
+                user = db.get_user_by_email(conn, email)
+                if user and db.check_password_hash(user["password_hash"], request.form["password"]):
+                    session["user_id"] = user["id"]
+                    session["first_name"] = user["first_name"]
+                    return redirect(url_for('index'))
+                error   = "Invalid login information"
+                status = 401
+            elif action == "signup":
+                try: 
+                    password = request.form["password"]
+                    if len(password.strip()) < 8:
+                        raise ValueError("Password must be longer than 8 characters")
+                    hash = db.generate_password_hash(password)
+                    first_name = request.form["first_name"]
+                    last_name = request.form["last_name"]
+                    db.create_user(conn, first_name, last_name, email, hash)
+                    user = db.get_user_by_email(conn, email)
+                    conn.commit()
+                    session["user_id"] = user["id"]
+                    session["first_name"] = first_name
+                    return redirect(url_for('index'))
+                except sqlite3.IntegrityError:
+                    error = "That account already exists"
+                    status = 409
+                except ValueError as e:
+                    error = str(e)
+                    status = 400
+
+    return render_template("login.html", error=error), status
 
 @app.route('/logout')
 def logout():
     # remove username
-    session.pop('username', None)
+    session.pop('user_id', None)
     return redirect(url_for('index'))
 
 
-@app.route('/user/<username>')
-def profile(username):
+@app.route('/profile')
+def profile():
     """ Show details about the current user """
-    return f'{escape(username)}\'s profile'
+    return f'Profile coming soon'
 
 @app.route('/jobs/add')
 def add_job():
@@ -76,3 +115,4 @@ def add_contact():
 def contacts():
     """ display a list of contacts """
     return f'Place holder for page showing list of saved contacts'
+
