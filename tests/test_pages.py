@@ -98,8 +98,8 @@ class TestLogin(PageTestCase):
 
 
     # 1. GET /login returns 200 and shows the form with both buttons.
-    def test_login_returns_200_and_buttons(self):
-        return NotImplementedError
+    # def test_login_returns_200_and_buttons(self):
+    #     return NotImplementedError
 
     # 2. Log in with a valid email and password (e.g., alex.demo@example.com / DemoPass123!) redirects to / and the session holds Alex's user_id.
     def test_valid_login_redirects_and_sets_session(self):
@@ -110,16 +110,16 @@ class TestLogin(PageTestCase):
             self.assertEqual(sess.get("user_id"), self.user_a)
     
     # 3. Log in with the right email in different case (ALEX.DEMO@example.com) succeeds.
-    def test_email_dif_case_works(self):
-        return NotImplementedError
+    # def test_email_dif_case_works(self):
+    #     return NotImplementedError
     
     # 4. Log in with a wrong password stays on /login, shows an error, and creates no session.
-    def test_wrong_pass_errors_changes_nothing(self):
-        return NotImplementedError
+    # def test_wrong_pass_errors_changes_nothing(self):
+    #     return NotImplementedError
     
     # 5. Log in with an unknown email gives the same generic error as test 4, so the page doesn't reveal which emails exist.
-    def test_unknown_email_doesnt_reveal_data(self):
-        return NotImplementedError
+    # def test_unknown_email_doesnt_reveal_data(self):
+    #     return NotImplementedError
     
     # 6. Sign up with valid fields creates one new users row, logs the user in, and redirects to /.
     # 7. The new row's password_hash is a hash, not the plain password.
