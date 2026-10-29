@@ -1148,6 +1148,28 @@ class TestGetOrCreateCompany(AccessTestCase):
 
         self.assertNotEqual(new_company_id, diff_user_company_id, "Existing company id retrieved under other user")
 
+    def test_company_name_capitalizaton_(self):
+        # Create company
+        name = 'zzz'
+        company_id_1 = db.get_or_create_company(self.conn, self.user_a, name)
+
+        # Difference in caps shouldn't create a new company
+        name_caps = 'ZzZ'
+        company_id_2 = db.get_or_create_company(self.conn, self.user_a, name_caps)
+
+        self.assertEqual(company_id_1, company_id_2, "Multiple companies created for capitalization difference")
+
+    def test_name_whitespace_strip(self):
+        # Create company
+        name = 'zzz'
+        company_id_1 = db.get_or_create_company(self.conn, self.user_a, name)
+
+        # Difference in caps shouldn't create a new company
+        name_spaces = ' ZzZ '
+        company_id_2 = db.get_or_create_company(self.conn, self.user_a, name_spaces)
+
+        self.assertEqual(company_id_1, company_id_2, "Multiple companies created for spaces difference")
+
     def test_empty_name(self):
         name = ''
         with self.assertRaises(ValueError):

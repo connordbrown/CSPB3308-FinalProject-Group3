@@ -491,6 +491,9 @@ def get_or_create_company(conn, user_id, name):
     if _is_blank(name):
         raise ValueError('Name is required')
 
+    # Strip name
+    name = name.strip()
+
     # Check for existing company first (under user_id)
     matched_rows = conn.execute(
         """
