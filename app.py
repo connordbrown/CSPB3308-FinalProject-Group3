@@ -3,6 +3,7 @@ from flask import Flask, request, render_template, session, redirect, url_for
 from markupsafe import escape
 import json
 from contextlib import closing
+import sqlite3
 
 app = Flask(__name__)
 app.secret_key = "Incredibly-private-and-secure-key"
@@ -38,28 +39,45 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get("user_id"):
+        return redirect(url_for("index"))
     error = None
+    status = 200
     if request.method == 'POST':
         email = request.form["email"].strip().lower()
-        
         action = request.form.get("action")
         with closing(get_conn()) as conn:
-            user = db.get_user_by_email(conn, email)
+
             if action == 'login':
+                user = db.get_user_by_email(conn, email)
                 if user and db.check_password_hash(user["password_hash"], request.form["password"]):
                     session["user_id"] = user["id"]
                     session["first_name"] = user["first_name"]
                     return redirect(url_for('index'))
                 error   = "Invalid login information"
+                status = 401
             elif action == "signup":
-                hash = db.generate_password_hash(request.form["password"])
-                first_name = request.form["first_name"]
-                last_name = request.form["last_name"]
-                email = request.form["email"]
-                db.create_user(conn, first_name, last_name, email, hash)
-                conn.commit()
+                try: 
+                    password = request.form["password"]
+                    if len(password.strip()) < 8:
+                        raise ValueError("Password must be longer than 8 characters")
+                    hash = db.generate_password_hash(password)
+                    first_name = request.form["first_name"]
+                    last_name = request.form["last_name"]
+                    db.create_user(conn, first_name, last_name, email, hash)
+                    user = db.get_user_by_email(conn, email)
+                    conn.commit()
+                    session["user_id"] = user["id"]
+                    session["first_name"] = first_name
+                    return redirect(url_for('index'))
+                except sqlite3.IntegrityError:
+                    error = "That account already exists"
+                    status = 409
+                except ValueError as e:
+                    error = str(e)
+                    status = 400
 
-    return render_template("login.html", error=error)
+    return render_template("login.html", error=error), status
 
 @app.route('/logout')
 def logout():
