@@ -466,28 +466,54 @@ def delete_contact(conn, user_id, contact_id):
     raise NotImplementedError
 
 # ---------- Companies ----------
- 
+
 def get_or_create_company(conn, user_id, name):
     """
     Return the id of the user's company with this name, creating it if needed.
     Used by the inline "+ Add new company" option on the Add/Edit Contact
     and Add/Edit Job forms.
- 
+
     Parameters:
         conn (sqlite3.Connection)
         user_id (int)
         name (str): leading/trailing whitespace is stripped
- 
+
     Returns:
         int: id of the existing or newly created company
-        - Name match is case-insensitive ("spotify" reuses "Spotify")
+        - Name match is case-insensitive ("spotify" reuses "Spotify") - column is COLLATE NOCASE
         - Only matches the user's own companies; another user's company
           with the same name is never reused
- 
+
     Raises:
         ValueError if name is empty or only whitespace.
     """
-    raise NotImplementedError
+    # Check if name is empty
+    if _is_blank(name):
+        raise ValueError('Name is required')
+
+    # Check for existing company first (under user_id)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND name = ?
+        """,
+        (user_id, name)
+    ).fetchall()
+
+    # If name found in user's companies - return existing company
+    if len(matched_rows) == 1:
+        return matched_rows[0]["id"]
+
+    # Create new company instead
+    else:
+        return conn.execute(
+            """
+            INSERT INTO companies (user_id, name)
+            VALUES (?, ?)
+            """,
+            (user_id, name)
+        ).lastrowid
+
 
 # ---------- Dropdown data ----------
 
