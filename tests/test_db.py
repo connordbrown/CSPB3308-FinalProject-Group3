@@ -1110,6 +1110,49 @@ class TestDeleteContact(AccessTestCase):
 
 class TestGetOrCreateCompany(AccessTestCase):
     """Tests for db.get_or_create_company (SQL_TESTING.md, Access Method: get_or_create_company)."""
+    def test_creates_company(self):
+        name = 'fitbit'
+        new_company_id = db.get_or_create_company(self.conn, self.user_a, name)
+
+        result = db.get_companies_for_user(self.conn, self.user_a)
+        self.assertEqual(result[0][0], new_company_id, "Created company id does not match")
+
+    def test_creates_company_under_correct_user(self):
+        name = 'fitbit'
+        new_company_id = db.get_or_create_company(self.conn, self.user_a, name)
+        second_new_company_id = db.get_or_create_company(self.conn, self.user_b, name)
+
+        user_a_companies = db.get_companies_for_user(self.conn, self.user_a)
+        user_b_companies = db.get_companies_for_user(self.conn, self.user_b)
+
+        self.assertEqual(user_a_companies[0][0], new_company_id, "Created company id is not user specific")
+        self.assertEqual(user_b_companies[0][0], second_new_company_id, "Created company id is not user specific")
+
+    def test_gets_company_if_exists(self):
+        # Create company
+        name = 'zzz'
+        new_company_id = db.get_or_create_company(self.conn, self.user_a, name)
+
+        # Get company (shouldn't create a new company)
+        same_company_id = db.get_or_create_company(self.conn, self.user_a, name)
+
+        self.assertEqual(new_company_id, same_company_id, "Existing company id not retrieved")
+
+    # Should only get existing company if under correct user
+    def test_gets_company_only_for_correct_user(self):
+        name = 'Oracle'
+        new_company_id = db.get_or_create_company(self.conn, self.user_a, name)
+
+        # Get company with same name (should create a new company under different user)
+        diff_user_company_id = db.get_or_create_company(self.conn, self.user_b, name)
+
+        self.assertNotEqual(new_company_id, diff_user_company_id, "Existing company id retrieved under other user")
+
+    def test_empty_name(self):
+        name = ''
+        with self.assertRaises(ValueError):
+            db.get_or_create_company(self.conn, self.user_a, name)
+
 
 
 # ---------- Dropdown data ----------
