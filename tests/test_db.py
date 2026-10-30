@@ -646,6 +646,111 @@ class TestCreateJob(AccessTestCase):
 
 class TestUpdateJob(AccessTestCase):
     """Tests for db.update_job (SQL_TESTING.md, Access Method: update_job)."""
+    # Runs before all tests
+    @classmethod
+    def setUpClass(cls):
+        cls.job_args = {
+            "company_id": 1,
+            "title": 'Developer',
+            "status": "saved",
+        }
+        cls.job_args_optional = {
+            "work_type": 'remote',
+            "link": 'google.com',
+            "notes": "A long list of notes",
+            "date_applied": '1/27/2026'
+        }
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.job_args
+        del cls.job_args_optional
+
+    def test_update_job(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        # Modify newly created job
+        job_update_was_success = db.update_job(self.conn, self.user_a, new_job_id, *args, *args_optional)
+
+        self.assertEqual(job_update_was_success, 1, "Job not updated")
+        self.assertEqual(self._count('jobs'), 1, "Number of jobs in table increased")
+
+    # Creates new company with inputted name if company not found
+    # Number of jobs stays the same
+    def test_creates_company_if_not_found(self):
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["company_id"] = 'NewNewName'
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        # use splat operator to unpack lists of args into function call
+        job_update_was_success = db.update_job(self.conn, self.user_a, new_job_id, *args, *args_optional)
+
+        self.assertEqual(job_update_was_success, 1, "Job not updated")
+        self.assertEqual(self._count('jobs'), 1, "Number of jobs in table increased")
+        self.assertEqual(self._count('companies'), 2, "Number of companies not increased")
+
+    def test_update_with_wrong_user(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        # Modify newly created job
+        job_update_was_success = db.update_job(self.conn, self.user_b, new_job_id, *args, *args_optional)
+
+        self.assertEqual(job_update_was_success, 0, "Job not updated")
+        self.assertEqual(self._count('jobs'), 1, "Number of jobs in table increased")
+
+    def test_invalid_arguments_title(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["title"] = ''
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        with self.assertRaises(ValueError):
+            db.update_job(self.conn, self.user_a, new_job_id, *args, *args_optional)
+
+    def test_invalid_arguments_status(self):
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["status"] = 'media res'
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        with self.assertRaises(ValueError):
+            db.update_job(self.conn, self.user_a, new_job_id, *args, *args_optional)
+
+    def test_invalid_arguments_work_type(self):
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        args = self.job_args.values()
+        job_args_optional_copy = self.job_args_optional.copy()
+        job_args_optional_copy["work_type"] = 'mixed'
+        args_optional = job_args_optional_copy.values()
+        with self.assertRaises(ValueError):
+            db.update_job(self.conn, self.user_a, new_job_id, *args, *args_optional)
+
 
 
 # ---------- Contacts ----------
