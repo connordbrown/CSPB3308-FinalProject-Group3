@@ -543,10 +543,17 @@ def delete_contact(conn, user_id, contact_id):
 
     Returns:
         bool: True if the contact was deleted,
-            False if the contact doesn't exist or belongs to another user
-    
+              False if the contact doesn't exist or belongs to another user
+
     """
-    raise NotImplementedError
+    # If contact successfully deleted, rowcount will be 1
+    return conn.execute(
+        """
+        DELETE FROM contacts
+        WHERE (id = ? AND user_id = ?)
+        """,
+        (contact_id, user_id)
+    ).rowcount == 1
 
 # ---------- Companies ----------
 
