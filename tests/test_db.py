@@ -1313,6 +1313,106 @@ class TestUpdateContact(AccessTestCase):
 
 class TestDeleteContact(AccessTestCase):
     """Tests for db.delete_contact (SQL_TESTING.md, Access Method: delete_contact)."""
+    def test_deletes_existing_contact(self):
+        self._insert_contact(
+            self.user_a,
+            name="Alice Smith",
+            title="Engineer",
+            designation="recruiter",
+            email="alice@example.com"
+        )
+        self.assertEqual(self._count('contacts'), 1, "Not set up correctly")
+        result = db.delete_contact(self.conn, self.user_a, 1)
+
+        self.assertEqual(result, 1, 'Failed to delete contact')
+        self.assertEqual(self._count('contacts'), 0, "Number of contacts was not decremented")
+
+    def test_does_not_delete_wrong_user(self):
+        self._insert_contact(
+            self.user_a,
+            name="Alice Smith",
+            title="Engineer",
+            designation="recruiter",
+            email="alice@example.com"
+        )
+        self.assertEqual(self._count('contacts'), 1, "Not set up correctly")
+        result = db.delete_contact(self.conn, self.user_b, 1)
+
+        self.assertEqual(result, 0, 'Deleted contact')
+        self.assertEqual(self._count('contacts'), 1, "Number of contacts was decremented")
+
+    def test_does_not_delete_wrong_cID(self):
+        self._insert_contact(
+            self.user_a,
+            name="Alice Smith",
+            title="Engineer",
+            designation="recruiter",
+            email="alice@example.com"
+        )
+        self.assertEqual(self._count('contacts'), 1, "Not set up correctly")
+        result = db.delete_contact(self.conn, self.user_a, 99)
+
+        self.assertEqual(result, 0, 'Deleted contact')
+        self.assertEqual(self._count('contacts'), 1, "Number of contacts was decremented")
+
+    def test_only_deletes_target(self):
+        self._insert_contact(
+            self.user_a,
+            name="Alice Smith",
+            title="Engineer",
+            designation="recruiter",
+            email="alice@example.com"
+        )
+        self._insert_contact(
+            self.user_a, name="Bob Johnson", title="Designer", designation="recruiter", email="bob@example.com"
+        )
+        self._insert_contact(
+            self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", email="charlie@example.com"
+        )
+        self.assertEqual(self._count('contacts'), 3, "Not set up correctly")
+        result = db.delete_contact(self.conn, self.user_a, 1)
+
+        self.assertEqual(result, 1, 'Did not delete contact')
+        self.assertEqual(self._count('contacts'), 2, "Number of contacts was not decremented")
+
+    def test_keeps_job_and_company(self):
+        # Create company first so cID of 1 is present
+        new_company_id = db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        # Create job so jID of 1 is present
+        job_args = {
+            "company_id": 1,
+            "title": 'Developer',
+            "status": "saved",
+        }
+        job_args_optional = {
+            "work_type": 'remote',
+            "link": 'google.com',
+            "notes": "A long list of notes",
+            "date_applied": '1/27/2026'
+        }
+        args = job_args.values()
+        args_optional = job_args_optional.values()
+        # use splat operator to unpack lists of args into function call
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        self._insert_contact(
+            self.user_a,
+            name="Alice Smith",
+            title="Engineer",
+            designation="recruiter",
+            email="alice@example.com",
+            job_id=new_job_id,
+            company_id=new_company_id
+        )
+        self.assertEqual(self._count('contacts'), 1, "Not set up correctly")
+        result = db.delete_contact(self.conn, self.user_a, 1)
+
+        self.assertEqual(result, 1, 'Failed to delete contact')
+        self.assertEqual(self._count('contacts'), 0, "Number of contacts was not decremented")
+
+        self.assertEqual(self._count('companies'), 1, "Number of companies was decremented")
+        self.assertEqual(self._count('jobs'), 1, "Number of jobs was decremented")
 
 
 # ---------- Companies ----------
