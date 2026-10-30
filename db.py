@@ -183,13 +183,13 @@ def change_password(conn, user_id, current_password, new_password):
     # check password parameters
     if len(new_password) < 8:
         raise ValueError("New Password must be 8 or more characters.")
-    
+
     # fetch stored hash
     row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
     # check that password exists
     if row is None:
         return False
-    
+
     # check password
     if not check_password_hash(row["password_hash"], current_password):
         raise ValueError("Incorrect password entered.")
@@ -227,7 +227,6 @@ def get_job(conn, user_id, job_id):
         """, (job_id, user_id)).fetchone()
 
 
-# Added since last SCRUM meeting
 def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
                link=None, notes=None, date_applied=None):
     """
@@ -238,7 +237,7 @@ def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
     Parameters:
         conn (sqlite3.Connection)
         user_id (int)
-        company_id (int, required)
+        company_id (int, required) - technically id or name
         title (str, required)
         status (str): defaults to 'saved'
         work_type, link, notes (str, optional)
@@ -288,7 +287,6 @@ def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
     ).lastrowid
 
 
-# Added since last SCRUM meeting
 def update_job(conn, user_id, job_id, company_id, title, status="saved", work_type=None,
                link=None, notes=None, date_applied=None):
     """
@@ -375,12 +373,12 @@ def get_contacts_for_user(conn, user_id):
 
     return conn.execute(
         """
-        SELECT c.id, c.name, c.title, co.name AS company_name 
+        SELECT c.id, c.name, c.title, co.name AS company_name
         FROM contacts c
         LEFT JOIN companies co ON c.company_id = co.id
         WHERE c.user_id = ?
         ORDER BY c.name
-    """, (user_id,)).fetchall() 
+    """, (user_id,)).fetchall()
 
 
 def get_contacts_for_job(conn, user_id, job_id):
@@ -519,7 +517,7 @@ def update_contact(conn, user_id, contact_id, name, title=None, designation=None
         designation = None  # Treat empty string as None
     if designation is not None and designation not in DESIGNATIONS:
         raise ValueError("Invalid designation.")
-        
+
     cursor = conn.execute(
         """
         UPDATE contacts

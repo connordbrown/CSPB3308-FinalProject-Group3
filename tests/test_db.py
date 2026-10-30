@@ -13,7 +13,7 @@ Run one method's tests with:     python3 -m unittest tests.test_db.TestCreateJob
 Conventions for adding tests:
 - Put each test in the class for the method it calls. Classes follow the
   same order and sections as db.py.
-- Name tests test_<what_is_checked> 
+- Name tests test_<what_is_checked>
 - Set up rows with the _insert_* helpers below, not with other db.py
   functions, so a test only fails when the method under test is wrong.
 - If a class needs the same rows in every test, give it its own setUp()
@@ -141,7 +141,7 @@ class AccessTestCase(unittest.TestCase):
 
 class TestGetUserByEmail(AccessTestCase):
     """Tests for db.get_user_by_email (SQL_TESTING.md, Access Method: get_user_by_email)."""
- 
+
     def test_returns_user_fields(self):
         result = db.get_user_by_email(self.conn, USER_A["email"])
         self.assertEqual(result["id"], self.user_a)
@@ -149,24 +149,24 @@ class TestGetUserByEmail(AccessTestCase):
         self.assertEqual(result["last_name"], USER_A["last_name"])
         self.assertEqual(result["email"], USER_A["email"])
         self.assertEqual(result["display_name"], USER_A["display_name"])
- 
+
     def test_returns_password_hash_that_verifies_the_password(self):
         # The login route checks this hash, so it must be the stored one.
         result = db.get_user_by_email(self.conn, USER_A["email"])
         self.assertTrue(check_password_hash(result["password_hash"], USER_A["password"]))
         self.assertFalse(check_password_hash(result["password_hash"], USER_B["password"]))
- 
+
     def test_returns_only_the_documented_columns(self):
         result = db.get_user_by_email(self.conn, USER_A["email"])
         expected = {"id", "first_name", "last_name", "email", "password_hash", "display_name"}
         self.assertSetEqual(set(result.keys()), expected)
- 
+
     def test_returns_the_user_with_that_email_when_there_are_several(self):
         result_a = db.get_user_by_email(self.conn, USER_A["email"])
         result_b = db.get_user_by_email(self.conn, USER_B["email"])
         self.assertEqual(result_a["id"], self.user_a)
         self.assertEqual(result_b["id"], self.user_b)
- 
+
     def test_match_is_case_insensitive(self):
         # Needs email to be COLLATE NOCASE in schema.sql
         for email in (USER_A["email"].upper(), "Alex.Demo@Example.com"):
@@ -174,27 +174,27 @@ class TestGetUserByEmail(AccessTestCase):
                 result = db.get_user_by_email(self.conn, email)
                 self.assertIsNotNone(result)
                 self.assertEqual(result["id"], self.user_a)
- 
+
     def test_user_without_display_name_has_none(self):
         user_id = self._insert_user("Marcus", "Lee", "marcus.demo@example.com", "MarcusPass789!")
         result = db.get_user_by_email(self.conn, "marcus.demo@example.com")
         self.assertEqual(result["id"], user_id)
         self.assertIsNone(result["display_name"])
- 
+
     def test_returns_none_if_email_not_found(self):
         self.assertIsNone(db.get_user_by_email(self.conn, "nobody@example.com"))
- 
+
     def test_returns_none_for_empty_email(self):
         for email in ("", None):
             with self.subTest(email=email):
                 self.assertIsNone(db.get_user_by_email(self.conn, email))
- 
+
     def test_only_exact_emails_match(self):
         # Partial emails and wildcard characters must not match anyone
         for email in ("alex.demo", "alex.demo@example", "%", "alex.demo@example.co", "%@example.com"):
             with self.subTest(email=email):
                 self.assertIsNone(db.get_user_by_email(self.conn, email))
- 
+
     def test_sql_in_email_is_treated_as_plain_text(self):
         email = USER_A["email"] + "' OR '1'='1"
         self.assertIsNone(db.get_user_by_email(self.conn, email))
@@ -202,18 +202,18 @@ class TestGetUserByEmail(AccessTestCase):
 
 class TestGeneratePasswordHash(AccessTestCase):
     """Tests for db.generate_password_hash (SQL_TESTING.md, Access Method: generate_password_hash)."""
- 
+
     def test_returns_a_nonempty_string(self):
         result = db.generate_password_hash("DemoPass123!")
         self.assertIsInstance(result, str)
         self.assertNotEqual(result, "", "Hash should not be empty")
- 
+
     def test_hash_is_not_the_plain_password(self):
         password = "DemoPass123!"
         result = db.generate_password_hash(password)
         self.assertNotEqual(result, password, "Hash must not equal the plain password")
         self.assertNotIn(password, result, "Hash must not contain the plain password")
- 
+
     def test_hash_verifies_only_with_the_original_password(self):
         password = "DemoPass123!"
         result = db.generate_password_hash(password)
@@ -221,7 +221,7 @@ class TestGeneratePasswordHash(AccessTestCase):
         self.assertFalse(check_password_hash(result, "WrongPass123!"))
         # Passwords are case sensitive
         self.assertFalse(check_password_hash(result, password.lower()))
- 
+
     def test_same_password_gives_different_hashes(self):
         # Each hash is salted, so two hashes of one password differ but both still verify.
         password = "DemoPass123!"
@@ -230,13 +230,13 @@ class TestGeneratePasswordHash(AccessTestCase):
         self.assertNotEqual(hash_1, hash_2, "Hashes should be salted")
         self.assertTrue(check_password_hash(hash_1, password))
         self.assertTrue(check_password_hash(hash_2, password))
- 
+
     def test_handles_unicode_and_long_passwords(self):
         for password in ["p\u00e4ssw\u00f6rd\U0001F511", "a" * 200]:
             with self.subTest(length=len(password)):
                 result = db.generate_password_hash(password)
                 self.assertTrue(check_password_hash(result, password))
- 
+
     def test_empty_or_non_string_password_raises_value_error(self):
         for password in ["", None, 123, [], {}, True]:
             with self.subTest(password=password):
@@ -245,7 +245,7 @@ class TestGeneratePasswordHash(AccessTestCase):
 
 class TestCreateUser(AccessTestCase):
     """Tests for db.create_user (SQL_TESTING.md, Access Method: create_user)."""
- 
+
     def _new_user_args(self, **overrides):
         """Valid arguments for a user who is not one of the seeded users A and B."""
         args = {
@@ -257,7 +257,7 @@ class TestCreateUser(AccessTestCase):
         }
         args.update(overrides)
         return args
- 
+
     def test_returns_new_user_id_and_saves_fields(self):
         user_id = db.create_user(self.conn, **self._new_user_args())
         self.assertIsInstance(user_id, int)
@@ -267,23 +267,23 @@ class TestCreateUser(AccessTestCase):
         self.assertEqual(row["last_name"], "Fox")
         self.assertEqual(row["email"], "jamie.fox@example.com")
         self.assertEqual(row["display_name"], "jamie_f")
- 
+
     def test_new_user_gets_new_id_and_created_at(self):
         user_id = db.create_user(self.conn, **self._new_user_args())
         self.assertNotIn(user_id, (self.user_a, self.user_b))
         self.assertIsNotNone(self._fetch("users", user_id)["created_at"])
- 
+
     def test_stores_given_password_hash_unchanged(self):
         # create_user must not hash again: the route already hashed the password.
         user_id = db.create_user(self.conn, **self._new_user_args(password_hash="already-hashed-value"))
         self.assertEqual(self._fetch("users", user_id)["password_hash"], "already-hashed-value")
- 
+
     def test_display_name_is_optional(self):
         args = self._new_user_args()
         del args["display_name"]
         user_id = db.create_user(self.conn, **args)
         self.assertIsNone(self._fetch("users", user_id)["display_name"])
- 
+
     def test_empty_display_name_is_stored_as_null(self):
         for i, display_name in enumerate(["", "   "]):
             with self.subTest(display_name=display_name):
@@ -291,46 +291,46 @@ class TestCreateUser(AccessTestCase):
                     self.conn, **self._new_user_args(email=f"blank{i}@example.com", display_name=display_name)
                 )
                 self.assertIsNone(self._fetch("users", user_id)["display_name"])
- 
+
     def test_two_users_without_display_name_succeed(self):
         # display_name is UNIQUE, but NULL is not a duplicate of NULL.
         id_1 = db.create_user(self.conn, **self._new_user_args(email="one@example.com", display_name=None))
         id_2 = db.create_user(self.conn, **self._new_user_args(email="two@example.com", display_name=None))
         self.assertNotEqual(id_1, id_2)
- 
+
     def test_same_name_with_different_email_succeeds(self):
         user_id = db.create_user(
             self.conn,
             **self._new_user_args(first_name=USER_A["first_name"], last_name=USER_A["last_name"], display_name=None),
         )
         self.assertIsNotNone(self._fetch("users", user_id))
- 
+
     def test_missing_required_field_raises_value_error(self):
         for field in ("first_name", "last_name", "email", "password_hash"):
             for bad_value in ("", "   ", None, 123):
                 with self.subTest(field=field, value=bad_value):
                     with self.assertRaises(ValueError):
                         db.create_user(self.conn, **self._new_user_args(**{field: bad_value}))
- 
+
     def test_invalid_input_adds_no_row(self):
         before = self._count("users")
         with self.assertRaises(ValueError):
             db.create_user(self.conn, **self._new_user_args(first_name=""))
         self.assertEqual(self._count("users"), before)
- 
+
     def test_duplicate_email_raises_integrity_error(self):
         with self.assertRaises(sqlite3.IntegrityError):
             db.create_user(self.conn, **self._new_user_args(email=USER_A["email"]))
- 
+
     def test_duplicate_email_in_different_case_raises_integrity_error(self):
         # Needs email to be COLLATE NOCASE in schema.sql
         with self.assertRaises(sqlite3.IntegrityError):
             db.create_user(self.conn, **self._new_user_args(email=USER_A["email"].upper()))
- 
+
     def test_duplicate_display_name_raises_integrity_error(self):
         with self.assertRaises(sqlite3.IntegrityError):
             db.create_user(self.conn, **self._new_user_args(display_name=USER_B["display_name"]))
- 
+
     def test_duplicate_failure_adds_no_row_and_leaves_connection_usable(self):
         before = self._count("users")
         with self.assertRaises(sqlite3.IntegrityError):
@@ -412,7 +412,7 @@ class TestUpdateUser(AccessTestCase):
             with self.subTest(last_name=blank):
                 with self.assertRaises(ValueError):
                     db.update_user(self.conn, self.user_a, USER_A["first_name"], blank, USER_A["email"])
-    
+
     def test_duplicated_email(self):
         for dup in [USER_B["email"], USER_B["email"].upper()]:
             with self.subTest(email=dup):
@@ -422,7 +422,7 @@ class TestUpdateUser(AccessTestCase):
     def test_fail_does_not_change_user(self):
         with self.assertRaises(sqlite3.IntegrityError):
             db.update_user(self.conn, self.user_a, USER_A["first_name"], USER_A["last_name"], USER_B["email"])
-        
+
         updated_user = self._fetch("users", self.user_a)
         self.assertEqual(updated_user["email"], USER_A["email"])
 
@@ -469,7 +469,7 @@ class TestChangePassword(AccessTestCase):
 
 class TestGetJob(AccessTestCase):
     """Tests for db.get_job (SQL_TESTING.md, Access Method: get_job)."""
- 
+
     def setUp(self):
         super().setUp()
         # One fully filled job for user A and one job for user B
@@ -481,7 +481,7 @@ class TestGetJob(AccessTestCase):
         )
         self.company_b = self._insert_company(self.user_b, name="Beta Ltd", city="Seattle", region="WA")
         self.job_b = self._insert_job(self.user_b, self.company_b, title="Data Analyst")
- 
+
     def test_returns_job_fields(self):
         result = db.get_job(self.conn, self.user_a, self.job_a)
         self.assertEqual(result["id"], self.job_a)
@@ -491,20 +491,20 @@ class TestGetJob(AccessTestCase):
         self.assertEqual(result["link"], "https://www.acme-example.com/careers/junior-backend")
         self.assertEqual(result["notes"], "Python and Flask stack.")
         self.assertEqual(result["date_applied"], "2026-09-10")
- 
+
     def test_returns_company_fields(self):
         result = db.get_job(self.conn, self.user_a, self.job_a)
         self.assertEqual(result["company_id"], self.company_a)
         self.assertEqual(result["company_name"], "Acme Corp")
         self.assertEqual(result["city"], "Denver")
         self.assertEqual(result["region"], "CO")
- 
+
     def test_returns_only_the_documented_columns(self):
         result = db.get_job(self.conn, self.user_a, self.job_a)
         expected = {"id", "title", "status", "work_type", "link", "notes", "date_applied",
                     "company_id", "company_name", "city", "region"}
         self.assertSetEqual(set(result.keys()), expected)
- 
+
     def test_returns_the_requested_job_when_user_has_several(self):
         other_company = self._insert_company(self.user_a, name="Northwind")
         other_job = self._insert_job(self.user_a, other_company, title="Data Analyst")
@@ -512,7 +512,7 @@ class TestGetJob(AccessTestCase):
         second = db.get_job(self.conn, self.user_a, other_job)
         self.assertEqual((first["title"], first["company_name"]), ("Junior Backend Developer", "Acme Corp"))
         self.assertEqual((second["title"], second["company_name"]), ("Data Analyst", "Northwind"))
- 
+
     def test_empty_optional_fields_are_none(self):
         # A job with only the required fields, at a company with no location
         bare_company = self._insert_company(self.user_a, name="Summit Cloud")
@@ -523,15 +523,15 @@ class TestGetJob(AccessTestCase):
         for column in ("work_type", "link", "notes", "date_applied", "city", "region"):
             with self.subTest(column=column):
                 self.assertIsNone(result[column])
- 
+
     def test_returns_none_if_job_does_not_exist(self):
         self.assertIsNone(db.get_job(self.conn, self.user_a, NONEXISTENT_ID))
- 
+
     def test_returns_none_if_job_belongs_to_another_user(self):
         # User A cannot see user B's job, but user B can.
         self.assertIsNone(db.get_job(self.conn, self.user_a, self.job_b))
         self.assertIsNotNone(db.get_job(self.conn, self.user_b, self.job_b))
- 
+
     def test_returns_none_if_user_does_not_exist(self):
         self.assertIsNone(db.get_job(self.conn, NONEXISTENT_ID, self.job_a))
 
@@ -775,7 +775,7 @@ class TestGetContactsForUser(AccessTestCase):
         # Checks agains ID set to avoid ordering issues
         returned_ids = {contact['id'] for contact in result}
         self.assertSetEqual(returned_ids, {contact_1, contact_2, contact_3})
-        
+
 
     def test_returns_contact_attributes(self):
         # Insert a company and a job for user A, then insert a contact for user A with those company_id and job_id.
@@ -792,7 +792,7 @@ class TestGetContactsForUser(AccessTestCase):
         self.assertEqual(result[0]['name'], "Alice Smith", "Returned contact name does not match inserted contact name")
         self.assertEqual(result[0]['title'], "Engineer", "Returned contact title does not match inserted contact title")
         self.assertEqual(result[0]['company_name'], "Acme Corp", "Returned company name does not match linked company name")
-        
+
 
     def test_does_not_return_other_users_contacts(self):
         # Insert a company and a job for users A and B
@@ -822,12 +822,12 @@ class TestGetContactsForUser(AccessTestCase):
         # Run get_contacts_for_user for user A when no contacts exist and check that it returns an empty list.
         result = db.get_contacts_for_user(self.conn, self.user_a)
         self.assertEqual(result, [])
-        
+
 
     def test_returns_empty_list_if_user_does_not_exist(self):
         # Run get_contacts_for_user for a non-existent user and check that it returns an empty list.
         result = db.get_contacts_for_user(self.conn, NONEXISTENT_ID)
-        self.assertEqual(result, [])    
+        self.assertEqual(result, [])
 
     def test_returns_contacts_without_company_or_job(self):
         # Insert a contact for user A without a company_id
@@ -930,7 +930,7 @@ class TestGetContactsForJob(AccessTestCase):
         job_id = self._insert_job(self.user_a, title="Software Engineer", company_id=company_id)
         result = db.get_contacts_for_job(self.conn, self.user_a, job_id)
         self.assertEqual(result, [])
-        
+
 
     def test_returns_empty_list_if_job_does_not_exist(self):
         # Run get_contacts_for_job for a non-existent job and check that it returns an empty list.
@@ -1012,7 +1012,7 @@ class TestGetContact(AccessTestCase):
         contact_id = self._insert_contact(
             self.user_a, name="Charlie Brown", title="Developer", designation="recruiter", email="charlie@example.com", company_id=company_id, job_id=job_id
         )
-    
+
         # Check that get_contact returns None when querying for that contact from user B.
         result = db.get_contact(self.conn, self.user_b, contact_id)
         self.assertIsNone(result, "Expected None for contact that belongs to another user")
@@ -1082,7 +1082,7 @@ class TestCreateContact(AccessTestCase):
         with self.assertRaises(ValueError):
             db.create_contact(self.conn, self.user_a, name="", title="Developer", designation="recruiter")
         with self.assertRaises(ValueError):
-            db.create_contact(self.conn, self.user_a, name=None, title="Developer", designation="recruiter")    
+            db.create_contact(self.conn, self.user_a, name=None, title="Developer", designation="recruiter")
 
     def test_designation_invalid(self):
         # Check that db.create_contact raises a ValueError when the designation is not in the allowed set of values.
@@ -1098,7 +1098,7 @@ class TestCreateContact(AccessTestCase):
             contact_id_none = db.create_contact(self.conn, self.user_a, name="Charlie Brown", title="Developer", designation=None)
             contact_id_empty = db.create_contact(self.conn, self.user_a, name="Charlie Brown", title="Developer", designation="")
             result_none = db.get_contact(self.conn, self.user_a, contact_id_none)
-            result_empty = db.get_contact(self.conn, self.user_a, contact_id_empty)   
+            result_empty = db.get_contact(self.conn, self.user_a, contact_id_empty)
         except Exception as e:
             self.fail(f"Unexpected exception raised: {e}")
 
@@ -1201,7 +1201,7 @@ class TestUpdateContact(AccessTestCase):
         self.assertTrue(update, "Expected update_contact to return True for successful update")
         # Check that the contact still belongs to user A after the update.
         result = db.get_contact(self.conn, self.user_a, contact_id_a)
-        self.assertEqual(result['user_id'], self.user_a, "Contact does not belong to the correct user after update")        
+        self.assertEqual(result['user_id'], self.user_a, "Contact does not belong to the correct user after update")
 
     def test_only_updates_target_contact(self):
         # Insert a company and a job for user A, then insert two contacts for user A linked to that job.
@@ -1490,7 +1490,7 @@ class TestGetOrCreateCompany(AccessTestCase):
 
 class TestGetCompaniesForUser(AccessTestCase):
     """Tests for db.get_companies_for_user (SQL_TESTING.md, Access Method: get_companies_for_user)."""
-    # create some test data 
+    # create some test data
     def setUp(self):
         super().setUp()
         self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
@@ -1526,14 +1526,14 @@ class TestGetCompaniesForUser(AccessTestCase):
         result = db.get_companies_for_user(self.conn, self.user_a)
         # check that we have something to test
         self.assertGreater(len(result), 0)
-        for row in result:  
+        for row in result:
             self.assertSetEqual(set(row.keys()), {"id", "name"})
 
 
 class TestGetJobsForUser(AccessTestCase):
     """Tests for db.get_jobs_for_user (SQL_TESTING.md, Access Method: get_jobs_for_user)."""
 
-    # create some test data 
+    # create some test data
     def setUp(self):
         super().setUp()
         self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
