@@ -304,7 +304,56 @@ def update_job(conn, user_id, job_id, company_id, title, status="saved", work_ty
     Raises:
         ValueError for the same validation rules as create_job.
     """
-    raise NotImplementedError
+    # Check that job_id matches user_id
+    matched_jobs = conn.execute(
+        """
+        SELECT id FROM jobs
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, job_id)
+    ).fetchall()
+    # Quit update if no match found
+    if len(matched_jobs) != 1:
+        return 0
+
+    # Check for company ID existence first (user selects from dropdown or adds text for Company name)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, company_id)
+    ).fetchall()
+
+    # If id not found in companies
+    if len(matched_rows) != 1:
+        try:
+            # Create company and update company_id to generated id
+            company_id = get_or_create_company(conn, user_id, company_id)
+        except:
+            raise ValueError('Unable to create company')
+
+    # Check if title is empty
+    if _is_blank(title):
+        raise ValueError('Title is required')
+
+    # Check if status is not in STATUSES,
+    if (status not in STATUSES):
+        raise ValueError('Invalid status type')
+
+    # Check if work_type is not in WORK_TYPES
+    if (work_type not in WORK_TYPES and work_type != None):
+        raise ValueError('Invalid work type')
+
+    # If job successfully updated, rowcount will be 1
+    return conn.execute(
+        """
+        UPDATE jobs
+        SET company_id = ?,title = ?, status = ?, work_type = ?, link = ?, notes = ?, date_applied = ?
+        WHERE (id = ? AND user_id = ?)
+        """,
+        (company_id, title, status, work_type, link, notes, date_applied, job_id, user_id)
+    ).rowcount == 1
 
 
 # ---------- Contacts ----------
