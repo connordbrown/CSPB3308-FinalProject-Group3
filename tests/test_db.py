@@ -538,6 +538,110 @@ class TestGetJob(AccessTestCase):
 
 class TestCreateJob(AccessTestCase):
     """Tests for db.create_job (SQL_TESTING.md, Access Method: create_job)."""
+    # Runs before all tests
+    @classmethod
+    def setUpClass(cls):
+        cls.job_args = {
+            "company_id": 1,
+            "title": 'Developer',
+            "status": "saved",
+        }
+        cls.job_args_optional = {
+            "work_type": 'remote',
+            "link": 'google.com',
+            "notes": "A long list of notes",
+            "date_applied": '1/27/2026'
+        }
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.job_args
+        del cls.job_args_optional
+
+    def test_create_job(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        # use splat operator to unpack lists of args into function call
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        self.assertEqual(new_job_id, 1, "New job not created")
+        self.assertEqual(self._count('jobs'), 1, "Number of jobs in table did not increase")
+
+    # creates new company with inputted name if company not found
+    def test_creates_company_if_not_found(self):
+        job_args_copy = self.job_args.copy()
+        job_args_copy["company_id"] = 'NewNew'
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        # use splat operator to unpack lists of args into function call
+        new_job_id = db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        self.assertEqual(new_job_id, 1, "New job not created")
+        self.assertEqual(self._count('companies'), 1, "Company was not created")
+
+    def test_create_separate_jobs_for_separate_users(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+        c_id_b = db.get_or_create_company(self.conn, self.user_b, 'fitbit')
+
+        args = self.job_args.values()
+        args_optional = self.job_args_optional.values()
+        db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["company_id"] = c_id_b
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        db.create_job(self.conn, self.user_b, *args, *args_optional)
+
+        self.assertEqual(self._count('jobs'), 2, "Two separate jobs not created")
+
+    # creates job without optional arguments
+    def test_creates_job_without_optional_args(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        args = self.job_args.values()
+        # use splat operator to unpack lists of args into function call
+        new_job_id = db.create_job(self.conn, self.user_a, *args)
+
+        self.assertEqual(new_job_id, 1, "New job not created")
+
+    def test_invalid_arguments_title(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["title"] = ''
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        with self.assertRaises(ValueError):
+            db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+    def test_invalid_arguments_status(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        job_args_copy = self.job_args.copy()
+        job_args_copy["status"] = 'media res'
+        args = job_args_copy.values()
+        args_optional = self.job_args_optional.values()
+        with self.assertRaises(ValueError):
+            db.create_job(self.conn, self.user_a, *args, *args_optional)
+
+    def test_invalid_arguments_work_type(self):
+        # Create company first so c_id of 1 is present
+        db.get_or_create_company(self.conn, self.user_a, 'fitbit')
+
+        args = self.job_args.values()
+        job_args_optional_copy = self.job_args_optional.copy()
+        job_args_optional_copy["work_type"] = 'mixed'
+        args_optional = job_args_optional_copy.values()
+        with self.assertRaises(ValueError):
+            db.create_job(self.conn, self.user_a, *args, *args_optional)
 
 
 class TestUpdateJob(AccessTestCase):
