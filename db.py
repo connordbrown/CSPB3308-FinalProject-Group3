@@ -251,7 +251,41 @@ def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
         ValueError if title is empty, status is not in STATUSES,
         work_type is not in WORK_TYPES, or company_id does not belong to the user.
     """
-    raise NotImplementedError
+    # Check for company ID existence first (user selects from dropdown or adds text for Company name)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, company_id)
+    ).fetchall()
+    # If id not found in companies
+    if len(matched_rows) != 1:
+        try:
+            # Create company and update company_id to generated id
+            company_id = get_or_create_company(conn, user_id, company_id)
+        except:
+            raise ValueError('Unable to create company')
+
+    # Check if title is empty
+    if _is_blank(title):
+        raise ValueError('Title is required')
+
+    # Check if status is not in STATUSES
+    if (status not in STATUSES):
+        raise ValueError('Invalid status type')
+
+    # Check if work_type is not in WORK_TYPES
+    if (work_type not in WORK_TYPES and work_type != None):
+        raise ValueError('Invalid work type')
+
+    return conn.execute(
+        """
+        INSERT INTO jobs (user_id, company_id, title, status, work_type, link, notes, date_applied)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user_id, company_id, title, status, work_type, link, notes, date_applied)
+    ).lastrowid
 
 
 # Added since last SCRUM meeting
