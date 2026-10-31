@@ -98,9 +98,36 @@ def logout():
 
 
 @app.route('/profile')
+@require_login
 def profile():
     """ Show details about the current user """
-    return f'Profile coming soon'
+
+    error = None
+    status = 200
+    with closing(get_conn()) as conn:
+        user = db.get_user(conn, session["user_id"])
+    if request.method == 'POST':
+        action = request.form.get("action")
+        if action == 'update_user':
+            first_name = request.form["first_name"]
+            last_name = request.form["last_name"]
+            email = request.form["email"]
+            db.update_user(conn, user, first_name, last_name, email)
+        elif action == 'change_password':
+            password = request.form['password']
+            new_password = request.form['new_password']
+            confirmation = request.form['confirmation']
+            if new_password != confirmation:
+                raise ValueError("New password and confirmation do not match")
+                status = 400
+            elif db.check_password_hash(user["password_hash"], password):
+                hash = db.generate_password_hash(new_password)
+                user["password_hash"] = hash
+
+    return render_template("profile.html", user = user, error=error), status
+
+
+
 
 @app.route('/jobs/add')
 def add_job():
@@ -118,14 +145,14 @@ def contact(contact_id):
     return f"Contact {contact_id} details - placeholder for now"
 
 @app.route('/contacts/add')
+@require_login
 def add_contact():
-    @require_login
     """Display a form for adding a new contact to the saved contacts list"""
     return f'Placeholder for form for adding new contact'
 
 @app.route('/contacts/edit/<int:contact_id>')
+@require_login
 def edit_contact(contact_id):
-    @require_login
     """Display a form for editing an existing contact"""
     return f'Placeholder for form for editing contact {contact_id}   '
 

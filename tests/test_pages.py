@@ -208,55 +208,55 @@ class TestProfile(PageTestCase):
 
     # 1. Logged in GET for `/profile` returns 200
     def test_profile_returns(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 2. Logged out GET or POST does not change db and redirects to `/login`
     def test_logged_out_request_no_change_to_db(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 3. Shows the correct first name, last name and email for the logged in user
     def test_correct_user_info(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 4. password not accessible in html
     def test_password_not_accessible(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 5. valid inputs for name, email save to db, redirect to `/profile` and page shows new info
     def test_valid_inputs_save_appropriately(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 6. if any required field is empty on POST, error displayed, nothing saved to db
     def test_error_on_empty_field(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 7. email already in use: error displayed, nothing saved
     def test_dup_email_error(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 8. email in different case (M.cspb vs m.cspb): error, no save
     def test_email_case(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 9. changing other fields without changing email does not result in error
     def test_change_fields_independently(self):
-        return NotImplementedError
+        raise NotImplementedError
     
     # 10. unchanged password results in no changes on save
     def test_same_password_no_change(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 11. matching new passwords result new saved password  with displayed message "password changed"
     def test_change_password_success(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 12. wrong current password entered: Error, no change in db
     def test_error_on_wrong_password(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     # 13. new and confirmation don't match: Error, no change
     def test_password_no_match(self):
-        return NotImplementedError
+        raise NotImplementedError
 
 if __name__ == '__main__':
     unittest.main()
