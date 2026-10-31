@@ -4,6 +4,7 @@ from markupsafe import escape
 import json
 from contextlib import closing
 import sqlite3
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = "Incredibly-private-and-secure-key"
@@ -11,6 +12,16 @@ app.config["DATABASE"] = "prospex.db"
 
 def get_conn():
     return db.get_connection(app.config["DATABASE"])
+
+# Require login decorator use to require login for certain routes. If the user is not logged in, they will be redirected to the login page.
+def require_login(func):
+    """Decorator to require login for a route"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+        return func(*args, **kwargs)
+    return wrapper
 
 @app.route("/")
 def index():
@@ -101,15 +112,22 @@ def job(job_id):
     """show details of saved job application"""
     return f"Job {job_id} details - placeholder for now"
 
-@app.route('/contacts/<int:person_id>')
-def contact(person_id):
+@app.route('/contacts/<int:contact_id>')
+def contact(contact_id):
     """show details of saved contact"""
-    return f"Person {person_id} details - placeholder for now"
+    return f"Contact {contact_id} details - placeholder for now"
 
 @app.route('/contacts/add')
 def add_contact():
+    @require_login
     """Display a form for adding a new contact to the saved contacts list"""
     return f'Placeholder for form for adding new contact'
+
+@app.route('/contacts/edit/<int:contact_id>')
+def edit_contact(contact_id):
+    @require_login
+    """Display a form for editing an existing contact"""
+    return f'Placeholder for form for editing contact {contact_id}   '
 
 @app.route('/contacts')
 def contacts():
