@@ -117,17 +117,20 @@ def contact(contact_id):
     """show details of saved contact"""
     return f"Contact {contact_id} details - placeholder for now"
 
-@app.route('/contacts/add')
-def add_contact():
-    @require_login
+@app.route('/contacts/add', methods=['GET', 'POST'])
+@require_login
+def add_contact():    
     """Display a form for adding a new contact to the saved contacts list"""
-    return f'Placeholder for form for adding new contact'
+    with closing(get_conn()) as conn:
+        companies = db.get_companies_for_user(conn, session["user_id"])
+        jobs = db.get_jobs_for_user(conn, session["user_id"])
+    return render_template("contact_form.html", contact=None, companies=companies, jobs=jobs, designations=db.DESIGNATIONS)
 
 @app.route('/contacts/edit/<int:contact_id>')
-def edit_contact(contact_id):
-    @require_login
+@require_login
+def edit_contact(contact_id):    
     """Display a form for editing an existing contact"""
-    return f'Placeholder for form for editing contact {contact_id}   '
+    return f'Placeholder for form for editing contact {contact_id}'
 
 @app.route('/contacts')
 def contacts():
