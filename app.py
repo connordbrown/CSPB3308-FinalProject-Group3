@@ -118,14 +118,14 @@ def contact(contact_id):
     return f"Contact {contact_id} details - placeholder for now"
 
 @app.route('/contacts/add')
+@require_login
 def add_contact():
-    @require_login
     """Display a form for adding a new contact to the saved contacts list"""
     return f'Placeholder for form for adding new contact'
 
 @app.route('/contacts/edit/<int:contact_id>')
+@require_login
 def edit_contact(contact_id):
-    @require_login
     """Display a form for editing an existing contact"""
     return f'Placeholder for form for editing contact {contact_id}   '
 
