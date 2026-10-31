@@ -183,13 +183,13 @@ def change_password(conn, user_id, current_password, new_password):
     # check password parameters
     if len(new_password) < 8:
         raise ValueError("New Password must be 8 or more characters.")
-    
+
     # fetch stored hash
     row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
     # check that password exists
     if row is None:
         return False
-    
+
     # check password
     if not check_password_hash(row["password_hash"], current_password):
         raise ValueError("Incorrect password entered.")
@@ -227,7 +227,6 @@ def get_job(conn, user_id, job_id):
         """, (job_id, user_id)).fetchone()
 
 
-# Added since last SCRUM meeting
 def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
                link=None, notes=None, date_applied=None):
     """
@@ -238,7 +237,7 @@ def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
     Parameters:
         conn (sqlite3.Connection)
         user_id (int)
-        company_id (int, required)
+        company_id (int, required) - technically id or name
         title (str, required)
         status (str): defaults to 'saved'
         work_type, link, notes (str, optional)
@@ -251,10 +250,43 @@ def create_job(conn, user_id, company_id, title, status="saved", work_type=None,
         ValueError if title is empty, status is not in STATUSES,
         work_type is not in WORK_TYPES, or company_id does not belong to the user.
     """
-    raise NotImplementedError
+    # Check for company ID existence first (user selects from dropdown or adds text for Company name)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, company_id)
+    ).fetchall()
+    # If id not found in companies
+    if len(matched_rows) != 1:
+        try:
+            # Create company and update company_id to generated id
+            company_id = get_or_create_company(conn, user_id, company_id)
+        except:
+            raise ValueError('Unable to create company')
+
+    # Check if title is empty
+    if _is_blank(title):
+        raise ValueError('Title is required')
+
+    # Check if status is not in STATUSES
+    if (status not in STATUSES):
+        raise ValueError('Invalid status type')
+
+    # Check if work_type is not in WORK_TYPES
+    if (work_type not in WORK_TYPES and work_type != None):
+        raise ValueError('Invalid work type')
+
+    return conn.execute(
+        """
+        INSERT INTO jobs (user_id, company_id, title, status, work_type, link, notes, date_applied)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user_id, company_id, title, status, work_type, link, notes, date_applied)
+    ).lastrowid
 
 
-# Added since last SCRUM meeting
 def update_job(conn, user_id, job_id, company_id, title, status="saved", work_type=None,
                link=None, notes=None, date_applied=None):
     """
@@ -270,7 +302,56 @@ def update_job(conn, user_id, job_id, company_id, title, status="saved", work_ty
     Raises:
         ValueError for the same validation rules as create_job.
     """
-    raise NotImplementedError
+    # Check that job_id matches user_id
+    matched_jobs = conn.execute(
+        """
+        SELECT id FROM jobs
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, job_id)
+    ).fetchall()
+    # Quit update if no match found
+    if len(matched_jobs) != 1:
+        return 0
+
+    # Check for company ID existence first (user selects from dropdown or adds text for Company name)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND id = ?
+        """,
+        (user_id, company_id)
+    ).fetchall()
+
+    # If id not found in companies
+    if len(matched_rows) != 1:
+        try:
+            # Create company and update company_id to generated id
+            company_id = get_or_create_company(conn, user_id, company_id)
+        except:
+            raise ValueError('Unable to create company')
+
+    # Check if title is empty
+    if _is_blank(title):
+        raise ValueError('Title is required')
+
+    # Check if status is not in STATUSES,
+    if (status not in STATUSES):
+        raise ValueError('Invalid status type')
+
+    # Check if work_type is not in WORK_TYPES
+    if (work_type not in WORK_TYPES and work_type != None):
+        raise ValueError('Invalid work type')
+
+    # If job successfully updated, rowcount will be 1
+    return conn.execute(
+        """
+        UPDATE jobs
+        SET company_id = ?,title = ?, status = ?, work_type = ?, link = ?, notes = ?, date_applied = ?
+        WHERE (id = ? AND user_id = ?)
+        """,
+        (company_id, title, status, work_type, link, notes, date_applied, job_id, user_id)
+    ).rowcount == 1
 
 
 # ---------- Contacts ----------
@@ -292,12 +373,12 @@ def get_contacts_for_user(conn, user_id):
 
     return conn.execute(
         """
-        SELECT c.id, c.name, c.title, co.name AS company_name 
+        SELECT c.id, c.name, c.title, co.name AS company_name
         FROM contacts c
         LEFT JOIN companies co ON c.company_id = co.id
         WHERE c.user_id = ?
         ORDER BY c.name
-    """, (user_id,)).fetchall() 
+    """, (user_id,)).fetchall()
 
 
 def get_contacts_for_job(conn, user_id, job_id):
@@ -436,7 +517,7 @@ def update_contact(conn, user_id, contact_id, name, title=None, designation=None
         designation = None  # Treat empty string as None
     if designation is not None and designation not in DESIGNATIONS:
         raise ValueError("Invalid designation.")
-        
+
     cursor = conn.execute(
         """
         UPDATE contacts
@@ -460,34 +541,70 @@ def delete_contact(conn, user_id, contact_id):
 
     Returns:
         bool: True if the contact was deleted,
-            False if the contact doesn't exist or belongs to another user
-    
+              False if the contact doesn't exist or belongs to another user
+
     """
-    raise NotImplementedError
+    # If contact successfully deleted, rowcount will be 1
+    return conn.execute(
+        """
+        DELETE FROM contacts
+        WHERE (id = ? AND user_id = ?)
+        """,
+        (contact_id, user_id)
+    ).rowcount == 1
 
 # ---------- Companies ----------
- 
+
 def get_or_create_company(conn, user_id, name):
     """
     Return the id of the user's company with this name, creating it if needed.
     Used by the inline "+ Add new company" option on the Add/Edit Contact
     and Add/Edit Job forms.
- 
+
     Parameters:
         conn (sqlite3.Connection)
         user_id (int)
         name (str): leading/trailing whitespace is stripped
- 
+
     Returns:
         int: id of the existing or newly created company
-        - Name match is case-insensitive ("spotify" reuses "Spotify")
+        - Name match is case-insensitive ("spotify" reuses "Spotify") - column is COLLATE NOCASE
         - Only matches the user's own companies; another user's company
           with the same name is never reused
- 
+
     Raises:
         ValueError if name is empty or only whitespace.
     """
-    raise NotImplementedError
+    # Check if name is empty
+    if _is_blank(name):
+        raise ValueError('Name is required')
+
+    # Strip name
+    name = name.strip()
+
+    # Check for existing company first (under user_id)
+    matched_rows = conn.execute(
+        """
+        SELECT id FROM companies
+        WHERE user_id = ? AND name = ?
+        """,
+        (user_id, name)
+    ).fetchall()
+
+    # If name found in user's companies - return existing company
+    if len(matched_rows) == 1:
+        return matched_rows[0]["id"]
+
+    # Create new company instead
+    else:
+        return conn.execute(
+            """
+            INSERT INTO companies (user_id, name)
+            VALUES (?, ?)
+            """,
+            (user_id, name)
+        ).lastrowid
+
 
 # ---------- Dropdown data ----------
 
