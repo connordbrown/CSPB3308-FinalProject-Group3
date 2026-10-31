@@ -353,7 +353,7 @@ class TestGetUser(AccessTestCase):
         self.assertEqual(result["email"], USER_A["email"])
         self.assertIsNotNone(result["created_at"])
 
-    def returns_the_user_requested(self):
+    def test_returns_the_user_requested(self):
         result = db.get_user(self.conn, self.user_b)
         self.assertIsNotNone(result)
         self.assertEqual(result["id"], self.user_b)
