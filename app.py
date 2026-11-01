@@ -97,7 +97,7 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/profile')
+@app.route('/profile', methods = ['GET', 'POST'])
 @require_login
 def profile():
     """ Show details about the current user """

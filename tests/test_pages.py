@@ -208,15 +208,38 @@ class TestProfile(PageTestCase):
 
     # 1. Logged in GET for `/profile` returns 200
     def test_profile_returns(self):
-        raise NotImplementedError
+        # make sure login works
+        login = self._login()
+        self.assertEqual(login.status_code, 302)
+        response = self.client.get("/profile")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<h2>Profile</h2>' , html)
 
     # 2. Logged out GET or POST does not change db and redirects to `/login`
     def test_logged_out_request_no_change_to_db(self):
-        raise NotImplementedError
+        response = self.client.get("/profile")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+        # check post
+        before = dict(self._fetch("users", self.user_a))
+        response = self.client.post('/profile', data = {
+            "first_name": "bad_name", "last_name": "bad_lastname", "email": "bill@bad.com"
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(dict(self._fetch("users", self.user_a)), before)
 
     # 3. Shows the correct first name, last name and email for the logged in user
     def test_correct_user_info(self):
-        raise NotImplementedError
+        login = self._login()
+        html = self.client.get("/profile").get_data(as_text=True)
+        # check that user a in fields
+        self.assertIn(USER_A["email"], html)
+        self.assertIn(USER_A["first_name"], html)
+        self.assertIn(USER_A["last_name"], html)
+        # and not user b
+        self.assertNotIn(USER_B["email"], html)
+
 
     # 4. password not accessible in html
     def test_password_not_accessible(self):
