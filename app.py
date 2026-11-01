@@ -1,5 +1,5 @@
 import db
-from flask import Flask, request, render_template, session, redirect, url_for
+from flask import Flask, request, render_template, session, redirect, url_for, flash
 from markupsafe import escape
 import json
 from contextlib import closing
@@ -105,25 +105,36 @@ def profile():
     error = None
     status = 200
     with closing(get_conn()) as conn:
-        user = db.get_user(conn, session["user_id"])
-    if request.method == 'POST':
-        action = request.form.get("action")
-        if action == 'update_user':
-            first_name = request.form["first_name"]
-            last_name = request.form["last_name"]
-            email = request.form["email"]
-            db.update_user(conn, user, first_name, last_name, email)
-        elif action == 'change_password':
-            password = request.form['password']
-            new_password = request.form['new_password']
-            confirmation = request.form['confirmation']
-            if new_password != confirmation:
-                raise ValueError("New password and confirmation do not match")
+        if request.method == 'POST':
+            action = request.form.get("action")
+            try:
+                if action == 'update_user':
+                    first_name = request.form["first_name"]
+                    last_name = request.form["last_name"]
+                    email = request.form["email"].strip().lower()
+                    with conn:
+                        db.update_user(conn, session["user_id"], first_name, last_name, email)
+                    # fix session info
+                    session["first_name"]= first_name.strip()
+                    return redirect(url_for('profile'))
+                elif action == 'change_password':
+                    password = request.form['password']
+                    new_password = request.form['new_password']
+                    confirmation = request.form['confirmation']
+                    if new_password != confirmation:
+                        raise ValueError("New password and confirmation do not match")
+                    with conn:
+                        db.change_password(conn, session["user_id"], password, new_password)
+                    flash("Password successfully changed!")
+                    return redirect(url_for('profile'))
+            except sqlite3.IntegrityError:
+                error = "That email is in use"
+                status = 409
+            except ValueError as e:
+                error = str(e)
                 status = 400
-            elif db.check_password_hash(user["password_hash"], password):
-                hash = db.generate_password_hash(new_password)
-                user["password_hash"] = hash
-
+    
+        user = db.get_user(conn, session["user_id"])
     return render_template("profile.html", user = user, error=error), status
 
 

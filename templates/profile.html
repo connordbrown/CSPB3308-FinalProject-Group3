@@ -6,7 +6,8 @@
 <title> Profile </title>
 <h2>Profile</h2>   
 <h3> Edit your profile:</h3>
-<form method = "post" action="update_user">
+<form method = "post" action="{{ url_for('profile')}}">
+    <input type = "hidden" name="action" value="update_user">
     <label> First Name 
         <input type = "text" name="first_name" value = "{{user.first_name}}" required>
     </label>
@@ -21,7 +22,8 @@
 
 <h3> Change your password:</h3>
 
-<form method = "post" action="change_password">
+<form method = "post" action="{{ url_for('profile')}}">
+    <input type = "hidden" name="action" value="change_password">
     <label> Current password 
         <input type = "password" name="password" required>
     </label>
