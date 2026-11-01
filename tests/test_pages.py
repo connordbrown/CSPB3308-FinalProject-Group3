@@ -474,7 +474,41 @@ class TestEditContact(PageTestCase):
 
     # 9. Edit: form is prefilled with the contact's current values
     def test_edit_form_prefilled(self):
-        self.skipTest("Not written yet")
+        # Create a contact with all fields filled
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, company_id, title="Data Analyst")
+        contact_id = self._insert_contact(
+            self.user_a, name="Sam Okafor", title="Engineer", designation="other",
+            company_id=company_id, job_id=job_id, email="sam.okafor@example.com",
+            phone="555-0100", linkedin_url="https://linkedin.com/in/samokafor", notes="Met at a meetup"
+        )
+        self.conn.commit()
+
+        response = self.client.get(f"/contacts/{contact_id}/edit")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+
+        # Check that each field is prefilled with the contact's current value
+        fields = {
+            "name": "Sam Okafor",
+            "title": "Engineer",
+            "designation": "other",
+            "company_id": str(company_id),
+            "job_id": str(job_id),
+            "email": "sam.okafor@example.com",
+            "phone": "555-0100",
+            "linkedin_url": "https://linkedin.com/in/samokafor",
+            "notes": "Met at a meetup"
+        }
+        for field, value in fields.items():
+            with self.subTest(field=field):
+                if field in ("company_id", "job_id", "designation"):
+                    block = self._select_block(html, field)
+                    self.assertRegex(block, rf'value="{value}"\s+selected')
+                elif field == "notes":
+                    self.assertRegex(html, rf'>{value}</textarea>')
+                else:
+                    self.assertIn(f'>{value}</textarea>', html)
 
     # 10. Edit: saving changes updates the contact and redirects to its details page
     def test_edit_save_updates_and_redirects_to_details(self):
