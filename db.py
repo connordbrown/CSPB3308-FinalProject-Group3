@@ -178,25 +178,26 @@ def change_password(conn, user_id, current_password, new_password):
               False if current_password is wrong or the user does not exist.
 
     Raises:
-        ValueError if new_password is empty.
+        ValueError if new_password is empty, not a string, or shorter than 8 characters.
     """
-    # check password parameters
-    if len(new_password) < 8:
+    # check new password
+    if not isinstance(new_password, str) or len(new_password) < 8:
         raise ValueError("New Password must be 8 or more characters.")
 
     # fetch stored hash
     row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
-    # check that password exists
+    # check that user exists
     if row is None:
         return False
 
-    # check password
-    if not check_password_hash(row["password_hash"], current_password):
-        raise ValueError("Incorrect password entered.")
+    # check current password (a wrong password is an expected outcome, not an error)
+    if not isinstance(current_password, str) or not check_password_hash(row["password_hash"], current_password):
+        return False
 
     new_hash = generate_password_hash(new_password)
-
-    return conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+    
+    return True
 
 
 # ---------- Jobs ----------
