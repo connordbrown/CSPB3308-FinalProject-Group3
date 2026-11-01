@@ -138,11 +138,11 @@ def contact(contact_id):
 @app.route('/contacts/add', methods=['GET', 'POST'])
 @require_login
 def add_contact():
+    """Display a form for adding a new contact to the saved contacts list"""
     user_id = session["user_id"]
     error = None
     status = 200 
-    form_values = {}   
-    """Display a form for adding a new contact to the saved contacts list"""
+    form_values = {}       
     with closing(get_conn()) as conn:
         if request.method == "POST":
             form_values = request.form.to_dict()
@@ -179,8 +179,8 @@ def add_contact():
                 error = str(e)
                 status = 400
 
-        companies = db.get_companies_for_user(conn, session["user_id"])
-        jobs = db.get_jobs_for_user(conn, session["user_id"])
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
         
     return render_template("contact_form.html", contact=None, form=form_values, error=error,
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
