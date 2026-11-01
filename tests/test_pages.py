@@ -228,8 +228,8 @@ class TestAddContact(PageTestCase):
     # making a request, because the route uses a separate database connection. 
 
     def setUp(self):
-        super().setUp()
-        self._login()
+        super().setUp() # Fresh temp database with users A and B
+        self._login() # log in as user A
 
     def _select_block(self, html, field_name):
         """Return the HTML inside the <select> with this name attribute."""
@@ -368,7 +368,23 @@ class TestAddContact(PageTestCase):
 
     # 8. Submitting a company_id or job_id belonging to another user is rejected
     def test_other_users_company_or_job_rejected(self):
-        self.skipTest("Not written yet")
+        # Createa company and job _id for user B
+        company_b = self._insert_company(self.user_b, name="Beta Ltd")
+        job_b = self._insert_job(self.user_b, company_b, title="Product Manager")
+        self.conn.commit()
+        
+        cases = {
+        "company_id": str(company_b),
+        "job_id": str(job_b),
+        }
+        
+        for field, value in cases.items():
+            with self.subTest(field=field):
+                before = self._count("contacts")       
+                response = self.client.post("/contacts/add", data={"name": "Sam", field: value})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("does not belong to the user", response.get_data(as_text=True))
+                self.assertEqual(self._count("contacts"), before)
 
     # 12. Selecting "+ Add new company" with a name creates the company and links the contact to it
     def test_add_new_company_creates_and_links_company(self):
