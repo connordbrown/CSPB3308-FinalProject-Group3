@@ -352,9 +352,19 @@ class TestAddContact(PageTestCase):
         self.assertEqual(row["company_id"], company_id)   # int, not "1"
         self.assertEqual(row["job_id"], job_id)
 
-    # 7. Cancel saves nothing and returns to the previous page
+    # 7. Cancel saves nothing and returns to the contacts list
     def test_cancel_saves_nothing(self):
-        self.skipTest("Not written yet")
+        before = self._count("contacts", "user_id = ?", (self.user_a,))
+
+        html = self.client.get("/contacts/add").get_data(as_text=True)
+
+        # The page has a Cancel link to the contacts list
+        cancel_link = re.search(r'<a[^>]*href="/contacts"[^>]*>\s*Cancel\s*</a>', html)
+        self.assertIsNotNone(cancel_link)
+
+        # Following it saves nothing
+        self.client.get("/contacts")
+        self.assertEqual(self._count("contacts", "user_id = ?", (self.user_a,)), before)
 
     # 8. Submitting a company_id or job_id belonging to another user is rejected
     def test_other_users_company_or_job_rejected(self):
