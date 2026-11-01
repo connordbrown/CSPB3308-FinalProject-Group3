@@ -225,7 +225,7 @@ class TestContactFormsLoggedOut(PageTestCase):
 
     # 1. Not logged in: the edit contact route redirects to /login
     def test_edit_contact_logged_out_redirects_to_login(self):
-        response = self.client = self.client.get("/contacts/<int:contact_id>/edit")
+        response = self.client.get("/contacts/999/edit")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login")
 

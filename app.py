@@ -41,6 +41,8 @@ def to_int_or_none(value):
     except ValueError:
         raise ValueError("Invalid selection.")
 
+
+
 @app.route("/")
 def index():
     """Dashboard, will show filterable list of job applications"""
@@ -185,11 +187,25 @@ def add_contact():
     return render_template("contact_form.html", contact=None, form=form_values, error=error,
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
-@app.route('/contacts/<int:contact_id>/edit')
+@app.route('/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_contact(contact_id):    
     """Display a form for editing an existing contact"""
-    return f'Placeholder for form for editing contact {contact_id}'
+    user_id = session["user_id"]
+    error = None
+    status = 200
+
+    with closing(get_conn()) as conn:
+        contact = db.get_contact(conn, user_id, contact_id)
+        if contact is None:
+            abort(404, description="Contact not found")
+        form_values = dict(contact)  # pre-fill form with existing contact data
+
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
+
+    return render_template("contact_form.html", contact=contact, form=form_values, error=error,
+                            companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
 @app.route('/contacts')
 def contacts():
