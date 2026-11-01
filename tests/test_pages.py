@@ -538,7 +538,24 @@ class TestEditContact(PageTestCase):
 
     # 11. Edit: using another user's contact_id returns "not found"
     def test_edit_other_users_contact_not_found(self):
-        self.skipTest("Not written yet")
+        # create a contact for user B
+        contact_b_id = self._insert_contact(self.user_b, name="Other User Contact")
+        self.conn.commit()
+        # Attempt to view it as user A
+        response = self.client.get(f"/contacts/{contact_b_id}/edit")
+        self.assertEqual(response.status_code, 404)
+        html = response.get_data(as_text=True)
+        self.assertIn("not found", html.lower())
+
+        #submit changes to it as user A
+        response = self.client.post(f"/contacts/{contact_b_id}/edit", data={"name": "Hacked Name"})
+        self.assertEqual(response.status_code, 404) 
+
+        # Check that the contact's name was not changed in the database
+        row = self._fetch("contacts", contact_b_id)
+        self.assertEqual(row["name"], "Other User Contact")
+
+
 
 
 if __name__ == '__main__':
