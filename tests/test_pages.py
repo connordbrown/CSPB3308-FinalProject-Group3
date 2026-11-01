@@ -105,7 +105,16 @@ class PageTestCase(unittest.TestCase):
         return self.client.post("/login", data={
             "action": "signup", "first_name": user["first_name"], "last_name": user["last_name"], "email": user["email"], "password": user["password"]
         })
-    
+
+    def _select_block(self, html, field_name):
+        """Return the HTML inside the <select> with this name attribute."""
+        match = re.search(
+            rf'<select[^>]*name="{field_name}"[^>]*>(.*?)</select>',
+            html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, f"No <select> named {field_name}")
+        return match.group(1)
 
 class TestLogin(PageTestCase):
     """tests for /login """
@@ -231,15 +240,7 @@ class TestAddContact(PageTestCase):
         super().setUp() # Fresh temp database with users A and B
         self._login() # log in as user A
 
-    def _select_block(self, html, field_name):
-        """Return the HTML inside the <select> with this name attribute."""
-        match = re.search(
-            rf'<select[^>]*name="{field_name}"[^>]*>(.*?)</select>',
-            html,
-            re.DOTALL,
-        )
-        self.assertIsNotNone(match, f"No <select> named {field_name}")
-        return match.group(1)
+    
 
     # 2. All fields render; name is required
     def test_all_fields_render_and_name_required(self):
@@ -506,9 +507,9 @@ class TestEditContact(PageTestCase):
                     block = self._select_block(html, field)
                     self.assertRegex(block, rf'value="{value}"\s+selected')
                 elif field == "notes":
-                    self.assertRegex(html, rf'>{value}</textarea>')
-                else:
                     self.assertIn(f'>{value}</textarea>', html)
+                else:
+                    self.assertIn(f'value="{value}"', html)
 
     # 10. Edit: saving changes updates the contact and redirects to its details page
     def test_edit_save_updates_and_redirects_to_details(self):
@@ -552,7 +553,7 @@ class TestEditContact(PageTestCase):
         self.assertEqual(response.status_code, 404) 
 
         # Check that the contact's name was not changed in the database
-        row = self._fetch("contacts", contact_b_id)
+        row = self._fetch("contacts", self.contact_b_id)
         self.assertEqual(row["name"], "Other User Contact")
 
 
