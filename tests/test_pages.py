@@ -289,15 +289,68 @@ class TestAddContact(PageTestCase):
 
     # 4. Submitting without a name shows an error, saves nothing, and keeps the other entered values
     def test_missing_name_errors_and_keeps_values(self):
-        self.skipTest("Not written yet")
+        # Count Contact rows before failing attempt
+        before = self._count("contacts")
+        # submit form with no name
+        response = self.client.post("/contacts/add", data={
+            "name": "",
+            "email": "sam@example.com",
+            "phone": "555-0100"
+        })
+        html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Name is required", html) # Error shows as written in create_contact() in db.py
+        self.assertEqual(self._count("contacts"), before) # no new rows
+        # Other entered values are kept
+        self.assertIn("sam@example.com", html, "email not kept after failure") 
+        self.assertIn("555-0100", html, "phone number not kept after failure")
 
     # 5. Submitting with only a name succeeds
     def test_name_only_succeeds(self):
-        self.skipTest("Not written yet")
+        # Count contact rows before attempt
+        before = self._count("contacts") 
+        # submit form with name only
+        response = self.client.post("/contacts/add", data={"name": "Sam"})
+
+        # Check for redirection to /contacts page
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/contacts")
+        
+        # Count after valid insert
+        self.assertEqual(self._count("contacts", "user_id = ?", (self.user_a,)), before + 1)
 
     # 6. A valid submit creates the contact, redirects to /contacts, and the new contact appears in the list
     def test_valid_submit_creates_contact_and_redirects(self):
-        self.skipTest("Not written yet")
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, company_id, title="Data Analyst")
+        self.conn.commit()
+
+        data = {
+            "name": "Sam Okafor",
+            "title": "Engineer",
+            "designation": "referrer",
+            "company_id": str(company_id),
+            "job_id": str(job_id),
+            "email": "sam@example.com",
+            "phone": "555-0100",
+            "linkedin_url": "https://linkedin.com/in/sam",
+            "notes": "Met at a meetup",
+        }
+        response = self.client.post("/contacts/add", data=data)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/contacts")
+
+        row = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam Okafor"),
+        ).fetchone()
+        self.assertIsNotNone(row)
+        for field in ("title", "designation", "email", "phone", "linkedin_url", "notes"):
+            with self.subTest(field=field):
+                self.assertEqual(row[field], data[field])
+        self.assertEqual(row["company_id"], company_id)   # int, not "1"
+        self.assertEqual(row["job_id"], job_id)
 
     # 7. Cancel saves nothing and returns to the previous page
     def test_cancel_saves_nothing(self):

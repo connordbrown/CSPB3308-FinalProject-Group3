@@ -182,10 +182,10 @@ def add_contact():
         companies = db.get_companies_for_user(conn, session["user_id"])
         jobs = db.get_jobs_for_user(conn, session["user_id"])
         
-    return render_template("contact_form.html", contact=None, form=form_values,
+    return render_template("contact_form.html", contact=None, form=form_values, error=error,
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
-@app.route('/contacts/edit/<int:contact_id>')
+@app.route('/contacts/<int:contact_id>/edit')
 @require_login
 def edit_contact(contact_id):    
     """Display a form for editing an existing contact"""
