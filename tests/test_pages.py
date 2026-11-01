@@ -414,7 +414,26 @@ class TestAddContact(PageTestCase):
 
     # 13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
     def test_existing_company_name_any_case_is_reused(self):
-        self.skipTest("Not written yet")
+        existing_id = self._insert_company(self.user_a, name="Acme Corp")
+        self.conn.commit()
+        before = self._count("companies", "user_id = ?", (self.user_a,))
+
+        response = self.client.post("/contacts/add", data={
+            "name": "Sam",
+            "new_company_name": "aCME cORP",
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # No new company
+        self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)), before)
+
+        # The contact is linked to the existing one
+        contact = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam"),
+        ).fetchone()
+        self.assertIsNotNone(contact)
+        self.assertEqual(contact["company_id"], existing_id)
 
     # 14. A blank or whitespace-only new company name is ignored:
     # no company is created and the contact saves normally
