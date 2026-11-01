@@ -388,7 +388,29 @@ class TestAddContact(PageTestCase):
 
     # 12. Selecting "+ Add new company" with a name creates the company and links the contact to it
     def test_add_new_company_creates_and_links_company(self):
-        self.skipTest("Not written yet")
+        before = self._count("companies", "user_id = ?", (self.user_a,))
+
+        response = self.client.post("/contacts/add", data={
+            "name": "Sam",
+            "new_company_name": "Gamma Inc",
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # Exactly one new company, owned by user A
+        self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)), before + 1)
+        company = self.conn.execute(
+            "SELECT * FROM companies WHERE user_id = ? AND name = ?",
+            (self.user_a, "Gamma Inc"),
+        ).fetchone()
+        self.assertIsNotNone(company)
+
+        # The contact is linked to it
+        contact = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam"),
+        ).fetchone()
+        self.assertIsNotNone(contact)
+        self.assertEqual(contact["company_id"], company["id"])
 
     # 13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
     def test_existing_company_name_any_case_is_reused(self):
