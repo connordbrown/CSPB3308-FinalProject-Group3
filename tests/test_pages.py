@@ -512,7 +512,29 @@ class TestEditContact(PageTestCase):
 
     # 10. Edit: saving changes updates the contact and redirects to its details page
     def test_edit_save_updates_and_redirects_to_details(self):
-        self.skipTest("Not written yet")
+        before = self._count("contacts")
+
+        # vaules to update
+        new_values = {
+            "name": "Sam Okafor Updated",
+            "title": "Senior Engineer",
+            "designation": "recruiter",
+            "email": "sam.okafor.updated@example.com",
+            "phone": "555-0200",
+            "linkedin_url": "https://linkedin.com/in/samokaforupdated",
+            "notes": "Met at a conference",
+        }
+        response = self.client.post(f"/contacts/{self.contact_id}/edit", data=new_values)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], f"/contacts/{self.contact_id}")
+
+        # Count of contacts is unchanged
+        self.assertEqual(self._count("contacts"), before)   
+        # Check that the contact's fields were updated in the database
+        row = self_fetch("contacts", self.contact_id)
+        for field, value in new_values.items():
+            with self.subTest(field=field):
+                self.assertEqual(row[field], value)
 
     # 11. Edit: using another user's contact_id returns "not found"
     def test_edit_other_users_contact_not_found(self):
