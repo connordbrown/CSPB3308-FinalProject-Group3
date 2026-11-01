@@ -222,13 +222,24 @@ class TestContactFormsLoggedOut(PageTestCase):
 
 
 class TestAddContact(PageTestCase):
+
     """tests for /contacts/add """
     # Rows inserted with the helpers must be committed (self.conn.commit()) before
-    # making a request, because the route uses a separate database connection.
+    # making a request, because the route uses a separate database connection. 
 
     def setUp(self):
         super().setUp()
         self._login()
+
+    def _select_block(self, html, field_name):
+        """Return the HTML inside the <select> with this name attribute."""
+        match = re.search(
+            rf'<select[^>]*name="{field_name}"[^>]*>(.*?)</select>',
+            html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, f"No <select> named {field_name}")
+        return match.group(1)
 
     # 2. All fields render; name is required
     def test_all_fields_render_and_name_required(self):
@@ -248,9 +259,33 @@ class TestAddContact(PageTestCase):
         self.assertIsNotNone(name_input)
         self.assertIn("required", name_input.group())
 
-    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option, and "+ Add Company" that shows a company name field for companies only
+    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option 
     def test_dropdowns_list_only_own_companies_and_jobs(self):
-        self.skipTest("Not written yet")
+        
+        # User A data - logged-in
+        company_a = self._insert_company(self.user_a, name="Acme Corp")
+        self._insert_job(self.user_a, company_a, title="Data Analyst")
+        # User B data 
+        company_b = self._insert_company(self.user_b, name="Beta Ltd")
+        self._insert_job(self.user_b, company_b, title="Product Manager")
+        self.conn.commit()
+
+        html = self.client.get("/contacts/add").get_data(as_text=True)
+        company_select = self._select_block(html, "company_id")
+        job_select = self._select_block(html, "job_id")
+
+        # A's data appears in correct dropdown
+        self.assertIn("Acme Corp", company_select)
+        self.assertIn("Data Analyst", job_select)
+
+        # B's data does not
+        self.assertNotIn("Beta Ltd", html)
+        self.assertNotIn("Product Manager", html)
+
+        # Both dropdowns start with a "None" option
+        self.assertIn('<option value="">None</option>', company_select)
+        self.assertIn('<option value="">None</option>', job_select)
+
 
     # 4. Submitting without a name shows an error, saves nothing, and keeps the other entered values
     def test_missing_name_errors_and_keeps_values(self):
