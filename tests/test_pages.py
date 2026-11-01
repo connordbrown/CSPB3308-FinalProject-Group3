@@ -2,6 +2,7 @@ import unittest
 import os
 import sqlite3
 import tempfile
+import re
 
 from werkzeug.security import generate_password_hash
 from app import app
@@ -202,7 +203,110 @@ class TestLogin(PageTestCase):
             self.assertIsNone(sess.get("first_name"))
 
 
+class TestContactFormsLoggedOut(PageTestCase):
+    """tests for /contacts/add and the edit contact route without logging in"""
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection.
 
+    # 1. Not logged in: /contacts/add redirects to /login
+    def test_add_contact_logged_out_redirects_to_login(self):
+        response = self.client.get("/contacts/add")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 1. Not logged in: the edit contact route redirects to /login
+    def test_edit_contact_logged_out_redirects_to_login(self):
+        response = self.client = self.client.get("/contacts/<int:contact_id>/edit")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+
+class TestAddContact(PageTestCase):
+    """tests for /contacts/add """
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection.
+
+    def setUp(self):
+        super().setUp()
+        self._login()
+
+    # 2. All fields render; name is required
+    def test_all_fields_render_and_name_required(self):
+        response = self.client.get("/contacts/add")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+
+        # Every form field is present
+        fields = ["name", "title", "designation", "company_id", "new_company_name",
+                  "job_id", "email", "phone", "linkedin_url", "notes"]
+        for field in fields:
+            with self.subTest(field=field):
+                self.assertIn(f'name="{field}"', html)
+
+        # Name is required
+        name_input = re.search(r'<input[^>]*name="name"[^>]*>', html)
+        self.assertIsNotNone(name_input)
+        self.assertIn("required", name_input.group())
+
+    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option, and "+ Add Company" that shows a company name field for companies only
+    def test_dropdowns_list_only_own_companies_and_jobs(self):
+        self.skipTest("Not written yet")
+
+    # 4. Submitting without a name shows an error, saves nothing, and keeps the other entered values
+    def test_missing_name_errors_and_keeps_values(self):
+        self.skipTest("Not written yet")
+
+    # 5. Submitting with only a name succeeds
+    def test_name_only_succeeds(self):
+        self.skipTest("Not written yet")
+
+    # 6. A valid submit creates the contact, redirects to /contacts, and the new contact appears in the list
+    def test_valid_submit_creates_contact_and_redirects(self):
+        self.skipTest("Not written yet")
+
+    # 7. Cancel saves nothing and returns to the previous page
+    def test_cancel_saves_nothing(self):
+        self.skipTest("Not written yet")
+
+    # 8. Submitting a company_id or job_id belonging to another user is rejected
+    def test_other_users_company_or_job_rejected(self):
+        self.skipTest("Not written yet")
+
+    # 12. Selecting "+ Add new company" with a name creates the company and links the contact to it
+    def test_add_new_company_creates_and_links_company(self):
+        self.skipTest("Not written yet")
+
+    # 13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
+    def test_existing_company_name_any_case_is_reused(self):
+        self.skipTest("Not written yet")
+
+    # 14. Selecting "+ Add new company" with a blank name shows an error and saves nothing
+    def test_add_new_company_blank_name_errors(self):
+        self.skipTest("Not written yet")
+
+
+class TestEditContact(PageTestCase):
+    """tests for the edit contact route"""
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection.
+
+    def setUp(self):
+        super().setUp()
+        self._login()
+        self.contact_id = self._insert_contact(self.user_a)
+        self.conn.commit()
+
+    # 9. Edit: form is prefilled with the contact's current values
+    def test_edit_form_prefilled(self):
+        self.skipTest("Not written yet")
+
+    # 10. Edit: saving changes updates the contact and redirects to its details page
+    def test_edit_save_updates_and_redirects_to_details(self):
+        self.skipTest("Not written yet")
+
+    # 11. Edit: using another user's contact_id returns "not found"
+    def test_edit_other_users_contact_not_found(self):
+        self.skipTest("Not written yet")
 
 
 if __name__ == '__main__':
