@@ -416,9 +416,30 @@ class TestAddContact(PageTestCase):
     def test_existing_company_name_any_case_is_reused(self):
         self.skipTest("Not written yet")
 
-    # 14. Selecting "+ Add new company" with a blank name shows an error and saves nothing
-    def test_add_new_company_blank_name_errors(self):
-        self.skipTest("Not written yet")
+    # 14. A blank or whitespace-only new company name is ignored:
+    # no company is created and the contact saves normally
+    def test_add_new_company_blank_name_ignored(self):
+        for blank in ("", "   "):
+            with self.subTest(new_company_name=repr(blank)):
+                companies_before = self._count("companies", "user_id = ?", (self.user_a,))
+
+                response = self.client.post("/contacts/add", data={
+                    "name": f"Sam{len(blank)}",
+                    "new_company_name": blank,
+                })
+                self.assertEqual(response.status_code, 302)
+
+                # No company created
+                self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)),
+                                companies_before)
+
+                # Contact saved with no company
+                contact = self.conn.execute(
+                    "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+                    (self.user_a, f"Sam{len(blank)}"),
+                ).fetchone()
+                self.assertIsNotNone(contact)
+                self.assertIsNone(contact["company_id"])
 
 
 class TestEditContact(PageTestCase):
