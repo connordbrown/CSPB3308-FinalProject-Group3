@@ -10,7 +10,8 @@ import sqlite3
 BASE_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR_PATH, "prospex.db")
 SCHEMA_PATH = os.path.join(BASE_DIR_PATH, "schema.sql")
-DATA_PATH = os.path.join(BASE_DIR_PATH, "static/testing/sample_data.json")
+DATA_PATH = os.path.join(BASE_DIR_PATH, "static", "testing", "sample_data.json")
+
 
 # Parents before children, so foreign keys always point at rows that already exist.
 # Other keys in the JSON file (such as "_about") are documentation and are skipped.
