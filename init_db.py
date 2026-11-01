@@ -28,7 +28,9 @@ def insert_rows(conn, table, rows):
     return len(rows)
 
 
-# Read the sample data first, so a missing or broken file doesn't cost us the old db
+# Read the schema and sample data first, so a missing or broken file doesn't cost us the old db
+with open(SCHEMA_PATH) as f:
+    schema = f.read()
 with open(DATA_PATH, encoding="utf-8") as f:
     data = json.load(f)
 
@@ -37,10 +39,9 @@ if os.path.exists(DB_PATH):
 
 conn = sqlite3.connect(DB_PATH)
 conn.execute("PRAGMA foreign_keys = ON")  # SQLite ignores foreign keys unless this is set
-with open(SCHEMA_PATH) as f:
-    conn.executescript(f.read())
 
 try:
+    conn.executescript(schema)
     counts = {}
     with conn:  # one transaction: if any row fails, none of the sample data is saved
         for table in TABLE_ORDER:
@@ -51,7 +52,7 @@ try:
 except (sqlite3.Error, KeyError, ValueError) as e:
     conn.close()
     os.remove(DB_PATH)  # don't leave a half-filled db behind
-    raise SystemExit(f"\nCould not load sample data: {e!r}\n")
+    raise SystemExit(f"\nCould not build the database: {e!r}\n")
 
 conn.close()
 
