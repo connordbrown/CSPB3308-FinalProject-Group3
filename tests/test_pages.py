@@ -440,21 +440,36 @@ class TestDashboard(PageTestCase):
         self.assertIn(f'href="/jobs/{self.job_1}"', html)
         # make sure the link goes somewhere
         response = self.client.get(f'/jobs/{self.job_1}')
-        self.assertEqual(response.status, 200)
+        self.assertEqual(response.status_code, 200)
 
     # 6. add job button links correctly
     #     - Add Job button displays if job list is empty
     def test_empty_list(self):
+        self._insert_user(**USER_C)
+        self.conn.commit()
         self._login(USER_C) # no jobs
         html = self.client.get("/").get_data(as_text=True)
 
         # check that add job button appears
         self.assertIn('href="/jobs/add"', html)
+        # make sure the link goes somewhere
+        response = self.client.get('/jobs/add')
+        self.assertEqual(response.status_code, 200)
 
 
     # 7. Navigation / Header - Page should display navigation with project title, links to contacts and profile pages, and a logout button.
     def test_nav(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+
+        # check that project title appears
+        self.assertIn("<h1>Prospex</h1>", html)
+        # link to contacts, profile and logout button showing
+        self.assertIn("Contacts", html)
+        self.assertIn("Profile", html)
+        self.assertIn("Log out", html)
+        # login not showing for logged in user
+        self.assertNotIn("Log in", html)
 
 
 if __name__ == '__main__':
