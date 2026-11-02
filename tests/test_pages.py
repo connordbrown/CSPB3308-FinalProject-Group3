@@ -435,7 +435,12 @@ class TestDashboard(PageTestCase):
 
     # 5. individual job cards link correctly to their specific job detail page
     def test_jobs_link_to_details(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertIn(f'href="/jobs/{self.job_1}"', html)
+        # make sure the link goes somewhere
+        response = self.client.get(f'/jobs/{self.job_1}')
+        self.assertEqual(response.status, 200)
 
     # 6. add job button links correctly
     #     - Add Job button displays if job list is empty
