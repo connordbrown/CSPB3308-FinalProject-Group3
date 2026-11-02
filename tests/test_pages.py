@@ -445,7 +445,11 @@ class TestDashboard(PageTestCase):
     # 6. add job button links correctly
     #     - Add Job button displays if job list is empty
     def test_empty_list(self):
-        raise NotImplementedError
+        self._login(USER_C) # no jobs
+        html = self.client.get("/").get_data(as_text=True)
+
+        # check that add job button appears
+        self.assertIn('href="/jobs/add"', html)
 
 
     # 7. Navigation / Header - Page should display navigation with project title, links to contacts and profile pages, and a logout button.

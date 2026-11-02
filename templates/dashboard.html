@@ -28,6 +28,8 @@
         <div class="job-status">{{ job.status }}</div>
     </a>
 {% endfor %}
+<a class= "job-tile add-job" href="{{ url_for('add_job') }}"> + Add Job</a>
+
 </div>
 
 {% endblock %}
