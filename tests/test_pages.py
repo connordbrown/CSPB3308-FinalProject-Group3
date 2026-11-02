@@ -203,7 +203,171 @@ class TestLogin(PageTestCase):
 
 
 
+class TestProfile(PageTestCase):
+    """tests for /profile """
 
+    # 1. Logged in GET for `/profile` returns 200
+    def test_profile_returns(self):
+        # make sure login works
+        login = self._login()
+        self.assertEqual(login.status_code, 302)
+        response = self.client.get("/profile")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<h2>Profile</h2>' , html)
+
+    # 2. Logged out GET or POST does not change db and redirects to `/login`
+    def test_logged_out_request_no_change_to_db(self):
+        response = self.client.get("/profile")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+        # check post
+        before = dict(self._fetch("users", self.user_a))
+        response = self.client.post('/profile', data = {
+            "first_name": "bad_name", "last_name": "bad_lastname", "email": "bill@bad.com"
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(dict(self._fetch("users", self.user_a)), before)
+
+    # 3. Shows the correct first name, last name and email for the logged in user
+    def test_correct_user_info(self):
+        login = self._login()
+        html = self.client.get("/profile").get_data(as_text=True)
+        # check that user a in fields
+        self.assertIn(USER_A["email"], html)
+        self.assertIn(USER_A["first_name"], html)
+        self.assertIn(USER_A["last_name"], html)
+        # and not user b
+        self.assertNotIn(USER_B["email"], html)
+
+
+    # 4. password not accessible in html
+    def test_password_not_accessible(self):
+        login = self._login()
+        html = self.client.get("/profile").get_data(as_text=True)
+        # check both raw password and hash
+        self.assertNotIn(USER_A["password"], html)
+        hash = self._fetch("users", self.user_a)["password_hash"]
+        self.assertNotIn(hash, html)
+
+
+    # 5. valid inputs for name, email save to db, redirect to `/profile` and page shows new info
+    def test_valid_inputs_save_appropriately(self):
+        self._login()
+        data = {
+            "first_name": USER_C["first_name"], "last_name": USER_C["last_name"], "email": USER_C["email"], "action": "update_user"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/profile")
+        row = self._fetch("users", self.user_a)
+        self.assertEqual(row["first_name"], data["first_name"])
+        self.assertEqual(row["last_name"], data["last_name"])
+        self.assertEqual(row["email"], data["email"])
+
+        # check that user C in fields
+        html = self.client.get("/profile").get_data(as_text=True)
+        self.assertIn(USER_C["email"], html)
+        self.assertIn(USER_C["first_name"], html)
+        self.assertIn(USER_C["last_name"], html)
+        # and not user A
+        self.assertNotIn(USER_A["email"], html)
+
+
+
+    # 6. if any required field is empty on POST, error displayed, nothing saved to db
+    def test_error_on_empty_field(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "first_name": USER_C["first_name"], "last_name": USER_C["last_name"], "email": "", "action": "update_user"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 400)
+
+        self.assertEqual(before, dict(self._fetch("users", self.user_a)))
+
+    # 7. email already in use: error displayed, nothing saved even if # 8 different case
+    def test_dup_email_error(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "first_name": USER_C["first_name"], "last_name": USER_C["last_name"], "email": USER_B["email"].upper(), "action": "update_user"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 409)
+
+        self.assertEqual(before, dict(self._fetch("users", self.user_a)))
+
+    # 9. changing other fields without changing email does not result in error
+    def test_change_fields_independently(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "first_name": USER_C["first_name"], "last_name": USER_C["last_name"], "email": USER_A["email"], "action": "update_user"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 302)
+
+        row = self._fetch("users", self.user_a)
+        self.assertEqual(row["first_name"], USER_C["first_name"])
+        self.assertEqual(row["last_name"], USER_C["last_name"])
+        self.assertEqual(row["email"], USER_A["email"])
+    
+    # 10. unchanged password results in no changes on save
+    def test_same_password_no_change(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "password": USER_A["password"], "new_password": USER_A["password"], "confirmation": USER_A["password"], "action": "change_password"
+        }
+        response = self.client.post('/profile', data=data)
+
+        after = dict(self._fetch("users", self.user_a))
+        # make sure the passwords still match
+        self.assertTrue(db.check_password_hash(after["password_hash"], USER_A["password"]))
+        # and none of the other columns changed
+        before.pop("password_hash")
+        after.pop("password_hash")
+        self.assertEqual(before, after)
+
+
+    # 11. matching new passwords result new saved password  with displayed message "password changed"
+    def test_change_password_success(self):
+        self._login()
+        data = {
+            "password": USER_A["password"], "new_password": USER_C["password"], "confirmation": USER_C["password"], "action": "change_password"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 302)
+        after = dict(self._fetch("users", self.user_a))
+        # make sure the password changed successfully
+        self.assertTrue(db.check_password_hash(after["password_hash"], USER_C["password"]))
+
+
+    # 12. wrong current password entered: Error, no change in db
+    def test_error_on_wrong_password(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "password": USER_C["password"], "new_password": USER_B["password"], "confirmation": USER_B["password"], "action": "change_password"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 400)
+        after = dict(self._fetch("users", self.user_a))
+        self.assertEqual(before, after)
+
+    # 13. new and confirmation don't match: Error, no change
+    def test_password_no_match(self):
+        self._login()
+        before = dict(self._fetch("users", self.user_a))
+        data = {
+            "password": USER_A["password"], "new_password": USER_B["password"], "confirmation": USER_C["password"], "action": "change_password"
+        }
+        response = self.client.post('/profile', data=data)
+        self.assertEqual(response.status_code, 400)
+        after = dict(self._fetch("users", self.user_a))
+        self.assertEqual(before, after)
 
 if __name__ == '__main__':
     unittest.main()
