@@ -28,6 +28,14 @@
     padding: 20px;
     display: flex;
     justify-content: space-between;
+
+    /* matching to button look*/
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    border: 2px solid;
+    font-size: 0.85rem;
+    color: black;
+    text-decoration: none; /*we don't want underlined links */
 }
 
 

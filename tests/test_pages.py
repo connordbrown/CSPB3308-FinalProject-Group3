@@ -376,23 +376,62 @@ class TestProfile(PageTestCase):
 class TestDashboard(PageTestCase):
     """tests for '/' """
 
+    # we need job data to display for this:
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.tessier, title="AI Administrator")
+        self.conn.commit()
+
     # 1. User not logged in - redirect to (`/login`).
     def test_login_redirect(self):
-        raise NotImplementedError
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
     
 
     # 2. Page displays list of all jobs
     def test_jobs_list_shows(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        # check that logged in user A's jobs are showing
+        self.assertIn("AI Security", html)
+        self.assertIn("Firmware Dev", html)
+        # double check that no jobs from other users are showing
+        self.assertNotIn("AI Administrator", html)
+
 
     # 3. Each job card shows Role, Company, and Status (indicated by color)
     def test_job_cards_accurate(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+
+        # check that logged in user A's jobs are showing
+        self.assertIn("AI Security", html)
+        self.assertIn("Firmware Dev", html)
+        # double check that no jobs from other users are showing
+        self.assertNotIn("AI Administrator", html)
 
     # 4. Filter status selection appears above job list
     #     - Changing filter value updates job list
     def test_filter_selection(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/?status=applied").get_data(as_text=True)
+
+        # check that selector appears
+        self.assertIn("ALL", html)
+        # applied job is showing
+        self.assertIn("Firmware Dev", html)
+        # declined job is not
+        self.assertNotIn("AI Security", html)
 
     # 5. individual job cards link correctly to their specific job detail page
     def test_jobs_link_to_details(self):
