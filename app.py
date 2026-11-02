@@ -124,7 +124,9 @@ def profile():
                     if new_password != confirmation:
                         raise ValueError("New password and confirmation do not match")
                     with conn:
-                        db.change_password(conn, session["user_id"], password, new_password)
+                        success = db.change_password(conn, session["user_id"], password, new_password)
+                    if not success:
+                        raise ValueError("Current password incorrect")
                     flash("Password successfully changed!")
                     return redirect(url_for('profile'))
             except sqlite3.IntegrityError:

@@ -369,5 +369,45 @@ class TestProfile(PageTestCase):
         after = dict(self._fetch("users", self.user_a))
         self.assertEqual(before, after)
 
+
+
+
+
+class TestDashboard(PageTestCase):
+    """tests for '/' """
+
+    # 1. User not logged in - redirect to (`/login`).
+    def test_login_redirect(self):
+        raise NotImplementedError
+    
+
+    # 2. Page displays list of all jobs
+    def test_jobs_list_shows(self):
+        raise NotImplementedError
+
+    # 3. Each job card shows Role, Company, and Status (indicated by color)
+    def test_job_cards_accurate(self):
+        raise NotImplementedError
+
+    # 4. Filter status selection appears above job list
+    #     - Changing filter value updates job list
+    def test_filter_selection(self):
+        raise NotImplementedError
+
+    # 5. individual job cards link correctly to their specific job detail page
+    def test_jobs_link_to_details(self):
+        raise NotImplementedError
+
+    # 6. add job button links correctly
+    #     - Add Job button displays if job list is empty
+    def test_empty_list(self):
+        raise NotImplementedError
+
+
+    # 7. Navigation / Header - Page should display navigation with project title, links to contacts and profile pages, and a logout button.
+    def test_nav(self):
+        raise NotImplementedError
+
+
 if __name__ == '__main__':
     unittest.main()
