@@ -532,7 +532,7 @@ class TestEditContact(PageTestCase):
         # Count of contacts is unchanged
         self.assertEqual(self._count("contacts"), before)   
         # Check that the contact's fields were updated in the database
-        row = self_fetch("contacts", self.contact_id)
+        row = self._fetch("contacts", self.contact_id)
         for field, value in new_values.items():
             with self.subTest(field=field):
                 self.assertEqual(row[field], value)

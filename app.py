@@ -204,6 +204,45 @@ def edit_contact(contact_id):
         companies = db.get_companies_for_user(conn, user_id)
         jobs = db.get_jobs_for_user(conn, user_id)
 
+        if request.method == "POST":
+            form_values = request.form.to_dict()
+            try:
+                # read and clean each field
+                name = request.form.get("name", "")
+                title = blank_to_none(request.form.get("title"))
+                designation = blank_to_none(request.form.get("designation"))
+                email = blank_to_none(request.form.get("email"))
+                phone = blank_to_none(request.form.get("phone"))
+                linkedin_url = blank_to_none(request.form.get("linkedin_url"))
+                notes = blank_to_none(request.form.get("notes"))
+                company_id = to_int_or_none(request.form.get("company_id"))
+                job_id = to_int_or_none(request.form.get("job_id"))
+                new_company_name = blank_to_none(request.form.get("new_company_name"))
+
+                # handle adding a new company from Contacts form
+                if new_company_name is not None:
+                    company_id = db.get_or_create_company(conn, user_id, new_company_name)
+
+                # save contact
+                updated = db.update_contact(
+                    conn, contact_id=contact_id, user_id=user_id, name=name, title=title, designation=designation,
+                    company_id=company_id, job_id=job_id, email=email, phone=phone,
+                    linkedin_url=linkedin_url, notes=notes
+                )
+                if not updated:
+                    conn.rollback()
+                    abort(404, description="Contact not found")
+                    
+                # commit, flash, redirect
+                conn.commit()
+                flash("Contact saved")
+                return redirect(url_for("contact", contact_id=contact_id))
+
+            except ValueError as e:
+                conn.rollback()
+                error = str(e)
+                status = 400
+
     return render_template("contact_form.html", contact=contact, form=form_values, error=error,
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
