@@ -553,7 +553,7 @@ class TestEditContact(PageTestCase):
         self.assertEqual(response.status_code, 404) 
 
         # Check that the contact's name was not changed in the database
-        row = self._fetch("contacts", self.contact_b_id)
+        row = self._fetch("contacts", contact_b_id)
         self.assertEqual(row["name"], "Other User Contact")
 
 
