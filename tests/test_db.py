@@ -353,7 +353,7 @@ class TestGetUser(AccessTestCase):
         self.assertEqual(result["email"], USER_A["email"])
         self.assertIsNotNone(result["created_at"])
 
-    def returns_the_user_requested(self):
+    def test_returns_the_user_requested(self):
         result = db.get_user(self.conn, self.user_b)
         self.assertIsNotNone(result)
         self.assertEqual(result["id"], self.user_b)
@@ -447,14 +447,25 @@ class TestChangePassword(AccessTestCase):
         self.assertTrue(check_password_hash(new_hash, "hunter21"))
         self.assertFalse(check_password_hash(new_hash, USER_A["password"]))
 
-
-    def test_wrong_password_errors(self):
-        with self.assertRaises(ValueError):
-            db.change_password(self.conn, self.user_a, "hunter23", "hunter21")
+    def test_wrong_current_password_returns_false_and_changes_nothing(self):
+        before = self._fetch("users", self.user_a)["password_hash"]
+        for wrong in ("hunter23", "", None):
+            with self.subTest(current_password=wrong):
+                result = db.change_password(self.conn, self.user_a, wrong, "hunter21")
+                self.assertIs(result, False)
+        self.assertEqual(self._fetch("users", self.user_a)["password_hash"], before)
 
     def test_short_password_error(self):
         with self.assertRaises(ValueError):
             db.change_password(self.conn, self.user_a, USER_A["password"], "hunter2")
+
+    def test_empty_or_non_string_new_password_error(self):
+        before = self._fetch("users", self.user_a)["password_hash"]
+        for bad in ("", None, 12345678):
+            with self.subTest(new_password=bad):
+                with self.assertRaises(ValueError):
+                    db.change_password(self.conn, self.user_a, USER_A["password"], bad)
+        self.assertEqual(self._fetch("users", self.user_a)["password_hash"], before)
 
     def test_only_changes_target_password(self):
         b_before = self._fetch("users", self.user_b)["password_hash"]

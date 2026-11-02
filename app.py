@@ -137,6 +137,7 @@ def contact(contact_id):
     """show details of saved contact"""
     return f"Contact {contact_id} details - placeholder for now"
 
+
 @app.route('/contacts/add', methods=['GET', 'POST'])
 @require_login
 def add_contact():
@@ -161,6 +162,7 @@ def add_contact():
                 job_id = to_int_or_none(request.form.get("job_id"))
                 new_company_name = blank_to_none(request.form.get("new_company_name"))
 
+<<<<<<< HEAD
                 # handle adding a new company from Contacts form
                 if new_company_name is not None:
                     company_id = db.get_or_create_company(conn, user_id, new_company_name)
@@ -232,7 +234,7 @@ def edit_contact(contact_id):
                 if not updated:
                     conn.rollback()
                     abort(404, description="Contact not found")
-                    
+
                 # commit, flash, redirect
                 conn.commit()
                 flash("Contact saved")
