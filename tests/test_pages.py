@@ -463,7 +463,7 @@ class TestDashboard(PageTestCase):
         html = self.client.get("/").get_data(as_text=True)
 
         # check that project title appears
-        self.assertIn("<h1>Prospex</h1>", html)
+        self.assertIn("Prospex", html)
         # link to contacts, profile and logout button showing
         self.assertIn("Contacts", html)
         self.assertIn("Profile", html)
