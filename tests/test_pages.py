@@ -343,8 +343,32 @@ class TestJobDetails(PageTestCase):
                 self.assertIn(f'href="{link}"', html)
                 self.assertIn('target="_blank"', html)
                 self.assertIn('rel="noopener noreferrer"', html)
- 
 
+    def test_other_links_are_not_clickable(self):
+        for link in ("javascript:alert(1)", "  javascript:alert(1)", "data:text/html,hi", "ftp://example.com/file"):
+            with self.subTest(link=link):
+                job_id = self._insert_job(self.user_a, self.company_a, title="Odd Link Job", link=link)
+                html = self._open_job(job_id).get_data(as_text=True)
+                self.assertNotIn('target="_blank"', html)
+                self.assertNotIn('href="javascript', html)
+                self.assertNotIn('href="data', html)
+                self.assertNotIn('href="ftp', html)
+                self.assertIn(link.strip(), html, "The link should still be shown as plain text")
+ 
+    # Text typed by users is escaped, so it cannot add HTML or scripts to the page
+    def test_user_text_is_escaped(self):
+        job_id = self._insert_job(self.user_a, self.company_a, title="<script>alert(1)</script>",
+                                  notes="<b>bold</b>")
+        html = self._open_job(job_id).get_data(as_text=True)
+        self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertNotIn("<b>bold</b>", html)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+ 
+    # The page has a way back to the dashboard
+    def test_back_to_dashboard_link(self):
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        self.assertIn("Back to dashboard", html)
+ 
 
 
 if __name__ == '__main__':
