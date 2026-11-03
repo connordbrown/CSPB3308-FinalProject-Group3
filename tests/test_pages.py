@@ -201,6 +201,28 @@ class TestLogin(PageTestCase):
             self.assertIsNone(sess.get("user_id"))
             self.assertIsNone(sess.get("first_name"))
 
+class TestJobDetails(PageTestCase):
+    """tests for /jobs/<id> """
+ 
+    def setUp(self):
+        super().setUp()
+        # User A: one fully filled job at a company with a location
+        self.company_a = self._insert_company(self.user_a, name="Acme Corp", city="Denver", region="CO")
+        self.job_a = self._insert_job(
+            self.user_a, self.company_a, title="Junior Backend Developer", status="interviewing",
+            work_type="hybrid", link="https://www.acme-example.com/careers/junior-backend",
+            notes="Python and Flask stack.", date_applied="2026-09-10")
+        # User B: one job
+        self.company_b = self._insert_company(self.user_b, name="Beta Ltd")
+        self.job_b = self._insert_job(self.user_b, self.company_b, title="Data Analyst")
+ 
+    def _open_job(self, job_id, user=USER_A):
+        """Save the test data, log in as `user` and request the job page.
+        The data must be committed first: the app reads the file through its own connection."""
+        self.conn.commit()
+        self._login(user)
+        return self.client.get(f"/jobs/{job_id}")
+ 
 
 
 
