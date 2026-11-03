@@ -1,0 +1,134 @@
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+}
+
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px, 20px;
+    margin: 20px;
+    border: 2px solid;
+    border-radius: 10px;
+}
+
+.site-header h1 {
+    font-size: 1.5rem;
+}
+
+.site-header h1 a,
+.site-header nav a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.site-header nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.site-header nav ul {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+    margin: 2px;
+    padding: 2px;
+}
+
+
+.site-header nav a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6 px rgba(0, 0, 0, 0.25);
+}
+
+.welcome {
+    font-style: italic;
+    float: left;
+}
+
+
+.page-title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: normal;
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+
+
+
+/*-----------------Dashboard-------------------------------*/
+.filter {
+    width: 350px;
+    border: 2px solid black;
+    padding: 5px;
+    margin: 20px;
+    margin-left: auto;
+    display: flex;
+    justify-content: space-evenly;
+}
+
+.filter > a {
+    border-radius: 5px;
+    border: 1px solid black;
+    padding: 5px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.filter > a.active {
+    background-color: lightgray;
+}
+
+.jobs-list {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.job-tile {
+    border-radius: 10px;
+    width: 500px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+
+    /* matching to button look*/
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    border: 2px solid;
+    font-size: 0.85rem;
+    color: black;
+    text-decoration: none; /*we don't want underlined links */
+}
+
+
+.saved {
+    background-color: lightgrey;
+}
+
+.applied {
+    background-color: lightblue;
+}
+
+.interviewing {
+    background-color: blue;
+}
+
+.accepted {
+    background-color: green;
+}
+
+.offer {
+    background-color: lightgreen;
+}
+
+.declined, .withdrawn, .rejected {
+    background-color: lightcoral;
+}
+

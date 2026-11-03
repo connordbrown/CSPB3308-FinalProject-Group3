@@ -1,24 +1,22 @@
 <!doctype html>
+<html lang="en">
 <head>
 <title>{% block title %}{% endblock %} - Prospex</title>
-{% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% block styles %}{% endblock %}
 </head>
 <body>
-    <header>
-        <h1>Prospex</h1>
+    <header class="site-header">
+        <h1><a href="{{ url_for('index') }}"> Prospex </a></h1>
         <nav>
-            <ul>
-                <li> <a href="{{ url_for('index') }}"> Dashboard </a></li>
-                <li> <a href="{{ url_for('contacts') }}"> Contacts</a></li>
-            </ul>
                 {% if session.user_id %}
 
-                    <p>Welcome to Prospex {{session.first_name}}!</p>
+                    <span class="welcome">Welcome, {{session.first_name}}!</span>
                     <ul>
+                        <li> <a href="{{ url_for('index') }}"> Dashboard</a></li>
+                        <li> <a href="{{ url_for('contacts') }}"> Contacts</a></li>
+                        <li> <a href="{{ url_for('profile' )}}"> Profile </a></li>
                         <li> <a href="{{ url_for('logout') }}">Log out</a></li>
-                        <li> <a href="{{ url_for('profile' )}}"> View User Profile </a></li>
                     </ul>
                 {% else %}
                     <p>Please log in to use Prospex</p>
@@ -34,6 +32,7 @@
     <div class="flash">{{ message }}</div>
   {% endfor %}
   {% block content %}{% endblock %}
+
 </section>
 </body>
-{% if error %} <p class="error"> {{ error }} </p>{% endif %}
+</html>
