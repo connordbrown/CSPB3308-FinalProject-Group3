@@ -8,7 +8,8 @@
 <!-- FILTER TOGGLE -->
 <div class="filter">
     <a href = "{{ url_for('index') }}">ALL</a>
-    {% for status in ["applied", "interviewing", "offer", "declined"] %}
+    {% for status in ["saved", "applied", "interviewing", "offer", "rejected",
+                        "accepted", "declined", "withdrawn" ] %}
         <a href = "{{ url_for('index', status=status) }}"
             class="{{ 'active' if status == current_status }}">{{status}}</a>
     {% endfor %}

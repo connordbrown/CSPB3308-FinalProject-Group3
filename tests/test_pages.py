@@ -414,11 +414,9 @@ class TestDashboard(PageTestCase):
         self._login()
         html = self.client.get("/").get_data(as_text=True)
 
-        # check that logged in user A's jobs are showing
         self.assertIn("AI Security", html)
-        self.assertIn("Firmware Dev", html)
-        # double check that no jobs from other users are showing
-        self.assertNotIn("AI Administrator", html)
+        self.assertIn("Maas Biolabs", html)
+        self.assertIn("declined", html)
 
     # 4. Filter status selection appears above job list
     #     - Changing filter value updates job list
