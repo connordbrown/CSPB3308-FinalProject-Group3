@@ -162,7 +162,7 @@ def add_contact():
                 job_id = to_int_or_none(request.form.get("job_id"))
                 new_company_name = blank_to_none(request.form.get("new_company_name"))
 
-<<<<<<< HEAD
+
                 # handle adding a new company from Contacts form
                 if new_company_name is not None:
                     company_id = db.get_or_create_company(conn, user_id, new_company_name)
