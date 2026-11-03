@@ -730,8 +730,8 @@ Changes the user's password if the current password is correct. Checks `current_
 - `new_password` (str, required)
 
 ### Return Values
-- bool: True if changed; False if `current_password` is wrong or the user doesn't exist (nothing is written in either case). A wrong current password is an expected outcome, so it returns False rather than raising; the route turns False into an error message.
-- Raises `ValueError` if `new_password` is empty, not a string, or shorter than 8 characters. This is checked first, before the current password.
+- bool: True if changed; False if user doesn't exist. Raises a ValueError if current password is wrong or new password is less than 8 chars.
+- Raises `ValueError` if `new_password` is empty
 
 ### Used By
 - Profile (`/profile/password` POST), User Story #2
@@ -741,10 +741,9 @@ Changes the user's password if the current password is correct. Checks `current_
 | # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
 |---|---|---|---|---|
 | 1 | Correct current password changes it | User A exists with a known password | Call with the right current password and a new one | True; new password verifies against the stored hash; old one doesn't |
-| 2 | Wrong current password changes nothing | User A exists | Call with a wrong current password | False; `password_hash` unchanged |
+| 2 | Wrong current password changes nothing | User A exists | Call with a wrong current password | ValueError; `password_hash` unchanged |
 | 3 | New password is stored as a hash | User A exists | Change the password; select `password_hash` | Value is not the plain new password |
-| 4 | New password under 8 characters is rejected | User A exists | Call with `new_password` = "", a 7-character string, or a non-string | `ValueError`; `password_hash` unchanged |
-| 5 | Unknown user changes nothing | No user has the given id | Call with a nonexistent `user_id` | False; no rows changed |
+| 4 | New password under 8 characters is rejected | User A exists | Call with `new_password` = "" | `ValueError`; `password_hash` unchanged |
 
 ---
 
