@@ -286,11 +286,27 @@ class TestJobDetails(PageTestCase):
     def test_missing_job_returns_404(self):
         response = self._open_job(NONEXISTENT_ID)
         self.assertEqual(response.status_code, 404)
+
+    # 7. A job owned by another user returns the same 404 and shows none of its data.
+    def test_other_users_job_returns_404_and_shows_nothing(self):
+        response = self._open_job(self.job_b)  # logged in as user A
+        self.assertEqual(response.status_code, 404)
+        html = response.get_data(as_text=True)
+        self.assertNotIn("Data Analyst", html)
+        self.assertNotIn("Beta Ltd", html)
+        # The owner can still open it
+        self.client = app.test_client()
+        self.assertEqual(self._open_job(self.job_b, USER_B).status_code, 200)
  
-
+    # 8. Contacts belonging to another user never appear, even if a contact row points at this job.
+    def test_other_users_contacts_never_appear(self):
+        self._insert_contact(self.user_a, name="Jordan Rivera", job_id=self.job_a)
+        # The schema lets user B's contact point at user A's job
+        self._insert_contact(self.user_b, name="Priyas Private Contact", job_id=self.job_a)
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        self.assertIn("Jordan Rivera", html)
+        self.assertNotIn("Priyas Private Contact", html)
  
-
-
 
 
 if __name__ == '__main__':
