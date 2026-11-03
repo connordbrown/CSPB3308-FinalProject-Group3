@@ -6,7 +6,7 @@ import tempfile
 from werkzeug.security import generate_password_hash
 from app import app
 import db
-from tests.test_db import USER_A, USER_B, SCHEMA_PATH
+from tests.test_db import USER_A, USER_B, SCHEMA_PATH, NONEXISTENT_ID
 
 USER_C = {
     "first_name": "Henry",
@@ -201,6 +201,7 @@ class TestLogin(PageTestCase):
             self.assertIsNone(sess.get("user_id"))
             self.assertIsNone(sess.get("first_name"))
 
+
 class TestJobDetails(PageTestCase):
     """tests for /jobs/<id> """
  
@@ -259,6 +260,32 @@ class TestJobDetails(PageTestCase):
         html = response.get_data(as_text=True)
         self.assertIn("Support Engineer", html)
         self.assertNotIn("None", html)
+ 
+    # 5. A company with no city or region shows just the company name, with no stray comma.
+    def test_company_location_shown_when_present(self):
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        self.assertIn("Denver, CO", html)
+ 
+    def test_company_without_location_has_no_stray_comma(self):
+        company = self._insert_company(self.user_a, name="Summit Cloud")
+        bare_job = self._insert_job(self.user_a, company, title="Support Engineer")
+        html = self._open_job(bare_job).get_data(as_text=True)
+        self.assertIn("Summit Cloud", html)
+        self.assertNotIn("company-location", html)
+        self.assertNotIn("Summit Cloud,", html)
+ 
+    # Only a city or only a region is shown without a comma
+    def test_company_with_only_a_city_has_no_stray_comma(self):
+        company = self._insert_company(self.user_a, name="Fernhill Studio", city="Toronto")
+        job_id = self._insert_job(self.user_a, company, title="Front-End Developer")
+        html = self._open_job(job_id).get_data(as_text=True)
+        self.assertIn("Toronto", html)
+        self.assertNotIn("Toronto,", html)
+ 
+    # 6. A job id that doesn't exist returns 404.
+    def test_missing_job_returns_404(self):
+        response = self._open_job(NONEXISTENT_ID)
+        self.assertEqual(response.status_code, 404)
  
 
  
