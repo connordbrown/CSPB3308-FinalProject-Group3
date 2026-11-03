@@ -222,6 +222,29 @@ class TestJobDetails(PageTestCase):
         self.conn.commit()
         self._login(user)
         return self.client.get(f"/jobs/{job_id}")
+
+        # 1. A logged-in user opening one of their own jobs gets a 200 and sees the title, company, status, work type, link, and notes.
+    def test_owner_sees_job_details(self):
+        response = self._open_job(self.job_a)
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        for expected in ("Junior Backend Developer", "Acme Corp", "Interviewing", "Hybrid",
+                         "2026-09-10", "https://www.acme-example.com/careers/junior-backend",
+                         "Python and Flask stack."):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, html)
+ 
+    # 2. A job with linked contacts lists each of them, and each one links to /contacts/<id>.
+    def test_linked_contacts_listed_with_links(self):
+        first = self._insert_contact(self.user_a, name="Jordan Rivera", job_id=self.job_a, designation="hiring manager")
+        second = self._insert_contact(self.user_a, name="Sam Okafor", job_id=self.job_a, title="Software Engineer")
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        for contact_id, name in ((first, "Jordan Rivera"), (second, "Sam Okafor")):
+            with self.subTest(name=name):
+                self.assertIn(name, html)
+                self.assertIn(f'href="/contacts/{contact_id}"', html)
+        self.assertNotIn("No contacts linked", html)
+
  
 
 
