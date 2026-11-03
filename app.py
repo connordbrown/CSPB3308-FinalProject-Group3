@@ -96,7 +96,6 @@ def logout():
     session.pop('user_id', None)
     return redirect(url_for('index'))
 
-
 @app.route('/profile')
 def profile():
     """ Show details about the current user """
@@ -106,6 +105,12 @@ def profile():
 def add_job():
     """ form for adding a new job application"""
     return f'Placeholder for form for adding new job'
+
+@app.route('/jobs/<int:job_id>/edit')
+@require_login
+def edit_job(job_id):
+    """Display a form for editing an existing job application"""
+    return f'Placeholder for form for editing job {job_id}'
 
 @app.route('/jobs/<int:job_id>')
 @require_login
