@@ -1,5 +1,5 @@
 import db
-from flask import Flask, request, render_template, session, redirect, url_for
+from flask import Flask, request, render_template, session, redirect, url_for, abort
 from markupsafe import escape
 import json
 from contextlib import closing
@@ -108,9 +108,28 @@ def add_job():
     return f'Placeholder for form for adding new job'
 
 @app.route('/jobs/<int:job_id>')
+@require_login
 def job(job_id):
-    """show details of saved job application"""
-    return f"Job {job_id} details - placeholder for now"
+    """Show details of one saved job application, with its company and linked contacts"""
+    user_id = session["user_id"]
+    with closing(get_conn()) as conn:
+        job_data = db.get_job(conn, user_id, job_id)
+        # Same 404 whether the job doesn't exist or belongs to someone else
+        if job_data is None:
+            abort(404)
+        contacts = db.get_contacts_for_job(conn, user_id, job_id)
+ 
+    # Only http(s) links become clickable. Anything else a user typed (such as
+    # "javascript:...") is shown as plain text.
+    job_link = (job_data["link"] or "").strip()
+    link_is_safe = job_link.lower().startswith(("http://", "https://"))
+ 
+    return render_template(
+        "job_details.html",
+        job=job_data,
+        contacts=contacts,
+        job_link=job_link,
+        link_is_safe=link_is_safe)
 
 @app.route('/contacts/<int:contact_id>')
 def contact(contact_id):
