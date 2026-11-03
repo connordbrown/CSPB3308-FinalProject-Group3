@@ -245,6 +245,22 @@ class TestJobDetails(PageTestCase):
                 self.assertIn(f'href="/contacts/{contact_id}"', html)
         self.assertNotIn("No contacts linked", html)
 
+    # 3. A job with no linked contacts shows an empty-contacts message instead of a blank list.
+    def test_no_contacts_shows_message(self):
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        self.assertIn("No contacts linked to this job yet.", html)
+ 
+    # 4. A job with empty optional fields (link, notes, work type, date applied) returns 200 and shows no "None" text.
+    def test_empty_optional_fields_show_no_none(self):
+        company = self._insert_company(self.user_a, name="Summit Cloud")
+        bare_job = self._insert_job(self.user_a, company, title="Support Engineer")
+        response = self._open_job(bare_job)
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Support Engineer", html)
+        self.assertNotIn("None", html)
+ 
+
  
 
 
