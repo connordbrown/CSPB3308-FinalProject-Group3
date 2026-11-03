@@ -323,6 +323,29 @@ class TestJobDetails(PageTestCase):
             with self.subTest(bad_id=bad_id):
                 self.assertEqual(self.client.get(f"/jobs/{bad_id}").status_code, 404)
 
+    # 11. The Edit button points to /jobs/<id>/edit for the right job.
+    def test_edit_button_points_to_edit_page(self):
+        html = self._open_job(self.job_a).get_data(as_text=True)
+        self.assertIn(f'href="/jobs/{self.job_a}/edit"', html)
+ 
+    # The Edit page the button points to exists, and also needs a login
+    def test_edit_page_requires_login(self):
+        response = self.client.get(f"/jobs/{self.job_a}/edit")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+ 
+    # 12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
+    def test_http_links_open_in_new_tab(self):
+        for link in ("https://www.acme-example.com/jobs/1", "http://www.acme-example.com/jobs/1", "HTTPS://WWW.ACME-EXAMPLE.COM/JOBS/1"):
+            with self.subTest(link=link):
+                job_id = self._insert_job(self.user_a, self.company_a, title="Linked Job", link=link)
+                html = self._open_job(job_id).get_data(as_text=True)
+                self.assertIn(f'href="{link}"', html)
+                self.assertIn('target="_blank"', html)
+                self.assertIn('rel="noopener noreferrer"', html)
+ 
+
+
 
 if __name__ == '__main__':
     unittest.main()
