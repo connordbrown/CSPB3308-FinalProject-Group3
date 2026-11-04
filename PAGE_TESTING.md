@@ -182,7 +182,7 @@ Session: `user_id`
 11. Edit: using another user's `contact_id` returns "not found"
 12. Selecting "+ Add new company" with a name creates the company and links the contact to it
 13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
-14. Selecting "+ Add new company" with a blank name shows an error and saves nothing
+14. A blank or whitespace-only new company name is ignored: no company is created, and the contact saves normally.
 
 ---
 ## 5. Contact Details

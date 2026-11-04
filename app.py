@@ -1,5 +1,5 @@
 import db
-from flask import Flask, request, render_template, session, redirect, url_for, flash
+from flask import Flask, request, render_template, session, redirect, url_for, flash, abort
 from markupsafe import escape
 import json
 from contextlib import closing
@@ -22,6 +22,26 @@ def require_login(func):
             return redirect(url_for("login"))
         return func(*args, **kwargs)
     return wrapper
+
+def blank_to_none(value):
+    """Strip whitespace; return None for missing or blank values."""
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def to_int_or_none(value):
+    """Convert a dropdown value like "3" to 3; blank becomes None."""
+    value = blank_to_none(value)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError("Invalid selection.")
+
+
 
 @app.route("/")
 def index():
@@ -155,17 +175,116 @@ def contact(contact_id):
     """show details of saved contact"""
     return f"Contact {contact_id} details - placeholder for now"
 
-@app.route('/contacts/add')
+
+@app.route('/contacts/add', methods=['GET', 'POST'])
 @require_login
 def add_contact():
     """Display a form for adding a new contact to the saved contacts list"""
-    return f'Placeholder for form for adding new contact'
+    user_id = session["user_id"]
+    error = None
+    status = 200 
+    form_values = {}       
+    with closing(get_conn()) as conn:
+        if request.method == "POST":
+            form_values = request.form.to_dict()
+            try:
+                # read and clean each field
+                name = request.form.get("name", "")
+                title = blank_to_none(request.form.get("title"))
+                designation = blank_to_none(request.form.get("designation"))
+                email = blank_to_none(request.form.get("email"))
+                phone = blank_to_none(request.form.get("phone"))
+                linkedin_url = blank_to_none(request.form.get("linkedin_url"))
+                notes = blank_to_none(request.form.get("notes"))
+                company_id = to_int_or_none(request.form.get("company_id"))
+                job_id = to_int_or_none(request.form.get("job_id"))
+                new_company_name = blank_to_none(request.form.get("new_company_name"))
 
-@app.route('/contacts/edit/<int:contact_id>')
+
+                # handle adding a new company from Contacts form
+                if new_company_name is not None:
+                    company_id = db.get_or_create_company(conn, user_id, new_company_name)
+
+                # save contact
+                db.create_contact(
+                    conn, user_id, name=name, title=title, designation=designation,
+                    company_id=company_id, job_id=job_id, email=email, phone=phone,
+                    linkedin_url=linkedin_url, notes=notes
+                )
+                # commit, flash, redirect
+                conn.commit()
+                flash("Contact saved")
+                return redirect(url_for("contacts"))
+
+            except ValueError as e:
+                conn.rollback()
+                error = str(e)
+                status = 400
+
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
+        
+    return render_template("contact_form.html", contact=None, form=form_values, error=error,
+                            companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
+
+@app.route('/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
 @require_login
-def edit_contact(contact_id):
+def edit_contact(contact_id):    
     """Display a form for editing an existing contact"""
-    return f'Placeholder for form for editing contact {contact_id}   '
+    user_id = session["user_id"]
+    error = None
+    status = 200
+
+    with closing(get_conn()) as conn:
+        contact = db.get_contact(conn, user_id, contact_id)
+        if contact is None:
+            abort(404, description="Contact not found")
+        form_values = dict(contact)  # pre-fill form with existing contact data
+
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
+
+        if request.method == "POST":
+            form_values = request.form.to_dict()
+            try:
+                # read and clean each field
+                name = request.form.get("name", "")
+                title = blank_to_none(request.form.get("title"))
+                designation = blank_to_none(request.form.get("designation"))
+                email = blank_to_none(request.form.get("email"))
+                phone = blank_to_none(request.form.get("phone"))
+                linkedin_url = blank_to_none(request.form.get("linkedin_url"))
+                notes = blank_to_none(request.form.get("notes"))
+                company_id = to_int_or_none(request.form.get("company_id"))
+                job_id = to_int_or_none(request.form.get("job_id"))
+                new_company_name = blank_to_none(request.form.get("new_company_name"))
+
+                # handle adding a new company from Contacts form
+                if new_company_name is not None:
+                    company_id = db.get_or_create_company(conn, user_id, new_company_name)
+
+                # save contact
+                updated = db.update_contact(
+                    conn, contact_id=contact_id, user_id=user_id, name=name, title=title, designation=designation,
+                    company_id=company_id, job_id=job_id, email=email, phone=phone,
+                    linkedin_url=linkedin_url, notes=notes
+                )
+                if not updated:
+                    conn.rollback()
+                    abort(404, description="Contact not found")
+
+                # commit, flash, redirect
+                conn.commit()
+                flash("Contact saved")
+                return redirect(url_for("contact", contact_id=contact_id))
+
+            except ValueError as e:
+                conn.rollback()
+                error = str(e)
+                status = 400
+
+    return render_template("contact_form.html", contact=contact, form=form_values, error=error,
+                            companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
 @app.route('/contacts')
 def contacts():

@@ -14,10 +14,10 @@ import sqlite3
 from werkzeug.security import generate_password_hash as _werkzeug_generate_password_hash, check_password_hash
 
 DESIGNATIONS = ("recruiter", "referrer", "interviewer", "hiring manager", "other")
-# Added since last SCRUM meeting
+
 STATUSES = ("saved", "applied", "interviewing", "offer", "rejected",
             "accepted", "declined", "withdrawn")
-# Added since last SCRUM meeting
+
 WORK_TYPES = ("remote", "hybrid", "in person")
 
 
@@ -30,7 +30,7 @@ def get_connection(db_path):
 
 # ---------- Users ----------
 
-# Added since last SCRUM meeting
+
 def get_user_by_email(conn, email):
     """
     Return one user by email for login.
@@ -72,7 +72,6 @@ def _is_blank(value):
     """True if value is not a string, or is empty or only whitespace."""
     return not isinstance(value, str) or value.strip() == ""
 
-# Added since last SCRUM meeting
 def create_user(conn, first_name, last_name, email, password_hash, display_name=None):
     """
     Insert a new user at signup.
@@ -160,7 +159,7 @@ def update_user(conn, user_id, first_name, last_name, email):
     ).rowcount == 1 # will return 1 if user was updated.
 
 
-# Added since last SCRUM meeting
+
 def change_password(conn, user_id, current_password, new_password):
     """
     Change the user's password if current_password is correct.
@@ -202,7 +201,6 @@ def change_password(conn, user_id, current_password, new_password):
 
 # ---------- Jobs ----------
 
-# Added since last SCRUM meeting
 def get_job(conn, user_id, job_id):
     """
     Return one job with its company, only if it belongs to the user.

@@ -2,6 +2,7 @@ import unittest
 import os
 import sqlite3
 import tempfile
+import re
 
 from werkzeug.security import generate_password_hash
 from app import app
@@ -104,7 +105,16 @@ class PageTestCase(unittest.TestCase):
         return self.client.post("/login", data={
             "action": "signup", "first_name": user["first_name"], "last_name": user["last_name"], "email": user["email"], "password": user["password"]
         })
-    
+
+    def _select_block(self, html, field_name):
+        """Return the HTML inside the <select> with this name attribute."""
+        match = re.search(
+            rf'<select[^>]*name="{field_name}"[^>]*>(.*?)</select>',
+            html,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, f"No <select> named {field_name}")
+        return match.group(1)
 
 class TestLogin(PageTestCase):
     """tests for /login """
@@ -201,6 +211,350 @@ class TestLogin(PageTestCase):
             self.assertIsNone(sess.get("user_id"))
             self.assertIsNone(sess.get("first_name"))
 
+
+class TestContactFormsLoggedOut(PageTestCase):
+    """tests for /contacts/add and the edit contact route without logging in"""
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection.
+
+    # 1. Not logged in: /contacts/add redirects to /login
+    def test_add_contact_logged_out_redirects_to_login(self):
+        response = self.client.get("/contacts/add")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 1. Not logged in: the edit contact route redirects to /login
+    def test_edit_contact_logged_out_redirects_to_login(self):
+        response = self.client.get("/contacts/999/edit")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+
+class TestAddContact(PageTestCase):
+
+    """tests for /contacts/add """
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection. 
+
+    def setUp(self):
+        super().setUp() # Fresh temp database with users A and B
+        self._login() # log in as user A
+
+    
+
+    # 2. All fields render; name is required
+    def test_all_fields_render_and_name_required(self):
+        response = self.client.get("/contacts/add")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+
+        # Every form field is present
+        fields = ["name", "title", "designation", "company_id", "new_company_name",
+                  "job_id", "email", "phone", "linkedin_url", "notes"]
+        for field in fields:
+            with self.subTest(field=field):
+                self.assertIn(f'name="{field}"', html)
+
+        # Name is required
+        name_input = re.search(r'<input[^>]*name="name"[^>]*>', html)
+        self.assertIsNotNone(name_input)
+        self.assertIn("required", name_input.group())
+
+    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option 
+    def test_dropdowns_list_only_own_companies_and_jobs(self):
+        
+        # User A data - logged-in
+        company_a = self._insert_company(self.user_a, name="Acme Corp")
+        self._insert_job(self.user_a, company_a, title="Data Analyst")
+        # User B data 
+        company_b = self._insert_company(self.user_b, name="Beta Ltd")
+        self._insert_job(self.user_b, company_b, title="Product Manager")
+        self.conn.commit()
+
+        html = self.client.get("/contacts/add").get_data(as_text=True)
+        company_select = self._select_block(html, "company_id")
+        job_select = self._select_block(html, "job_id")
+
+        # A's data appears in correct dropdown
+        self.assertIn("Acme Corp", company_select)
+        self.assertIn("Data Analyst", job_select)
+
+        # B's data does not
+        self.assertNotIn("Beta Ltd", html)
+        self.assertNotIn("Product Manager", html)
+
+        # Both dropdowns start with a "None" option
+        self.assertIn('<option value="">None</option>', company_select)
+        self.assertIn('<option value="">None</option>', job_select)
+
+
+    # 4. Submitting without a name shows an error, saves nothing, and keeps the other entered values
+    def test_missing_name_errors_and_keeps_values(self):
+        # Count Contact rows before failing attempt
+        before = self._count("contacts")
+        # submit form with no name
+        response = self.client.post("/contacts/add", data={
+            "name": "",
+            "email": "sam@example.com",
+            "phone": "555-0100"
+        })
+        html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Name is required", html) # Error shows as written in create_contact() in db.py
+        self.assertEqual(self._count("contacts"), before) # no new rows
+        # Other entered values are kept
+        self.assertIn("sam@example.com", html, "email not kept after failure") 
+        self.assertIn("555-0100", html, "phone number not kept after failure")
+
+    # 5. Submitting with only a name succeeds
+    def test_name_only_succeeds(self):
+        # Count contact rows before attempt
+        before = self._count("contacts") 
+        # submit form with name only
+        response = self.client.post("/contacts/add", data={"name": "Sam"})
+
+        # Check for redirection to /contacts page
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/contacts")
+        
+        # Count after valid insert
+        self.assertEqual(self._count("contacts", "user_id = ?", (self.user_a,)), before + 1)
+
+    # 6. A valid submit creates the contact, redirects to /contacts, and the new contact appears in the list
+    def test_valid_submit_creates_contact_and_redirects(self):
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, company_id, title="Data Analyst")
+        self.conn.commit()
+
+        data = {
+            "name": "Sam Okafor",
+            "title": "Engineer",
+            "designation": "referrer",
+            "company_id": str(company_id),
+            "job_id": str(job_id),
+            "email": "sam@example.com",
+            "phone": "555-0100",
+            "linkedin_url": "https://linkedin.com/in/sam",
+            "notes": "Met at a meetup",
+        }
+        response = self.client.post("/contacts/add", data=data)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/contacts")
+
+        row = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam Okafor"),
+        ).fetchone()
+        self.assertIsNotNone(row)
+        for field in ("title", "designation", "email", "phone", "linkedin_url", "notes"):
+            with self.subTest(field=field):
+                self.assertEqual(row[field], data[field])
+        self.assertEqual(row["company_id"], company_id)   # int, not "1"
+        self.assertEqual(row["job_id"], job_id)
+
+    # 7. Cancel saves nothing and returns to the contacts list
+    def test_cancel_saves_nothing(self):
+        before = self._count("contacts", "user_id = ?", (self.user_a,))
+
+        html = self.client.get("/contacts/add").get_data(as_text=True)
+
+        # The page has a Cancel link to the contacts list
+        cancel_link = re.search(r'<a[^>]*href="/contacts"[^>]*>\s*Cancel\s*</a>', html)
+        self.assertIsNotNone(cancel_link)
+
+        # Following it saves nothing
+        self.client.get("/contacts")
+        self.assertEqual(self._count("contacts", "user_id = ?", (self.user_a,)), before)
+
+    # 8. Submitting a company_id or job_id belonging to another user is rejected
+    def test_other_users_company_or_job_rejected(self):
+        # Createa company and job _id for user B
+        company_b = self._insert_company(self.user_b, name="Beta Ltd")
+        job_b = self._insert_job(self.user_b, company_b, title="Product Manager")
+        self.conn.commit()
+        
+        cases = {
+        "company_id": str(company_b),
+        "job_id": str(job_b),
+        }
+        
+        for field, value in cases.items():
+            with self.subTest(field=field):
+                before = self._count("contacts")       
+                response = self.client.post("/contacts/add", data={"name": "Sam", field: value})
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("does not belong to the user", response.get_data(as_text=True))
+                self.assertEqual(self._count("contacts"), before)
+
+    # 12. Selecting "+ Add new company" with a name creates the company and links the contact to it
+    def test_add_new_company_creates_and_links_company(self):
+        before = self._count("companies", "user_id = ?", (self.user_a,))
+
+        response = self.client.post("/contacts/add", data={
+            "name": "Sam",
+            "new_company_name": "Gamma Inc",
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # Exactly one new company, owned by user A
+        self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)), before + 1)
+        company = self.conn.execute(
+            "SELECT * FROM companies WHERE user_id = ? AND name = ?",
+            (self.user_a, "Gamma Inc"),
+        ).fetchone()
+        self.assertIsNotNone(company)
+
+        # The contact is linked to it
+        contact = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam"),
+        ).fetchone()
+        self.assertIsNotNone(contact)
+        self.assertEqual(contact["company_id"], company["id"])
+
+    # 13. Entering an existing company's name in any capitalization reuses that company instead of creating a duplicate
+    def test_existing_company_name_any_case_is_reused(self):
+        existing_id = self._insert_company(self.user_a, name="Acme Corp")
+        self.conn.commit()
+        before = self._count("companies", "user_id = ?", (self.user_a,))
+
+        response = self.client.post("/contacts/add", data={
+            "name": "Sam",
+            "new_company_name": "aCME cORP",
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # No new company
+        self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)), before)
+
+        # The contact is linked to the existing one
+        contact = self.conn.execute(
+            "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+            (self.user_a, "Sam"),
+        ).fetchone()
+        self.assertIsNotNone(contact)
+        self.assertEqual(contact["company_id"], existing_id)
+
+    # 14. A blank or whitespace-only new company name is ignored:
+    # no company is created and the contact saves normally
+    def test_add_new_company_blank_name_ignored(self):
+        for blank in ("", "   "):
+            with self.subTest(new_company_name=repr(blank)):
+                companies_before = self._count("companies", "user_id = ?", (self.user_a,))
+
+                response = self.client.post("/contacts/add", data={
+                    "name": f"Sam{len(blank)}",
+                    "new_company_name": blank,
+                })
+                self.assertEqual(response.status_code, 302)
+
+                # No company created
+                self.assertEqual(self._count("companies", "user_id = ?", (self.user_a,)),
+                                companies_before)
+
+                # Contact saved with no company
+                contact = self.conn.execute(
+                    "SELECT * FROM contacts WHERE user_id = ? AND name = ?",
+                    (self.user_a, f"Sam{len(blank)}"),
+                ).fetchone()
+                self.assertIsNotNone(contact)
+                self.assertIsNone(contact["company_id"])
+
+
+class TestEditContact(PageTestCase):
+    """tests for the edit contact route"""
+    # Rows inserted with the helpers must be committed (self.conn.commit()) before
+    # making a request, because the route uses a separate database connection.
+
+    def setUp(self):
+        super().setUp()
+        self._login()
+        self.contact_id = self._insert_contact(self.user_a)
+        self.conn.commit()
+
+    # 9. Edit: form is prefilled with the contact's current values
+    def test_edit_form_prefilled(self):
+        # Create a contact with all fields filled
+        company_id = self._insert_company(self.user_a, name="Acme Corp")
+        job_id = self._insert_job(self.user_a, company_id, title="Data Analyst")
+        contact_id = self._insert_contact(
+            self.user_a, name="Sam Okafor", title="Engineer", designation="other",
+            company_id=company_id, job_id=job_id, email="sam.okafor@example.com",
+            phone="555-0100", linkedin_url="https://linkedin.com/in/samokafor", notes="Met at a meetup"
+        )
+        self.conn.commit()
+
+        response = self.client.get(f"/contacts/{contact_id}/edit")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+
+        # Check that each field is prefilled with the contact's current value
+        fields = {
+            "name": "Sam Okafor",
+            "title": "Engineer",
+            "designation": "other",
+            "company_id": str(company_id),
+            "job_id": str(job_id),
+            "email": "sam.okafor@example.com",
+            "phone": "555-0100",
+            "linkedin_url": "https://linkedin.com/in/samokafor",
+            "notes": "Met at a meetup"
+        }
+        for field, value in fields.items():
+            with self.subTest(field=field):
+                if field in ("company_id", "job_id", "designation"):
+                    block = self._select_block(html, field)
+                    self.assertRegex(block, rf'value="{value}"\s+selected')
+                elif field == "notes":
+                    self.assertIn(f'>{value}</textarea>', html)
+                else:
+                    self.assertIn(f'value="{value}"', html)
+
+    # 10. Edit: saving changes updates the contact and redirects to its details page
+    def test_edit_save_updates_and_redirects_to_details(self):
+        before = self._count("contacts")
+
+        # vaules to update
+        new_values = {
+            "name": "Sam Okafor Updated",
+            "title": "Senior Engineer",
+            "designation": "recruiter",
+            "email": "sam.okafor.updated@example.com",
+            "phone": "555-0200",
+            "linkedin_url": "https://linkedin.com/in/samokaforupdated",
+            "notes": "Met at a conference",
+        }
+        response = self.client.post(f"/contacts/{self.contact_id}/edit", data=new_values)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], f"/contacts/{self.contact_id}")
+
+        # Count of contacts is unchanged
+        self.assertEqual(self._count("contacts"), before)   
+        # Check that the contact's fields were updated in the database
+        row = self._fetch("contacts", self.contact_id)
+        for field, value in new_values.items():
+            with self.subTest(field=field):
+                self.assertEqual(row[field], value)
+
+    # 11. Edit: using another user's contact_id returns "not found"
+    def test_edit_other_users_contact_not_found(self):
+        # create a contact for user B
+        contact_b_id = self._insert_contact(self.user_b, name="Other User Contact")
+        self.conn.commit()
+        # Attempt to view it as user A
+        response = self.client.get(f"/contacts/{contact_b_id}/edit")
+        self.assertEqual(response.status_code, 404)
+        html = response.get_data(as_text=True)
+        self.assertIn("not found", html.lower())
+
+        #submit changes to it as user A
+        response = self.client.post(f"/contacts/{contact_b_id}/edit", data={"name": "Hacked Name"})
+        self.assertEqual(response.status_code, 404) 
+
+        # Check that the contact's name was not changed in the database
+        row = self._fetch("contacts", contact_b_id)
+        self.assertEqual(row["name"], "Other User Contact")
 
 
 class TestProfile(PageTestCase):
