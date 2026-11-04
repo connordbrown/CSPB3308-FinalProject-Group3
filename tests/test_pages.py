@@ -723,5 +723,106 @@ class TestProfile(PageTestCase):
         after = dict(self._fetch("users", self.user_a))
         self.assertEqual(before, after)
 
+
+
+
+
+class TestDashboard(PageTestCase):
+    """tests for '/' """
+
+    # we need job data to display for this:
+    def setUp(self):
+        super().setUp()
+        self.maas = self._insert_company(self.user_a, name="Maas Biolabs")
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.tessier, title="AI Administrator")
+        self.conn.commit()
+
+    # 1. User not logged in - redirect to (`/login`).
+    def test_login_redirect(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+    
+
+    # 2. Page displays list of all jobs
+    def test_jobs_list_shows(self):
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        # check that logged in user A's jobs are showing
+        self.assertIn("AI Security", html)
+        self.assertIn("Firmware Dev", html)
+        # double check that no jobs from other users are showing
+        self.assertNotIn("AI Administrator", html)
+
+
+    # 3. Each job card shows Role, Company, and Status (indicated by color)
+    def test_job_cards_accurate(self):
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+
+        self.assertIn("AI Security", html)
+        self.assertIn("Maas Biolabs", html)
+        self.assertIn("declined", html)
+
+    # 4. Filter status selection appears above job list
+    #     - Changing filter value updates job list
+    def test_filter_selection(self):
+        self._login()
+        html = self.client.get("/?status=applied").get_data(as_text=True)
+
+        # check that selector appears
+        self.assertIn("ALL", html)
+        # applied job is showing
+        self.assertIn("Firmware Dev", html)
+        # declined job is not
+        self.assertNotIn("AI Security", html)
+
+    # 5. individual job cards link correctly to their specific job detail page
+    def test_jobs_link_to_details(self):
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertIn(f'href="/jobs/{self.job_1}"', html)
+        # make sure the link goes somewhere
+        response = self.client.get(f'/jobs/{self.job_1}')
+        self.assertEqual(response.status_code, 200)
+
+    # 6. add job button links correctly
+    #     - Add Job button displays if job list is empty
+    def test_empty_list(self):
+        self._insert_user(**USER_C)
+        self.conn.commit()
+        self._login(USER_C) # no jobs
+        html = self.client.get("/").get_data(as_text=True)
+
+        # check that add job button appears
+        self.assertIn('href="/jobs/add"', html)
+        # make sure the link goes somewhere
+        response = self.client.get('/jobs/add')
+        self.assertEqual(response.status_code, 200)
+
+
+    # 7. Navigation / Header - Page should display navigation with project title, links to contacts and profile pages, and a logout button.
+    def test_nav(self):
+        self._login()
+        html = self.client.get("/").get_data(as_text=True)
+
+        # check that project title appears
+        self.assertIn("Prospex", html)
+        # link to contacts, profile and logout button showing
+        self.assertIn("Contacts", html)
+        self.assertIn("Profile", html)
+        self.assertIn("Log out", html)
+        # login not showing for logged in user
+        self.assertNotIn("Log in", html)
+
+
 if __name__ == '__main__':
     unittest.main()

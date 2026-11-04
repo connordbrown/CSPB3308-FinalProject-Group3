@@ -44,12 +44,11 @@ def to_int_or_none(value):
 
 
 @app.route("/")
+@require_login
 def index():
     """Dashboard, will show filterable list of job applications"""
-
-    path = app.static_folder + '/testing/sample_data.json'
-    with open(path, "r", encoding="utf-8") as sample_data_file:
-        sample_data = json.load(sample_data_file)
+    with closing(get_conn()) as  conn:
+        jobs = db.get_jobs_for_user(conn, session["user_id"])
 
     # Sort by status - in set order
     sort_order = {
@@ -62,11 +61,15 @@ def index():
         'withdrawn': 7,
         'rejected': 8
     }
-    jobs = sorted(sample_data['jobs'], key=lambda job: sort_order[job['status']])
 
+    jobs = sorted(jobs, key=lambda job: sort_order[job['status']])
+    status = request.args.get("status")
+    if status:
+        jobs = [job for job in jobs if job["status"]== status]
     return render_template(
         "dashboard.html",
-        jobs=jobs)
+        jobs=jobs,
+        current_status=status)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -144,7 +147,9 @@ def profile():
                     if new_password != confirmation:
                         raise ValueError("New password and confirmation do not match")
                     with conn:
-                        db.change_password(conn, session["user_id"], password, new_password)
+                        success = db.change_password(conn, session["user_id"], password, new_password)
+                    if not success:
+                        raise ValueError("Current password incorrect")
                     flash("Password successfully changed!")
                     return redirect(url_for('profile'))
             except sqlite3.IntegrityError:

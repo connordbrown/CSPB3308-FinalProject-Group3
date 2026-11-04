@@ -2,37 +2,30 @@
 
 {% block title %}Dashboard - Prospex{% endblock %}
 
-{% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/jobs.css') }}">
-{% endblock %}
-
 {% block content %}
-<h1>Dashboard</h1>
-<p>Where your job search lives</p>
+<h2 class = 'page-title'>Jobs</h2>
 
 <!-- FILTER TOGGLE -->
 <div class="filter">
-    <div>ALL</div>
-    <div>applied</div>
-    <div>interviewing</div>
-    <div>offer</div>
-    <div>declined</div>
+    <a href = "{{ url_for('index') }}">ALL</a>
+    {% for status in ["saved", "applied", "interviewing", "offer", "rejected",
+                        "accepted", "declined", "withdrawn" ] %}
+        <a href = "{{ url_for('index', status=status) }}"
+            class="{{ 'active' if status == current_status }}">{{status}}</a>
+    {% endfor %}
 </div>
 
 <div class="jobs-list">
 {% for job in jobs %}
-    <button
-        class="job-tile {{ job.status }}"
-        onclick="window.location.href='jobs/{{ job.id }}' ">
-
-        <div>{{ job.title }}</div>
-
-        <!-- Temporary - to confirm links for now -->
-        <div>Job ID: {{ job.id }}</div>
-
-        <div>Company ID: {{ job.company_id }}</div>
-    </button>
+    <!-- link instead of a button so that 'new tab ' features work-->
+    <a class="job-tile {{ job.status }}" href="{{ url_for('job', job_id=job.id) }}">
+        <div class="job-title">{{ job.title }}</div>
+        <div class="job-company">{{ job.company_name }}</div>
+        <div class="job-status">{{ job.status }}</div>
+    </a>
 {% endfor %}
+<a class= "job-tile add-job" href="{{ url_for('add_job') }}"> + Add Job</a>
+
 </div>
 
 {% endblock %}
