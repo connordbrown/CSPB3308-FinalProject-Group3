@@ -117,10 +117,48 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/profile')
+@app.route('/profile', methods = ['GET', 'POST'])
+@require_login
 def profile():
     """ Show details about the current user """
-    return f'Profile coming soon'
+
+    error = None
+    status = 200
+    with closing(get_conn()) as conn:
+        if request.method == 'POST':
+            action = request.form.get("action")
+            try:
+                if action == 'update_user':
+                    first_name = request.form["first_name"]
+                    last_name = request.form["last_name"]
+                    email = request.form["email"].strip().lower()
+                    with conn:
+                        db.update_user(conn, session["user_id"], first_name, last_name, email)
+                    # fix session info
+                    session["first_name"]= first_name.strip()
+                    return redirect(url_for('profile'))
+                elif action == 'change_password':
+                    password = request.form['password']
+                    new_password = request.form['new_password']
+                    confirmation = request.form['confirmation']
+                    if new_password != confirmation:
+                        raise ValueError("New password and confirmation do not match")
+                    with conn:
+                        db.change_password(conn, session["user_id"], password, new_password)
+                    flash("Password successfully changed!")
+                    return redirect(url_for('profile'))
+            except sqlite3.IntegrityError:
+                error = "That email is in use"
+                status = 409
+            except ValueError as e:
+                error = str(e)
+                status = 400
+    
+        user = db.get_user(conn, session["user_id"])
+    return render_template("profile.html", user = user, error=error), status
+
+
+
 
 @app.route('/jobs/add')
 def add_job():
