@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }}{% endblock %}
+
+{% block content %}
+<article class="job-details">
+  <p><a href="{{ url_for('index') }}">&larr; Back to dashboard</a></p>
+
+  <h2>{{ job.title }}</h2>
+
+  <p class="job-company">
+    <span class="company-name">{{ job.company_name }}</span>
+    {% if job.city or job.region %}
+      <span class="company-location">{{ [job.city, job.region] | select | join(', ') }}</span>
+    {% endif %}
+  </p>
+
+  <dl class="job-info">
+    <dt>Status</dt>
+    <dd class="job-status">{{ job.status | capitalize }}</dd>
+
+    <dt>Work type</dt>
+    <dd class="job-work-type">{% if job.work_type %}{{ job.work_type | capitalize }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Date applied</dt>
+    <dd class="job-date-applied">{% if job.date_applied %}{{ job.date_applied }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Link</dt>
+    <dd class="job-link">
+      {% if not job_link %}
+        &mdash;
+      {% elif link_is_safe %}
+        <a href="{{ job_link }}" target="_blank" rel="noopener noreferrer">{{ job_link }}</a>
+      {% else %}
+        {{ job_link }}
+      {% endif %}
+    </dd>
+  </dl>
+
+  <h3>Notes</h3>
+  {% if job.notes %}
+    <p class="job-notes" style="white-space: pre-wrap;">{{ job.notes }}</p>
+  {% else %}
+    <p class="job-notes">&mdash;</p>
+  {% endif %}
+
+  <h3>Contacts</h3>
+  {% if contacts %}
+    <ul class="job-contacts">
+      {% for contact in contacts %}
+        <li>
+          <a href="{{ url_for('contact', contact_id=contact.id) }}">{{ contact.name }}</a>
+          {% if contact.title %}, {{ contact.title }}{% endif %}
+          {% if contact.designation %}({{ contact.designation }}){% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="no-contacts">No contacts linked to this job yet.</p>
+  {% endif %}
+
+  <p><a class="button" href="{{ url_for('edit_job', job_id=job.id) }}">Edit</a></p>
+</article>
+{% endblock %}

@@ -401,9 +401,9 @@ def get_contacts_for_job(conn, user_id, job_id):
         SELECT c.id, c.name, c.title, c.designation
         FROM contacts c
         JOIN jobs j ON c.job_id = j.id
-        WHERE j.id = ? AND j.user_id = ?
+        WHERE j.id = ? AND j.user_id = ? AND c.user_id = ?
         ORDER BY c.name
-    """, (job_id, user_id)).fetchall()
+    """, (job_id, user_id, user_id)).fetchall()
 
 
 def get_contact(conn, user_id, contact_id):
