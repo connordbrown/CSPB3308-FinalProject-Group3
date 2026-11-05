@@ -1094,7 +1094,9 @@ class TestContacts(PageTestCase):
 
     # 10. The confirmation names the contact being deleted
     def test_confirm_delete_name(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get('/contacts').get_data(as_text=True)
+        self.assertIn('confirm("Are you sure you want to delete " + "Molly Millions" + "?")', html) # cant directly test the click, but close enough
 
     # 11. Confirming removes only that contact; the rest of the list is unchanged
     def test_no_delete_bleedover(self):

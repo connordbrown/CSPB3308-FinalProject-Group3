@@ -15,7 +15,7 @@
             <div class="contact-company">{{ contact.company_name or '' }}</div>
         </a>
         <form method="post" action="{{ url_for('delete_contact', contact_id=contact.id )}}"
-            onsubmit="return confirm('Delete this contact?');">
+            onsubmit='return confirm("Are you sure you want to delete " + {{ contact.name|tojson }} + "?");'>
             <button type="submit" class="delete-button">Delete</button>
         </form>
 
