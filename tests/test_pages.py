@@ -1062,11 +1062,26 @@ class TestContacts(PageTestCase):
     
     # 7. Clicking a contact opens its detail page
     def test_contact_link(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check the link exists
+        self.assertIn(f'href="/contacts/{self.case}"', html)
+        # follow it
+        response = self.client.get(f'/contacts/{self.case}')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Henry Case", response.get_data(as_text=True))
+
 
     # 8. "Add new" opens `/contacts/add`
     def test_add_button(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check the link exists
+        self.assertIn(f'href="/contacts/add"', html)
+        # follow it
+        response = self.client.get('/contacts/add')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("LinkedIn:</label>", response.get_data(as_text=True))
 
     # 9. Each contact row shows a Delete button
     def test_delete_button(self):
