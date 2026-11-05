@@ -990,5 +990,75 @@ class TestDashboard(PageTestCase):
         self.assertNotIn("Log in", html)
 
 
+
+
+class TestContacts(PageTestCase):
+    """ Tests for the /contacts page"""
+
+    # 1. Not logged in redirects to `/login`
+    def test_no_login(self):
+        response = self.client.get("/contacts")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 2. Page loads with "Contacts" heading and "Add new" button
+    def test_page_loads(self):
+        self._login()
+        response = self.client.get("/contacts")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Location"], "/contacts")
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("+ Add Contact", html)
+
+    # 3. Each contact shows name, title, and company
+    def test_card_contents(self):
+        raise NotImplementedError
+
+    # 4. Only the logged-in user's contacts appear
+    def test_no_contact_bleedover(self):
+        raise NotImplementedError
+
+    # 5. Contact with no title or company still appears; empty fields are blank, not "None"
+    def test_empty_fields(self):
+        raise NotImplementedError
+
+    # 6. User with no contacts sees an empty-state message; Add button still shows
+    def test_empty_state_message(self):
+        raise NotImplementedError
+    
+    # 7. Clicking a contact opens its detail page
+    def test_contact_link(self):
+        raise NotImplementedError
+
+    # 8. "Add new" opens `/contacts/add`
+    def test_add_button(self):
+        raise NotImplementedError
+
+    # 9. Each contact row shows a Delete button
+    def test_delete_button(self):
+        raise NotImplementedError
+
+    # 10. The confirmation names the contact being deleted
+    def test_confirm_delete_name(self):
+        raise NotImplementedError
+
+    # 11. Confirming removes only that contact; the rest of the list is unchanged
+    def test_no_delete_bleedover(self):
+        raise NotImplementedError
+
+    # 12. Cancelling the confirmation keeps the contact
+    def test_cancel_delete(self):
+        raise NotImplementedError
+
+    # 13. Clicking Delete does not open the contact's details page
+    def test_delete_from_list_page(self):
+        raise NotImplementedError
+
+    # 14. Deleting the last contact shows the empty-state message
+    def test_empty_message_on_delete(self):
+        raise NotImplementedError
+
+
+
 if __name__ == '__main__':
     unittest.main()
