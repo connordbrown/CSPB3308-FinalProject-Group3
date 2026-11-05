@@ -995,6 +995,27 @@ class TestDashboard(PageTestCase):
 class TestContacts(PageTestCase):
     """ Tests for the /contacts page"""
 
+    def setUp(self):
+        super().setUp()
+        # companies
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.sense, title="AI Administrator")
+        # add contacts
+        self.case = self._insert_contact(
+            self.user_a, name="Henry Case", title="Console Cowboy", designation='referrer',
+            company_id=self.hosaka, job_id=self.job_2, email="case@hosaka.com",
+            phone='686-3333', linkedin_url="https://linked.com/in/case", notes="Met in Night City")
+        self.molly = self._insert_contact(self.user_a, name="Molly Millions")
+        self.arm = self._insert_contact(self.user_b, name="Armitage", company_id=self.sense)
+        self.conn.commit()
+
     # 1. Not logged in redirects to `/login`
     def test_no_login(self):
         response = self.client.get("/contacts")
@@ -1011,11 +1032,17 @@ class TestContacts(PageTestCase):
 
     # 3. Each contact shows name, title, and company
     def test_card_contents(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Henry Case", html)
+        self.assertIn("Console Cowboy", html)
+        self.assertIn("Hosaka", html)
 
     # 4. Only the logged-in user's contacts appear
     def test_no_contact_bleedover(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertNotIn("Armitage", html)
 
     # 5. Contact with no title or company still appears; empty fields are blank, not "None"
     def test_empty_fields(self):
