@@ -1100,20 +1100,30 @@ class TestContacts(PageTestCase):
 
     # 11. Confirming removes only that contact; the rest of the list is unchanged
     def test_no_delete_bleedover(self):
-        raise NotImplementedError
+        self._login()
+        response = self.client.post(f'/contacts/{self.molly}/delete')
+        # 13. Clicking Delete does not open the contact's details page
+        self.assertEqual(response.status_code, 302)
+
+        self.assertIsNone(self._fetch("contacts", self.molly))
+        self.assertIsNotNone(self._fetch("contacts", self.case))
+        self.assertIsNotNone(self._fetch("contacts", self.arm))
 
     # 12. Cancelling the confirmation keeps the contact
     def test_cancel_delete(self):
-        raise NotImplementedError
-
-    # 13. Clicking Delete does not open the contact's details page
-    def test_delete_from_list_page(self):
-        raise NotImplementedError
+        self._login()
+        # simulate canceling with a GET request
+        response = self.client.get(f'/contacts/{self.molly}/delete')
+        self.assertEqual(response.status_code, 405)
+        self.assertIsNotNone(self._fetch("contacts", self.molly))
 
     # 14. Deleting the last contact shows the empty-state message
     def test_empty_message_on_delete(self):
-        raise NotImplementedError
-
+        self._login()
+        self.client.post(f'/contacts/{self.case}/delete')
+        response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)
+        html = response.get_data(as_text=True)
+        self.assertIn("You don't have any contacts yet", html)
 
 
 if __name__ == '__main__':
