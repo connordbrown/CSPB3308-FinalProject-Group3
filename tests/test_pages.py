@@ -1025,7 +1025,6 @@ class TestContacts(PageTestCase):
     # 2. Page loads with "Contacts" heading and "Add new" button
     def test_page_loads(self):
         self._login()
-        response = self.client.get("/contacts")
         html = self.client.get("/contacts").get_data(as_text=True)
         self.assertIn("Contacts</h2>", html)
         self.assertIn("+ Add Contact", html)
@@ -1046,11 +1045,20 @@ class TestContacts(PageTestCase):
 
     # 5. Contact with no title or company still appears; empty fields are blank, not "None"
     def test_empty_fields(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Molly Millions", html)
+        self.assertNotIn("None", html)
 
     # 6. User with no contacts sees an empty-state message; Add button still shows
     def test_empty_state_message(self):
-        raise NotImplementedError
+        self._insert_user(**USER_C)
+        self.conn.commit()
+        self._login(USER_C)
+
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("You don't have any contacts yet", html)
+        self.assertIn("+ Add Contact", html)
     
     # 7. Clicking a contact opens its detail page
     def test_contact_link(self):

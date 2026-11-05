@@ -20,6 +20,8 @@
         </form>
 
     </div>
+{% else %}
+    <p class="empty-state">You don't have any contacts yet</p>
 {% endfor %}
 <a class= "contact-tile add-contact" href="{{ url_for('add_contact') }}"> + Add Contact</a>
 
