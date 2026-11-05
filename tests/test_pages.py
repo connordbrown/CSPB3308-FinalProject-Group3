@@ -1126,5 +1126,58 @@ class TestContacts(PageTestCase):
         self.assertIn("You don't have any contacts yet", html)
 
 
+
+
+
+class TestContactDetails(PageTestCase):
+    """tests for /contact/<id>"""
+    def setUp(self):
+        super().setUp()
+        # companies
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.sense, title="AI Administrator")
+        # add contacts
+        self.case = self._insert_contact(
+            self.user_a, name="Henry Case", title="Console Cowboy", designation='referrer',
+            company_id=self.hosaka, job_id=self.job_2, email="case@hosaka.com",
+            phone='686-3333', linkedin_url="https://linked.com/in/case", notes="Met in Night City")
+        self.molly = self._insert_contact(self.user_a, name="Molly Millions")
+        self.arm = self._insert_contact(self.user_b, name="Armitage", company_id=self.sense)
+        self.conn.commit()
+
+    # Not logged in: redirects to /login
+    def test_no_login(self):
+        response = self.client.get("/contacts/1")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # Shows the contact's name, title, designation, company, job, email, phone, LinkedIn, and notes
+    def test_contact_details(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)
+        self.assertIn("Henry Case", html)
+        self.assertIn("Console Cowboy", html)
+        self.assertIn("referrer", html)
+        self.assertIn("case@hosaka.com", html)
+        self.assertIn("https://linked.com/in/case", html)  
+        self.assertIn("Met in Night City", html)
+
+
+    # Empty optional fields display as blank, not "None"
+    # Job title links to the correct job page; no link shown when no job is linked
+    # Nonexistent contact_id returns "not found"
+    # Another user's contact_id returns "not found" and shows none of their data
+    # Edit opens /contacts/<id>/edit with the form prefilled
+    # Delete asks for confirmation; confirming removes the contact and returns to /contacts
+    # Cancelling the confirmation keeps the contact
+    # Deleting another user's contact fails and leaves it unchanged
+
 if __name__ == '__main__':
     unittest.main()
