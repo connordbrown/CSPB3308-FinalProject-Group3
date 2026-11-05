@@ -1060,14 +1060,14 @@ class TestContacts(PageTestCase):
         self.assertIn("You don't have any contacts yet", html)
         self.assertIn("+ Add Contact", html)
     
-    # 7. Clicking a contact opens its detail page
+    # 7. Clicking a contact opens its EDIT page -will need to change spec if we keep this
     def test_contact_link(self):
         self._login()
         html = self.client.get("/contacts").get_data(as_text=True)
         # check the link exists
-        self.assertIn(f'href="/contacts/{self.case}"', html)
+        self.assertIn(f'href="/contacts/{self.case}/edit"', html)
         # follow it
-        response = self.client.get(f'/contacts/{self.case}')
+        response = self.client.get(f'/contacts/{self.case}/edit')
         self.assertEqual(response.status_code, 200)
         self.assertIn("Henry Case", response.get_data(as_text=True))
 
@@ -1085,7 +1085,12 @@ class TestContacts(PageTestCase):
 
     # 9. Each contact row shows a Delete button
     def test_delete_button(self):
-        raise NotImplementedError
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check each contact
+        for contact_id in (self.case, self.molly):
+            with self.subTest(contact_id=contact_id):
+                self.assertIn(f'action="/contacts/{contact_id}/delete"', html)
 
     # 10. The confirmation names the contact being deleted
     def test_confirm_delete_name(self):
