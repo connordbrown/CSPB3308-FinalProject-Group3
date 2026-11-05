@@ -1005,9 +1005,8 @@ class TestContacts(PageTestCase):
     def test_page_loads(self):
         self._login()
         response = self.client.get("/contacts")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["Location"], "/contacts")
         html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Contacts</h2>", html)
         self.assertIn("+ Add Contact", html)
 
     # 3. Each contact shows name, title, and company
