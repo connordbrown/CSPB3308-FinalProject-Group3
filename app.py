@@ -317,7 +317,22 @@ def edit_contact(contact_id):
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
 @app.route('/contacts')
+@require_login
 def contacts():
     """ display a list of contacts """
-    return f'Place holder for page showing list of saved contacts'
+    with closing(get_conn()) as  conn:
+        contacts = db.get_contacts_for_user(conn, session["user_id"])
+    return render_template(
+        "contacts.html",
+        contacts=contacts)
 
+@app.route('/contacts/<int:contact_id>/delete', methods=['POST'])
+@require_login
+def delete_contact(contact_id):
+        with closing(get_conn()) as  conn:
+            with conn:
+                deleted = db.delete_contact(conn, session["user_id"], contact_id)
+        if not deleted:
+            abort(404)
+        flash("Contact deleted successfully")
+        return redirect(url_for('contacts'))

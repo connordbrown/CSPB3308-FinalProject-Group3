@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Contacts{% endblock %}
+
+{% block content %}
+<h2 class = 'page-title'>Contacts</h2>
+
+
+<div class="contacts-list">
+{% for contact in contacts %}
+    <div class="contact-row">
+        <a class="contact-tile" href="{{ url_for('edit_contact', contact_id=contact.id) }}">
+            <div class="contact-name">{{ contact.name }}</div>
+            <div class="contact-title">{{ contact.title or '' }}</div>
+            <div class="contact-company">{{ contact.company_name or '' }}</div>
+        </a>
+        <form method="post" action="{{ url_for('delete_contact', contact_id=contact.id )}}"
+            onsubmit='return confirm("Are you sure you want to delete " + {{ contact.name|tojson }} + "?");'>
+            <button type="submit" class="delete-button">Delete</button>
+        </form>
+
+    </div>
+{% else %}
+    <p class="empty-state">You don't have any contacts yet</p>
+{% endfor %}
+<a class= "contact-tile add-contact" href="{{ url_for('add_contact') }}"> + Add Contact</a>
+
+</div>
+
+{% endblock %}

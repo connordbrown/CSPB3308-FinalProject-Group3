@@ -990,5 +990,141 @@ class TestDashboard(PageTestCase):
         self.assertNotIn("Log in", html)
 
 
+
+
+class TestContacts(PageTestCase):
+    """ Tests for the /contacts page"""
+
+    def setUp(self):
+        super().setUp()
+        # companies
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.sense, title="AI Administrator")
+        # add contacts
+        self.case = self._insert_contact(
+            self.user_a, name="Henry Case", title="Console Cowboy", designation='referrer',
+            company_id=self.hosaka, job_id=self.job_2, email="case@hosaka.com",
+            phone='686-3333', linkedin_url="https://linked.com/in/case", notes="Met in Night City")
+        self.molly = self._insert_contact(self.user_a, name="Molly Millions")
+        self.arm = self._insert_contact(self.user_b, name="Armitage", company_id=self.sense)
+        self.conn.commit()
+
+    # 1. Not logged in redirects to `/login`
+    def test_no_login(self):
+        response = self.client.get("/contacts")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 2. Page loads with "Contacts" heading and "Add new" button
+    def test_page_loads(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Contacts</h2>", html)
+        self.assertIn("+ Add Contact", html)
+
+    # 3. Each contact shows name, title, and company
+    def test_card_contents(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Henry Case", html)
+        self.assertIn("Console Cowboy", html)
+        self.assertIn("Hosaka", html)
+
+    # 4. Only the logged-in user's contacts appear
+    def test_no_contact_bleedover(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertNotIn("Armitage", html)
+
+    # 5. Contact with no title or company still appears; empty fields are blank, not "None"
+    def test_empty_fields(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("Molly Millions", html)
+        self.assertNotIn("None", html)
+
+    # 6. User with no contacts sees an empty-state message; Add button still shows
+    def test_empty_state_message(self):
+        self._insert_user(**USER_C)
+        self.conn.commit()
+        self._login(USER_C)
+
+        html = self.client.get("/contacts").get_data(as_text=True)
+        self.assertIn("You don't have any contacts yet", html)
+        self.assertIn("+ Add Contact", html)
+    
+    # 7. Clicking a contact opens its EDIT page -will need to change spec if we keep this
+    def test_contact_link(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check the link exists
+        self.assertIn(f'href="/contacts/{self.case}/edit"', html)
+        # follow it
+        response = self.client.get(f'/contacts/{self.case}/edit')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Henry Case", response.get_data(as_text=True))
+
+
+    # 8. "Add new" opens `/contacts/add`
+    def test_add_button(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check the link exists
+        self.assertIn(f'href="/contacts/add"', html)
+        # follow it
+        response = self.client.get('/contacts/add')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("LinkedIn:</label>", response.get_data(as_text=True))
+
+    # 9. Each contact row shows a Delete button
+    def test_delete_button(self):
+        self._login()
+        html = self.client.get("/contacts").get_data(as_text=True)
+        # check each contact
+        for contact_id in (self.case, self.molly):
+            with self.subTest(contact_id=contact_id):
+                self.assertIn(f'action="/contacts/{contact_id}/delete"', html)
+
+    # 10. The confirmation names the contact being deleted
+    def test_confirm_delete_name(self):
+        self._login()
+        html = self.client.get('/contacts').get_data(as_text=True)
+        self.assertIn('confirm("Are you sure you want to delete " + "Molly Millions" + "?")', html) # cant directly test the click, but close enough
+
+    # 11. Confirming removes only that contact; the rest of the list is unchanged
+    def test_no_delete_bleedover(self):
+        self._login()
+        response = self.client.post(f'/contacts/{self.molly}/delete')
+        # 13. Clicking Delete does not open the contact's details page
+        self.assertEqual(response.status_code, 302)
+
+        self.assertIsNone(self._fetch("contacts", self.molly))
+        self.assertIsNotNone(self._fetch("contacts", self.case))
+        self.assertIsNotNone(self._fetch("contacts", self.arm))
+
+    # 12. Cancelling the confirmation keeps the contact
+    def test_cancel_delete(self):
+        self._login()
+        # simulate canceling with a GET request
+        response = self.client.get(f'/contacts/{self.molly}/delete')
+        self.assertEqual(response.status_code, 405)
+        self.assertIsNotNone(self._fetch("contacts", self.molly))
+
+    # 14. Deleting the last contact shows the empty-state message
+    def test_empty_message_on_delete(self):
+        self._login()
+        self.client.post(f'/contacts/{self.case}/delete')
+        response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)
+        html = response.get_data(as_text=True)
+        self.assertIn("You don't have any contacts yet", html)
+
+
 if __name__ == '__main__':
     unittest.main()
