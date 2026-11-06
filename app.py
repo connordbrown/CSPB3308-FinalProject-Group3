@@ -201,9 +201,17 @@ def job(job_id):
         link_is_safe=link_is_safe)
 
 @app.route('/contacts/<int:contact_id>')
+@require_login
 def contact(contact_id):
     """show details of saved contact"""
-    return f"Contact {contact_id} details - placeholder for now"
+    with closing(get_conn()) as  conn:
+        contact = db.get_contact(conn, session["user_id"], contact_id)
+
+    if contact is None:
+        abort(404)
+    return render_template(
+        "contact_details.html",
+        contact=contact)
 
 
 @app.route('/contacts/add', methods=['GET', 'POST'])

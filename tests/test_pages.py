@@ -1060,14 +1060,14 @@ class TestContacts(PageTestCase):
         self.assertIn("You don't have any contacts yet", html)
         self.assertIn("+ Add Contact", html)
     
-    # 7. Clicking a contact opens its EDIT page -will need to change spec if we keep this
+    # 7. Clicking a contact opens its details page
     def test_contact_link(self):
         self._login()
         html = self.client.get("/contacts").get_data(as_text=True)
         # check the link exists
-        self.assertIn(f'href="/contacts/{self.case}/edit"', html)
+        self.assertIn(f'href="/contacts/{self.case}"', html)
         # follow it
-        response = self.client.get(f'/contacts/{self.case}/edit')
+        response = self.client.get(f'/contacts/{self.case}')
         self.assertEqual(response.status_code, 200)
         self.assertIn("Henry Case", response.get_data(as_text=True))
 
@@ -1210,7 +1210,7 @@ class TestContactDetails(PageTestCase):
     # 8. Delete asks for confirmation; confirming removes the contact and returns to /contacts
     def test_confirm_delete_name(self):
         self._login()
-        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)  
+        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)  
         self.assertIn('confirm("Are you sure you want to delete " + "Molly Millions" + "?")', html) # cant directly test the click, but close enough
         # redirects:
         response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)

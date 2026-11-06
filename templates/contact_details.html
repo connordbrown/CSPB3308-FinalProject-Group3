@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contact.name }}{% endblock %}
+
+{% block content %}
+<article class="contact-details">
+  <p><a href="{{ url_for('contacts') }}">&larr; Back to contacts</a></p>
+
+    <h2>{{ contact.name }}</h2>
+
+  <dl class="contact-info">
+    <dt>Title</dt>
+    <dd class="contact-title">{{ contact.title or '' }}</dd>
+
+    <dt>Designation</dt>
+    <dd class="contact-status">{{ contact.designation or '' }}</dd>
+
+    <dt>Company</dt>
+    <dd class="contact-company">{{ contact.company_name or '' }}</dd>
+
+    <dt>Email</dt>
+    <dd class="contact-email">{{ contact.email or '' }}</dd>
+
+    <dt>Phone</dt>
+    <dd class="contact-phone">{{ contact.phone or '' }}</dd>
+
+    <dt>LinkedIn</dt>
+    <dd>
+        {% if contact.linkedin_url %}
+            <a href="{{ contact.linkedin_url }}" target="_blank" rel="noopener">{{ contact.linkedin_url }}</a>
+        {% endif %}
+
+    </dd>
+
+    <dt>Associated Job</dt>
+    <dd>
+        {% if contact.job_id %}
+            <a href="{{ url_for('job', job_id=contact.job_id) }}">{{ contact.job_title }}</a>
+        {% endif %}
+
+    </dd>
+  </dl>
+
+  <h3>Notes</h3>
+  {% if contact.notes %}
+    <p class="contact-notes">{{ contact.notes }}</p>
+  {% else %}
+    <p class="contact-notes">&mdash;</p>
+  {% endif %}
+
+    <p><a class="button" href="{{ url_for('edit_contact', contact_id=contact.id) }}">Edit</a></p>
+
+    <form method="post" action="{{ url_for('delete_contact', contact_id=contact.id )}}"
+        onsubmit='return confirm("Are you sure you want to delete " + {{ contact.name|tojson }} + "?");'>
+        <button type="submit" class="delete-button">Delete</button>
+    </form>
+
+</article>
+{% endblock %}
