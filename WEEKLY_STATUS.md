@@ -1,34 +1,65 @@
 # Weekly Status: Prospex (Team 3)
+-------
+## November 4 Sprint 5 Review
+
+**Meeting:** November 4, 3pm MT, 30 Minutes, Zoom. Scrum master: Dane Neves
+
+**Sprint Goal:**  Get real login working, basic functionality for four pages, add script to insert test data into db.
+
+**Next Sprint Goal** Complete Contact Details page, conduct walk-throughs of app in preparation for demo.
+
+![Trello board, Nov 4](docs/images/trello-2026-11-04.png)
+
+| Team member | Completed this sprint | Plan for next Sprint | Blocks |
+| --- | --- | --- | --- |
+| Matthew Etter | Profile, Login page, Dashboard tests | Contact Details page | none |
+| Connor Brown | DataBase init for app run, Job Detail page  | App walk-through | none
+| Leeza Etzenhouser | Add/Edit Contact page | App walk-through | none |
+| Dane Neves | Add/Edit Job page html form  | Wrap up Add/Edit Job page, App walk-through  | none |
+| | |  |  |
+
+**Decisions:**
+- Delete branches in GitHub after PR is merged
+- Contacts should be walled off to their owned user
+
+**Risks:**
+- Finalizing demo and tracking down errant bugs. CSS styling may be more basic than desired.
+
+**Retro:**
+- Went well: Communication with open questions using Trello cards.
+- Didn't work: Some uncertainty about how best to prepare for demo. Will use a new trello card and populate in list.
+- Changing next sprint: More focus on smaller issues/bugs instead of full page tickets.
+-------
 
 -------
-## October 28 Sprint 3 Review
+## October 28 Sprint 4 Review
 
 **Meeting:** October 28, 3pm MT, 30 Minutes, Zoom. Scrum master: Matthew Etter
 
 **Sprint Goal:**  SQL_TESTING.md complete, data access functions complete
 
-**Next Sprint Goal** Get real login working, basic functionality for four pages, add script to insert test data into db. 
+**Next Sprint Goal** Get real login working, basic functionality for four pages, add script to insert test data into db.
 
 ![Trello board, Oct 21](docs/images/trello-2026-10-28.png)
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
-| --- | --- | --- | --- | 
+| --- | --- | --- | --- |
 | Matthew Etter | data access functions and testing   | login/out, profile page | none |
 | Connor Brown | data access functions and testing/ cleanup of test suite | job details page, script to add test data to db | data access functions  |
 | Leeza Etzenhouser | data access functions with tests, completed SQL_TESTING.md  | edit/create contacts page | none |
 | Dane Neves | Improvements for dashboard, added job pages, data access functions  | data  access functions/ add job page  | none |
-| | |  |  | 
+| | |  |  |
 
-**Decisions:** 
+**Decisions:**
 - implement new system for open questions in Trello
 - add stretch goals column to Trello
 
-**Risks:** 
+**Risks:**
 - Moving into less familiar territory for most of team, difficulty estimating timelines
 
-**Retro:** 
-- Went well: Organization with PR's 
-- Didn't work: Open questions in PR's 
+**Retro:**
+- Went well: Organization with PR's
+- Didn't work: Open questions in PR's
 - Changing next sprint: if decisions need made async make new card in Trello
 -------
 
@@ -39,26 +70,26 @@
 
 **Sprint Goal:**  PAGE_TESTING.md complete, additional progress on pages tbd once requirements ironed out.
 
-**Next Sprint Goal** Implement data access functions 
+**Next Sprint Goal** Implement data access functions
 
 ![Trello board, Oct 21](docs/images/trello-2026-10-21.png)
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
-| --- | --- | --- | --- | 
+| --- | --- | --- | --- |
 | Matthew Etter | Page mockups based on wireframes, profile section in README  |4-5 data access functions   | none |
 | Connor Brown | Wrote requirements for login and job details + access function stubs | 4-5 data access functions  | none  |
 | Leeza Etzenhouser | Wrote requirements for contacts pages + access function stubs  |4-5 data acss functions + add data access info to SQL_TESTING.md | none |
 | Dane Neves |Wrote requirements for job and dashboard pages  |4-5 data access functions | none |
-| | |  |  | 
+| | |  |  |
 
-**Decisions:** 
+**Decisions:**
 - We will have a single test file for access functions
 - SQL_TESTING.md will list test, but they do not need to be passing before turning in the document.
 
-**Risks:** 
+**Risks:**
 - Milestones are mostly taken care of which means we're more off leash for the remainder of the project. We'll need to make sure we stay on track.
 
-**Retro:** 
+**Retro:**
 - Went well: Precess went smoothly, we're getiting into a good groove with the PRs and Trello
 - Didn't work: Adding universal files to individual branches
 - Changing next sprint: Any new files created for everyone to use will be called out and added to main so that they are accessible. We'll try to get started on sprint tasks earlier in the week so that they are completed by the Wednesday meeting.
@@ -75,7 +106,7 @@
 ![Trello board, Oct 14](docs/images/trello-2026-10-14.png)
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
-| --- | --- | --- | --- | 
+| --- | --- | --- | --- |
 | Matthew Etter | base template with stub routes, README run steps, WEEKLY STATUS.md | mockups, detailed page descriptions | None |
 | Connor Brown | Created Sample Test Data set| Login page, job details page   | mockups |
 | Leeza Etzenhouser | schema.sql and db tests | contacts page, add contacts page| mockups |
@@ -86,7 +117,7 @@
 
 **Risks:** Diverging page design, referencing different names for same function in design
 
-**Retro:** 
+**Retro:**
 - Went well: Division of labor worked without conflict, db tests up and running with sample data, dashboard routes passing basic test
 - Didn't work: still getting up to speed on Trello, better than last week on that front.
 - Changing next sprint: Created Trello template, adding Pending (PR Created) column
@@ -97,23 +128,23 @@
 
 **Meeting:** October 7, 3pm MT, 30 Minutes, Zoom. Scrum master: Dane Neves
 
-**Sprint Goal:** Draft database, Wireframe, Get Flask Skeleton running, Create user stories. 
+**Sprint Goal:** Draft database, Wireframe, Get Flask Skeleton running, Create user stories.
 
 ![Trello board, Oct 7](docs/images/trello-2026-10-07.png)
 
 | Team member | Completed this sprint | Plan for next Sprint | Blocks |
-| --- | --- | --- | --- | 
+| --- | --- | --- | --- |
 | Matthew Etter | Flask Skeleton, login/logout, profile route | base template and navigation, README run steps, WEEKLY STATUS.md | Away till the 13th |
 | Connor Brown | Created Detailed User Stories| Create Sample Test Data set  | None |
 | Leeza Etzenhouser | SQL design doc: Tables and constraints and ER Diagram| Write db tests| None |
-| Dane Neves | Wireframes for each page of application | Begin work on PAGE_TESTING.md | None | 
+| Dane Neves | Wireframes for each page of application | Begin work on PAGE_TESTING.md | None |
 
 
 **Decisions:** Switched to SQLite from MySQL because it better matches class stack.
 
 **Risks:** Difficulty integrating tests/ pages/ db
 
-**Retro:** 
+**Retro:**
 - Went well: PRs reviewed, code merged and working, design docs reviewed and discussed
 - Didn't work: Not using Trello to potential
 - Changing next sprint: Using Trello for communication more, assign members to cards and use cheklists
