@@ -9,7 +9,7 @@
 <div class="contacts-list">
 {% for contact in contacts %}
     <div class="contact-row">
-        <a class="contact-tile" href="{{ url_for('edit_contact', contact_id=contact.id) }}">
+        <a class="contact-tile" href="{{ url_for('contact', contact_id=contact.id) }}">
             <div class="contact-name">{{ contact.name }}</div>
             <div class="contact-title">{{ contact.title or '' }}</div>
             <div class="contact-company">{{ contact.company_name or '' }}</div>

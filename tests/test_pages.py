@@ -1060,14 +1060,14 @@ class TestContacts(PageTestCase):
         self.assertIn("You don't have any contacts yet", html)
         self.assertIn("+ Add Contact", html)
     
-    # 7. Clicking a contact opens its EDIT page -will need to change spec if we keep this
+    # 7. Clicking a contact opens its details page
     def test_contact_link(self):
         self._login()
         html = self.client.get("/contacts").get_data(as_text=True)
         # check the link exists
-        self.assertIn(f'href="/contacts/{self.case}/edit"', html)
+        self.assertIn(f'href="/contacts/{self.case}"', html)
         # follow it
-        response = self.client.get(f'/contacts/{self.case}/edit')
+        response = self.client.get(f'/contacts/{self.case}')
         self.assertEqual(response.status_code, 200)
         self.assertIn("Henry Case", response.get_data(as_text=True))
 
@@ -1124,6 +1124,115 @@ class TestContacts(PageTestCase):
         response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)
         html = response.get_data(as_text=True)
         self.assertIn("You don't have any contacts yet", html)
+
+
+
+
+class TestContactDetails(PageTestCase):
+    """tests for /contact/<id>"""
+    def setUp(self):
+        super().setUp()
+        # companies
+        self.hosaka = self._insert_company(self.user_a, name = "Hosaka")
+        self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
+        self.sense = self._insert_company(self.user_b, name= "Sense/Net")
+
+        # add jobs for user A 
+        self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
+        self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
+        # and one for  user B
+        self.job_3 = self._insert_job(self.user_b, self.sense, title="AI Administrator")
+        # add contacts
+        self.case = self._insert_contact(
+            self.user_a, name="Henry Case", title="Console Cowboy", designation='referrer',
+            company_id=self.hosaka, job_id=self.job_2, email="case@hosaka.com",
+            phone='686-3333', linkedin_url="https://linked.com/in/case", notes="Met in Night City")
+        self.molly = self._insert_contact(self.user_a, name="Molly Millions")
+        self.arm = self._insert_contact(self.user_b, name="Armitage", company_id=self.sense)
+        self.conn.commit()
+
+    # 1. Not logged in: redirects to /login
+    def test_no_login(self):
+        response = self.client.get("/contacts/1")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 2. Shows the contact's name, title, designation, company, job, email, phone, LinkedIn, and notes
+    def test_contact_details(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)
+        self.assertIn("Henry Case", html)
+        self.assertIn("Console Cowboy", html)
+        self.assertIn("Hosaka", html)
+        self.assertIn("Firmware Dev", html)
+        self.assertIn('686-3333', html)
+        self.assertIn("referrer", html)
+        self.assertIn("case@hosaka.com", html)
+        self.assertIn("https://linked.com/in/case", html)  
+        self.assertIn("Met in Night City", html)
+
+    # 3. Empty optional fields display as blank, not "None"
+    def test_optional_fields(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)
+        self.assertIn("Molly Millions", html)
+        self.assertNotIn("None", html)
+
+    # 4. Job title links to the correct job page; no link shown when no job is linked
+    def test_title_link(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)
+        self.assertIn(f'href="/jobs/{self.job_2}"', html)
+        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)
+        self.assertNotIn(f'href="/jobs/', html)
+
+    # 5. Nonexistent contact_id returns "not found"
+    def test_no_contact(self):
+        self._login()
+        response = self.client.get(f"/contacts/{NONEXISTENT_ID}")     
+        self.assertEqual(response.status_code, 404)
+
+    # 6. Another user's contact_id returns "not found" and shows none of their data
+    def test_wrong_id(self):
+        self._login()
+        response = self.client.get(f"/contacts/{self.arm}")      
+        self.assertEqual(response.status_code, 404)    
+        self.assertNotIn("Armitage", response.get_data(as_text=True))
+
+    # 7. Edit opens /contacts/<id>/edit with the form prefilled
+    def test_edit_link(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)  
+        self.assertIn(f'href="/contacts/{self.case}/edit"', html) 
+        html = self.client.get(f"/contacts/{self.case}/edit").get_data(as_text=True)  
+        self.assertIn('value="Henry Case', html) 
+
+    # 8. Delete asks for confirmation; confirming removes the contact and returns to /contacts
+    def test_confirm_delete_name(self):
+        self._login()
+        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)  
+        self.assertIn('confirm("Are you sure you want to delete " + "Molly Millions" + "?")', html) # cant directly test the click, but close enough
+        # redirects:
+        response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)
+        self.assertEqual(response.request.path, "/contacts")
+
+    
+    # 9. Cancelling the confirmation keeps the contact - this is a duplicate from the contacts tests
+    def test_cancel_delete(self):
+        self._login()
+        # just checking that nothing happens with a POST
+        response = self.client.get(f'/contacts/{self.molly}/delete')
+        self.assertEqual(response.status_code, 405)
+        self.assertIsNotNone(self._fetch("contacts", self.molly))
+
+
+    # 10 Deleting another user's contact fails and leaves it unchanged
+    def test_not_able_to_delete_other_users_contacts(self):
+        self._login()
+        response = self.client.post(f'/contacts/{self.arm}/delete')
+        self.assertEqual(response.status_code, 404)
+        self.assertIsNotNone(self._fetch("contacts", self.arm))
+
 
 
 if __name__ == '__main__':
