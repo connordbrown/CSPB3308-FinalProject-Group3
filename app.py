@@ -5,6 +5,7 @@ import json
 from contextlib import closing
 import sqlite3
 from functools import wraps
+from constants import STATUSES, WORK_TYPES
 
 app = Flask(__name__)
 app.secret_key = "Incredibly-private-and-secure-key"
@@ -91,7 +92,7 @@ def login():
                 error   = "Invalid login information"
                 status = 401
             elif action == "signup":
-                try: 
+                try:
                     password = request.form["password"]
                     if len(password.strip()) < 8:
                         raise ValueError("Password must be longer than 8 characters")
@@ -158,23 +159,87 @@ def profile():
             except ValueError as e:
                 error = str(e)
                 status = 400
-    
+
         user = db.get_user(conn, session["user_id"])
     return render_template("profile.html", user = user, error=error), status
 
 
-
-
-@app.route('/jobs/add')
+@app.route('/jobs/add', methods=['GET', 'POST'])
+@require_login
 def add_job():
     """ form for adding a new job application"""
-    return f'Placeholder for form for adding new job'
 
-@app.route('/jobs/<int:job_id>/edit')
+    if request.method == 'POST':
+        # strip out form details
+        with closing(get_conn()) as conn:
+            try:
+                with conn:
+                    job_id = db.create_job(
+                        conn,
+                        session["user_id"],
+                        request.form['company_id'],
+                        request.form['title'],
+                        request.form['status'],
+                        request.form['work_type'],
+                        request.form['link'],
+                        request.form['notes'],
+                        request.form['date'],
+                    )
+                    return redirect(url_for('job', job_id=job_id))
+            except ValueError as error:
+                print(error)
+            except Exception as error:
+                status = 500
+                print(error)
+
+
+    return render_template(
+        "job_form.html",
+        statuses=STATUSES,
+        work_types=WORK_TYPES
+    )
+
+@app.route('/jobs/<int:job_id>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_job(job_id):
     """Display a form for editing an existing job application"""
-    return f'Placeholder for form for editing job {job_id}'
+    if request.method == 'GET':
+        user_id = session["user_id"]
+        with closing(get_conn()) as conn:
+            job_data = db.get_job(conn, user_id, job_id)
+
+        return render_template(
+            "job_form.html",
+            job=job_data,
+            statuses=STATUSES,
+            work_types=WORK_TYPES
+        )
+
+        # strip out form details
+        with closing(get_conn()) as conn:
+            try:
+                with conn:
+                    db.update_job(
+                        conn,
+                        session["user_id"],
+                        job_id,
+                        request.form['company_id'],
+                        request.form['title'],
+                        request.form['status'],
+                        request.form['work_type'],
+                        request.form['link'],
+                        request.form['notes'],
+                        request.form['date'],
+                    )
+
+                    return redirect(url_for('job', job_id=job_id))
+            except ValueError as error:
+                print(error)
+                abort(500)
+            except Exception as error:
+                status = 500
+                print(error)
+                abort(500)
 
 @app.route('/jobs/<int:job_id>')
 @require_login
@@ -187,12 +252,12 @@ def job(job_id):
         if job_data is None:
             abort(404)
         contacts = db.get_contacts_for_job(conn, user_id, job_id)
- 
+
     # Only http(s) links become clickable. Anything else a user typed (such as
     # "javascript:...") is shown as plain text.
     job_link = (job_data["link"] or "").strip()
     link_is_safe = job_link.lower().startswith(("http://", "https://"))
- 
+
     return render_template(
         "job_details.html",
         job=job_data,
@@ -212,8 +277,8 @@ def add_contact():
     """Display a form for adding a new contact to the saved contacts list"""
     user_id = session["user_id"]
     error = None
-    status = 200 
-    form_values = {}       
+    status = 200
+    form_values = {}
     with closing(get_conn()) as conn:
         if request.method == "POST":
             form_values = request.form.to_dict()
@@ -253,13 +318,13 @@ def add_contact():
 
         companies = db.get_companies_for_user(conn, user_id)
         jobs = db.get_jobs_for_user(conn, user_id)
-        
+
     return render_template("contact_form.html", contact=None, form=form_values, error=error,
                             companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
 @app.route('/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
 @require_login
-def edit_contact(contact_id):    
+def edit_contact(contact_id):
     """Display a form for editing an existing contact"""
     user_id = session["user_id"]
     error = None
