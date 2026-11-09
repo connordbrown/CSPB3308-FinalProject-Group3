@@ -171,13 +171,17 @@ def add_job():
 
     if request.method == 'POST':
         # strip out form details
+        # Company ID - pick New Name IF filled out
+        # else use dropdown value
+        company_id = request.form['company_id_new_name'].strip() if request.form['company_id_new_name'].strip() else request.form['company_id']
+
         with closing(get_conn()) as conn:
             try:
                 with conn:
                     job_id = db.create_job(
                         conn,
                         session["user_id"],
-                        request.form['company_id'],
+                        company_id,
                         request.form['title'],
                         request.form['status'],
                         request.form['work_type'],
@@ -193,8 +197,14 @@ def add_job():
                 print(error)
 
 
+
+    user_id = session["user_id"]
+    with closing(get_conn()) as conn:
+            companies = db.get_companies_for_user(conn, user_id)
+
     return render_template(
         "job_form.html",
+        companies=companies,
         statuses=STATUSES,
         work_types=WORK_TYPES
     )
@@ -207,14 +217,17 @@ def edit_job(job_id):
         user_id = session["user_id"]
         with closing(get_conn()) as conn:
             job_data = db.get_job(conn, user_id, job_id)
+            companies = db.get_companies_for_user(conn, user_id)
 
         return render_template(
             "job_form.html",
             job=job_data,
+            companies=companies,
             statuses=STATUSES,
             work_types=WORK_TYPES
         )
 
+    elif request.method == 'POST':
         # strip out form details
         with closing(get_conn()) as conn:
             try:

@@ -37,14 +37,44 @@
     </div>
 
     <div>
-        <label for="company_id">Company ID:</label>
-        <input
-            type="text"
-            id="company_id"
-            name="company_id"
-            placeholder="company_id"
-            value="{{ job["company_id"] if job else '' }}">
+        <!-- Show both New Name and Existing dropdown for Add Job -->
+        {% if not job %}
+            <p>Company ID (leave "New Name" blank unless specifying a new company):</p>
 
+            <label for="company_id_new_name">New Name:</label>
+            <input
+                type="text"
+                id="company_id_new_name"
+                name="company_id_new_name"
+                placeholder="Company Name"
+                value="{{ job["company_id"] if job else '' }}">
+
+            <label for="company_id">Choose from existing:</label>
+            <select name="company_id" id="company_id" name="company_id">
+                <option value="">-- Please Choose --</option>
+                {% for company in companies %}
+                    <option
+                        value="{{ company['id'] }}"
+                        {{ "selected" if (job and job.company_id == company['id']) or ''}}>
+                        {{ company['name'] }}
+                    </option>
+                {% endfor %}
+            </select>
+
+        <!-- Show only Existing dropdown for Edit Job to avoid ambiguous checks -->
+        {% else %}
+            <label for="company_id">Company:</label>
+            <select name="company_id" id="company_id" name="company_id">
+                <option value="">-- Please Choose --</option>
+                {% for company in companies %}
+                    <option
+                        value="{{ company['id'] }}"
+                        {{ "selected" if (job and job.company_id == company['id']) or ''}}>
+                        {{ company['name'] }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% endif %}
     </div>
 
     <div>
