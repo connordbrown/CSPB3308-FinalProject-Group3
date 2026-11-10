@@ -37,44 +37,25 @@
     </div>
 
     <div>
-        <!-- Show both New Name and Existing dropdown for Add Job -->
-        {% if not job %}
-            <p>Company ID (leave "New Name" blank unless specifying a new company):</p>
 
-            <label for="company_id_new_name">New Name:</label>
-            <input
-                type="text"
-                id="company_id_new_name"
-                name="company_id_new_name"
-                placeholder="Company Name"
-                value="{{ job["company_id"] if job else '' }}">
+        <label for="company_id">Company:</label>
+        <select name="company_id" id="company_id" name="company_id">
+            <option value="">-- Please Choose --</option>
+            {% for company in companies %}
+                <option
+                    value="{{ company['id'] }}"
+                    {{ "selected" if (job and job.company_id == company['id']) or ''}}>
+                    {{ company['name'] }}
+                </option>
+            {% endfor %}
+        </select>
 
-            <label for="company_id">Choose from existing:</label>
-            <select name="company_id" id="company_id" name="company_id">
-                <option value="">-- Please Choose --</option>
-                {% for company in companies %}
-                    <option
-                        value="{{ company['id'] }}"
-                        {{ "selected" if (job and job.company_id == company['id']) or ''}}>
-                        {{ company['name'] }}
-                    </option>
-                {% endfor %}
-            </select>
-
-        <!-- Show only Existing dropdown for Edit Job to avoid ambiguous checks -->
-        {% else %}
-            <label for="company_id">Company:</label>
-            <select name="company_id" id="company_id" name="company_id">
-                <option value="">-- Please Choose --</option>
-                {% for company in companies %}
-                    <option
-                        value="{{ company['id'] }}"
-                        {{ "selected" if (job and job.company_id == company['id']) or ''}}>
-                        {{ company['name'] }}
-                    </option>
-                {% endfor %}
-            </select>
-        {% endif %}
+        <label for="company_id_new_name">Or add a new company:</label>
+        <input
+            type="text"
+            id="company_id_new_name"
+            name="company_id_new_name"
+            placeholder="Company Name">
     </div>
 
     <div>
@@ -108,7 +89,7 @@
             id="date"
             name="date"
             placeholder="Date picker"
-            value="{{ job.date if job else '' }}">
+            value="{{ job["date_applied"] if job else '' }}">
     </div>
 
     <div>
@@ -119,9 +100,38 @@
     </div>
 
 
+    <!-- CONTACTS -->
+    <div>
+        <label for="contacts-select">Link Contacts:</label>
+        <select name="contacts-select" id="contacts-select" name="contacts-select">
+            <option value="">-- Please Choose --</option>
+            {% for contact in contacts %}
+
+                <!-- Edit Job - only show contacts for current company -->
+                {% if job and (contact["company_name"] != job["company_name"]) %}
+
+                {% else %}
+                    <option
+                        value="{{ contact.id }}"
+                        {{ "selected" if (job and job["contact_id"] == contact.id) or ''}}>
+                        {{ contact.name | capitalize }} - {{ contact["company_name"] | capitalize }}
+                    </option>
+                {% endif %}
+
+            {% endfor %}
+        </select>
+
+        {% if job %}
+            <p>Note: Only Contacts for currently saved company are shown.</p>
+        {% else %}
+            <p>Note: Only Contacts with the same company as above will be saved.</p>
+        {% endif %}
+    </div>
+
     <button type="submit">
         {{ "Update Job" if job else "Add Job" }}
     </button>
 </form>
+<!-- description needs an update in db.py -->
 
 {% endblock %}
