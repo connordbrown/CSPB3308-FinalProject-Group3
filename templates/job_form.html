@@ -99,35 +99,6 @@
         </textarea>
     </div>
 
-
-    <!-- CONTACTS -->
-    <div>
-        <label for="contacts-select">Link Contacts:</label>
-        <select name="contacts-select" id="contacts-select" name="contacts-select">
-            <option value="">-- Please Choose --</option>
-            {% for contact in contacts %}
-
-                <!-- Edit Job - only show contacts for current company -->
-                {% if job and (contact["company_name"] != job["company_name"]) %}
-
-                {% else %}
-                    <option
-                        value="{{ contact.id }}"
-                        {{ "selected" if (job and job["contact_id"] == contact.id) or ''}}>
-                        {{ contact.name | capitalize }} - {{ contact["company_name"] | capitalize }}
-                    </option>
-                {% endif %}
-
-            {% endfor %}
-        </select>
-
-        {% if job %}
-            <p>Note: Only Contacts for currently saved company are shown.</p>
-        {% else %}
-            <p>Note: Only Contacts with the same company as above will be saved.</p>
-        {% endif %}
-    </div>
-
     <button type="submit">
         {{ "Update Job" if job else "Add Job" }}
     </button>

@@ -201,12 +201,10 @@ def add_job():
     user_id = session["user_id"]
     with closing(get_conn()) as conn:
             companies = db.get_companies_for_user(conn, user_id)
-            contacts = db.get_contacts_for_user(conn, user_id)
 
     return render_template(
         "job_form.html",
         companies=companies,
-        contacts=contacts,
         statuses=STATUSES,
         work_types=WORK_TYPES
     )
@@ -221,7 +219,7 @@ def edit_job(job_id):
             job_data = db.get_job(conn, user_id, job_id)
             companies = db.get_companies_for_user(conn, user_id)
 
-            contacts = db.get_contacts_for_user(conn, user_id)
+
         return render_template(
             "job_form.html",
             job=job_data,
