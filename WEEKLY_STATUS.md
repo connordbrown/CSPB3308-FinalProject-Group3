@@ -1,5 +1,36 @@
 # Weekly Status: Prospex (Team 3)
 -------
+## November 11 Sprint 6 Review
+
+**Meeting:** November 6, 3pm MT, 60 Minutes, Zoom. Scrum master: Connor Brown
+
+**Sprint Goal:**  Project demo practice planning, figure out last-minute technical issues.
+
+**Next Sprint Goal** Practice project walkthrough, slides for walkthrough presentation, delete_job, CSS/styling.
+
+![Trello board, Nov 11](docs/images/trello-2026-11-11.png)
+
+| Team member | Completed this sprint | Plan for next Sprint | Blocks |
+| --- | --- | --- | --- |
+| Matthew Etter | Contacts list page, contact details page | delete_job, Walkthrough slides | none |
+| Connor Brown | Reviewed peer work  | Walkthrough slides | none
+| Leeza Etzenhouser | Put app online with Python Anywhere, did general order of project walkthrough | App walk-through | none |
+| Dane Neves | Add/Edit Job pages  | delete_job, Walkthrough slides  | none |
+| | |  |  |
+
+**Decisions:**
+- Create delete-job access function, delete_job route, delete button on page, delete_job to walkthrough page.
+
+**Risks:**
+- Adding another route from database layer up has chance of introducing errors.
+
+**Retro:**
+- Went well: Communication regarding project walkthrough
+- Didn't work: Possible issues with DB relationships, forgot delete_job access function
+- Changing next sprint: Add delete_job functionality and documentation, slides for walkthrough
+-------
+
+-------
 ## November 4 Sprint 5 Review
 
 **Meeting:** November 4, 3pm MT, 30 Minutes, Zoom. Scrum master: Dane Neves
