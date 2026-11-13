@@ -99,9 +99,14 @@
         </textarea>
     </div>
 
-    <button type="submit">
-        {{ "Update Job" if job else "Add Job" }}
-    </button>
+    <div>
+        <button type="submit">
+            {{ "Update Job" if job else "Add Job" }}
+        </button>
+        <button>
+            <a href="{{ url_for('job', job_id=job.id) if job else url_for('index') }}">Cancel</a>
+        </button>
+    </div>
 </form>
 <!-- description needs an update in db.py -->
 
