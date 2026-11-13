@@ -182,12 +182,12 @@ def add_job():
                         conn,
                         session["user_id"],
                         company_id,
-                        request.form['title'],
-                        request.form['status'],
-                        request.form['work_type'],
-                        request.form['link'],
-                        request.form['notes'],
-                        request.form['date'],
+                        blank_to_none(request.form['title']),
+                        blank_to_none(request.form['status']),
+                        blank_to_none(request.form['work_type']),
+                        blank_to_none(request.form['link']),
+                        blank_to_none(request.form['notes']),
+                        blank_to_none(request.form['date']),
                     )
                     return redirect(url_for('job', job_id=job_id))
             except ValueError as error:
@@ -243,12 +243,12 @@ def edit_job(job_id):
                         session["user_id"],
                         job_id,
                         company_id,
-                        request.form['title'],
-                        request.form['status'],
-                        request.form['work_type'],
-                        request.form['link'],
-                        request.form['notes'],
-                        request.form['date'],
+                        blank_to_none(request.form['title']),
+                        blank_to_none(request.form['status']),
+                        blank_to_none(request.form['work_type']),
+                        blank_to_none(request.form['link']),
+                        blank_to_none(request.form['notes']),
+                        blank_to_none(request.form['date']),
                     )
 
                     return redirect(url_for('job', job_id=job_id))
