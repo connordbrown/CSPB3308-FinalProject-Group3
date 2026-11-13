@@ -167,10 +167,26 @@ def profile():
 @app.route('/jobs/add', methods=['GET', 'POST'])
 @require_login
 def add_job():
-    """ form for adding a new job application"""
+    """ Form for adding a new job application"""
+    user_id = session["user_id"]
+    error = None
+    status = 200
+    if request.method == 'GET':
+        with closing(get_conn()) as conn:
+            try:
+                companies = db.get_companies_for_user(conn, user_id)
+            except ValueError as error:
+                conn.rollback()
+                status = 400
 
-    if request.method == 'POST':
-        # strip out form details
+        return render_template(
+            "job_form.html",
+            companies=companies,
+            statuses=STATUSES,
+            work_types=WORK_TYPES
+        ), status
+
+    elif request.method == 'POST':
         # Company ID - pick New Name IF filled out
         # else use dropdown value
         company_id = request.form['company_id_new_name'].strip() if request.form['company_id_new_name'].strip() else request.form['company_id']
@@ -180,45 +196,38 @@ def add_job():
                 with conn:
                     job_id = db.create_job(
                         conn,
-                        session["user_id"],
+                        user_id,
                         company_id,
                         blank_to_none(request.form['title']),
                         blank_to_none(request.form['status']),
                         blank_to_none(request.form['work_type']),
-                        blank_to_none(request.form['link']),
-                        blank_to_none(request.form['notes']),
+                        request.form['link'],
+                        request.form['notes'],
                         blank_to_none(request.form['date']),
                     )
                     return redirect(url_for('job', job_id=job_id))
+
             except ValueError as error:
-                print(error)
-            except Exception as error:
-                status = 500
-                print(error)
+                conn.rollback()
+                status = 400
+                abort(400)
 
-
-
-    user_id = session["user_id"]
-    with closing(get_conn()) as conn:
-            companies = db.get_companies_for_user(conn, user_id)
-
-    return render_template(
-        "job_form.html",
-        companies=companies,
-        statuses=STATUSES,
-        work_types=WORK_TYPES
-    )
 
 @app.route('/jobs/<int:job_id>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_job(job_id):
     """Display a form for editing an existing job application"""
+    user_id = session["user_id"]
+    error = None
+    status = 200
     if request.method == 'GET':
-        user_id = session["user_id"]
         with closing(get_conn()) as conn:
-            job_data = db.get_job(conn, user_id, job_id)
-            companies = db.get_companies_for_user(conn, user_id)
-
+            try:
+                job_data = db.get_job(conn, user_id, job_id)
+                companies = db.get_companies_for_user(conn, user_id)
+            except:
+                conn.rollback()
+                status = 400
 
         return render_template(
             "job_form.html",
@@ -226,11 +235,9 @@ def edit_job(job_id):
             companies=companies,
             statuses=STATUSES,
             work_types=WORK_TYPES
-        )
+        ), status
 
     elif request.method == 'POST':
-        # strip out form details
-
         # Company ID - pick New Name IF filled out
         # else use dropdown value
         company_id = request.form['company_id_new_name'].strip() if request.form['company_id_new_name'].strip() else request.form['company_id']
@@ -246,19 +253,16 @@ def edit_job(job_id):
                         blank_to_none(request.form['title']),
                         blank_to_none(request.form['status']),
                         blank_to_none(request.form['work_type']),
-                        blank_to_none(request.form['link']),
-                        blank_to_none(request.form['notes']),
+                        request.form['link'],
+                        request.form['notes'],
                         blank_to_none(request.form['date']),
                     )
 
                     return redirect(url_for('job', job_id=job_id))
             except ValueError as error:
-                print(error)
-                abort(500)
-            except Exception as error:
-                status = 500
-                print(error)
-                abort(500)
+                conn.rollback()
+                status = 400
+                abort(400)
 
 @app.route('/jobs/<int:job_id>')
 @require_login
