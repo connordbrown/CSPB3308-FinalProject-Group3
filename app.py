@@ -344,3 +344,15 @@ def delete_contact(contact_id):
             abort(404)
         flash("Contact deleted successfully")
         return redirect(url_for('contacts'))
+
+
+@app.route('/jobs/<int:job_id>/delete', methods=['POST'])
+@require_login
+def delete_job(job_id):
+        with closing(get_conn()) as  conn:
+            with conn:
+                deleted = db.delete_job(conn, session["user_id"], job_id)
+        if not deleted:
+            abort(404)
+        flash("Job deleted successfully")
+        return redirect(url_for('index'))

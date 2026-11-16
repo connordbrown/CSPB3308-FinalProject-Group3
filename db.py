@@ -353,6 +353,31 @@ def update_job(conn, user_id, job_id, company_id, title, status="saved", work_ty
     ).rowcount == 1
 
 
+def delete_job(conn, user_id, job_id):
+    """
+    Deletes an existing job only if it belongs to the user.
+    The job's linked companies are not affected, linked contacts job_id set to NULL
+
+    Parameters:
+        conn (sqlite3.Connection)
+        user_id (int)
+        job_id (int)
+
+    Returns:
+        bool: True if the job was deleted,
+              False if the job doesn't exist or belongs to another user
+
+    """
+    # If job successfully deleted, rowcount will be 1
+    return conn.execute(
+        """
+        DELETE FROM jobs
+        WHERE (id = ? AND user_id = ?)
+        """,
+        (job_id, user_id)
+    ).rowcount == 1
+
+
 # ---------- Contacts ----------
 
 def get_contacts_for_user(conn, user_id):
