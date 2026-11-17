@@ -1,114 +1,32 @@
-/* -------- Nav Bar -----------*/
+/*----------------------- General ----------------------------*/
 body {
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
+    padding: 10px;
+    padding-bottom: 60px;
 }
 
-.site-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    margin: 20px;
-    border: 2px solid;
-    border-radius: 10px;
-}
-
-.site-header h1 {
-    font-size: 1.5rem;
-}
-
-.site-header h1 a,
-.site-header nav a {
-    color: inherit;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.site-header nav {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.site-header nav ul {
-    display: flex;
-    gap: 20px;
-    list-style: none;
-    margin: 2px;
-    padding: 2px;
-}
-
-
-.site-header nav a:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
-}
-
-.welcome {
-    font-style: italic;
-    float: left;
-}
-
-
-.page-title {
-    font-family: Arial, Helvetica, sans-serif;
-    font-weight: normal;
-    text-align: center;
-    font-size: 1.5rem;
-}
-
-
-
-
-/*-----------------Dashboard-------------------------------*/
-.filter {
-    width: 350px;
-    border: 2px solid black;
-    padding: 5px;
-    margin: 20px;
-    margin-left: auto;
-    display: flex;
-    justify-content: space-evenly;
-}
-
-.filter > a {
-    border-radius: 5px;
-    border: 1px solid black;
-    padding: 5px;
-    color: inherit;
-    text-decoration: none;
-}
-
-.filter > a.active {
-    background-color: lightgray;
-}
-
-.jobs-list {
+.container {
+    width: 75%;
     margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
+    padding: 10px;
+    border: 1px solid dimgrey;
+    border-radius: 5px;
+    box-shadow: 5px 5px 5px darkgray;
+    background-color: ghostwhite;
+
+    box-shadow:
+        inset 0 0 0 7px #ffffff,
+        inset 0 0 0 8px aqua;
 }
 
-.job-tile {
-    border-radius: 10px;
-    width: 500px;
-    padding: 20px;
+.same-line-wrap {
     display: flex;
-    justify-content: space-between;
-
-    /* matching to button look*/
-    box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
-    border: 2px solid;
-    font-size: 0.85rem;
-    color: black;
-    text-decoration: none; /*we don't want underlined links */
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-
+/*----------------------- Theme/Status Colors ----------------------------*/
 .saved {
     background-color: lightgrey;
 }
@@ -135,9 +53,136 @@ body {
 
 
 
+/* -------- Nav Bar -----------*/
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    margin: 20px;
+    border: 2px solid;
+    border-radius: 10px;
+    box-shadow: 2px 2px 2px darkgray;
+}
+
+/* Gradient header */
+.site-header h1 {
+    font-size: 2rem;
+    padding: 8px 16px;
+    display: inline-block;
+    background-size: 100%;
+    background-repeat: repeat;
+    background-clip: text;
+    /* Use the text as a mask for the background. */
+    /* This will show the gradient as a text color rather than element bg. */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -moz-background-clip: text;
+    -moz-text-fill-color: transparent;
+    background-image: linear-gradient(20deg, grey, cadetblue);
+}
+
+.site-header h1 a,
+.site-header nav a {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.site-header nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.site-header nav ul {
+    display: flex;
+    gap: 20px;
+    list-style: none;
+    margin: 2px;
+    padding: 2px;
+}
+
+.site-header nav a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.welcome {
+    font-style: italic;
+    float: left;
+}
+
+
+.page-title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: normal;
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+
+
+
+/*-----------------Dashboard-------------------------------*/
+.filter {
+    width: 350px;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 20px;
+    margin-left: auto;
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+}
+
+.filter > a {
+    width: auto;
+    border-radius: 10px;
+    border: 1px solid black;
+    margin: 5px;
+    padding: 5px;
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.jobs-list {
+    margin: 0 auto;
+    margin-bottom: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.job-tile {
+    border-radius: 10px;
+    width: 500px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+
+    /* matching to button look*/
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    border: 2px solid;
+    font-size: 0.85rem;
+    color: black;
+    text-decoration: none; /*we don't want underlined links */
+}
+.job-tile.add-job {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
 
 
 /*----------------------- Contacts ----------------------------*/
+.contact-details {
+    padding: 20px !important;
+}
 
 .contacts-list {
     margin: 0 auto;
@@ -167,7 +212,7 @@ body {
     font-size: 0.85rem;
     color: black;
     background-color: lightblue;
-    text-decoration: none; 
+    text-decoration: none;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -177,17 +222,126 @@ body {
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
 }
 
-
-.delete-button {
-    padding: 5px 10px;
-    border: 2px solid darkred;
-    border-radius: 10px;
+.contact-tile.add-contact {
     background-color: white;
-    color: darkred;
+}
+
+.contact-tile.delete-contact {
+    margin: 0;
+    height: 60px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    background-color: white;
+}
+
+
+/*----------------------- Form ----------------------------*/
+.form-with-notes {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: min-content;
+}
+.form-with-notes * * {
+    margin: 10px;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+.form * {
+    margin: 10px;
+    padding: 10px;
+}
+.form .save {
+    align-self: center;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    grid-column-start: 1;
+    grid-column-end: 5;
+}
+
+.right {
+    grid-column-start: 5;
+    display: flex;
+    flex-direction: row;
+}
+.right label {
+    align-self: flex-start;
+}
+.right textarea {
+    width: 400px;
+    height: 200px;
+}
+
+.bottom {
+    grid-column-start: 1;
+    grid-column-end: 6;
+    padding-top: 20px;
+    margin: 0 auto;
+}
+
+/*----------------------- Buttons / Inputs ----------------------------*/
+label {
+    min-width: 60px;
+}
+input, select, button {
+    border: 1px solid dimgray;
+    border-radius: 20px;
+    min-width: 200px;
+    height: 18px;
+    box-sizing: content-box;
+    margin: 10px;
+    padding: 10px;
+}
+input:hover, select:hover, button:hover {
     cursor: pointer;
 }
 
-.delete-button:hover {
+button {
+    background-color: white;
+    display: inline-flex;
+    justify-content: center;
+}
+/* remove link stylings from w/in buttons */
+button > a {
+    width: 100%;
+    margin: 0;
+    display: inline-flex;
+    justify-content: center;
+    text-decoration: none;
+    color: black;
+}
+
+button.cancel {
+    background-color: lightcoral;
+}
+button.cancel > a {
+    width: 100%;
+    margin: 0;
+    position: relative;
+    top: -10px;
+    display: inline-flex;
+    justify-content: center;
+    text-decoration: none;
+    color: black;
+}
+
+button.delete {
+    border: 1px solid lightcoral;
+    color: crimson;
+}
+button.delete:hover {
     background-color: lightcoral;
     color: black;
 }

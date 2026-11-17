@@ -3,15 +3,15 @@
 {% block title %}Dashboard - Prospex{% endblock %}
 
 {% block content %}
-<h2 class = 'page-title'>Jobs</h2>
+<h2 class='page-title'>Jobs</h2>
 
 <!-- FILTER TOGGLE -->
 <div class="filter">
-    <a href = "{{ url_for('index') }}">ALL</a>
+    <a href = "{{ url_for('index') }}" class="filter-all">ALL</a>
     {% for status in ["saved", "applied", "interviewing", "offer", "rejected",
                         "accepted", "declined", "withdrawn" ] %}
         <a href = "{{ url_for('index', status=status) }}"
-            class="{{ 'active' if status == current_status }}">{{status}}</a>
+            class="{{ 'active ' + status if status == current_status }}">{{status}}</a>
     {% endfor %}
 </div>
 
