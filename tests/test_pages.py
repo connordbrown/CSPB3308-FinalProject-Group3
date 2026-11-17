@@ -889,7 +889,69 @@ class TestProfile(PageTestCase):
         after = dict(self._fetch("users", self.user_a))
         self.assertEqual(before, after)
 
+'''
+**Tests:**
+2. Form input fields should be of correct type
+    - Raise validation error if wrong type or null
 
+4. On submit,
+    - form should not submit if any fields are invalid
+    - redirect to Job Details (`/jobs/<id>`)
+
+5. On cancel, discard form input and redirect to correct page
+    - Dashboard (`/`) for Add Mode
+    - Job Details (`/jobs/<id>`) for Edit Mode
+
+**TESTS - Edit Mode**
+
+2. Forms should be pre-filled for Edit Mode
+3. Submit button should display "Update" for Edit Mode
+
+'''
+class TestAddJob(PageTestCase):
+    """Tests for /jobs/add"""
+    def setUp(self):
+        super().setUp() # Fresh temp database with users A and B
+
+    #  1. User not logged in
+    def test_not_logged_in(self):
+        response = self.client.get("/jobs/add")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/login")
+
+    # 3. Submit button has correct text
+    def submit_button_text(self):
+        self._login() # log in as user A
+        response = self.client.get("/jobs/add")
+        html = response.get_data(as_text=True)
+        self.assertIn(f'type="submit">Add Job', html)
+
+    def test_all_fields_render(self):
+        self._login() # log in as user A
+
+        response = self.client.get("/jobs/add")
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+
+        fields = ["title", "status", "company_id", "link",
+                  "work_type", "date", "notes"]
+        for field in fields:
+            with self.subTest(field=field):
+                self.assertIn(f'name="{field}"', html)
+
+         # Name is required
+        name_input = re.search(r'<input[^>]*name="name"[^>]*>', html)
+        self.assertIsNotNone(name_input)
+        self.assertIn("required", name_input.group())
+
+
+class TestEditJob(PageTestCase):
+    # 3. Submit button has correct text
+    def submit_button_text(self):
+        self._login() # log in as user A
+        response = self.client.get("/jobs/add")
+        html = response.get_data(as_text=True)
+        self.assertIn(f'type="submit">Update Job', html)
 
 
 

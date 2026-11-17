@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Add/Edit Job - Prospex{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/job-form.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<form
+    action="{{ '/jobs/' + job.id | string + '/edit' if job else '/jobs/add' }}"
+    method="post">
+    <div>
+        <label for="title">Title:</label>
+        <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Title"
+            value="{{ job.title if job else '' }}"
+            required>
+    </div>
+
+    <div>
+        <label for="status-select">Choose a Job Status:</label>
+        <select name="status" id="status-select" required>
+            <option value="">-- Please Choose --</option>
+            {% for status in statuses %}
+            <option
+                value="{{status}}"
+                {{ "selected" if (job and job.status == status) or ''}}>
+                {{ status | capitalize }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+
+        <label for="company_id">Company:</label>
+        <select name="company_id" id="company_id" name="company_id">
+            <option value="">-- Please Choose --</option>
+            {% for company in companies %}
+                <option
+                    value="{{ company['id'] }}"
+                    {{ "selected" if (job and job.company_id == company['id']) or ''}}>
+                    {{ company['name'] }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="company_id_new_name">Or add a new company:</label>
+        <input
+            type="text"
+            id="company_id_new_name"
+            name="company_id_new_name"
+            placeholder="Company Name">
+    </div>
+
+    <div>
+        <label for="link">Link:</label>
+        <input
+            type="url"
+            id="link"
+            name="link"
+            placeholder="abc.com"
+            value="{{ job.link if job else '' }}">
+    </div>
+
+    <div>
+        <label for="work_type-select">Choose a Work Type:</label>
+        <select name="work_type" id="work_type-select" name="job_work_type">
+            <option value="">-- Please Choose --</option>
+            {% for type in work_types %}
+            <option
+                value="{{type}}"
+                {{ "selected" if (job and job["work_type"] == type) or ''}}>
+                {{ type | capitalize }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="date">Date:</label>
+        <input
+            type="date"
+            id="date"
+            name="date"
+            placeholder="Date picker"
+            value="{{ job["date_applied"] if job else '' }}">
+    </div>
+
+    <div>
+        <label for="notes">Notes:</label>
+        <textarea id="Notes" name="notes">
+            {{ job.notes if job else '' }}
+        </textarea>
+    </div>
+
+    <div>
+        <button type="submit">
+            {{ "Update Job" if job else "Add Job" }}
+        </button>
+        <button>
+            <a href="{{ url_for('job', job_id=job.id) if job else url_for('index') }}">Cancel</a>
+        </button>
+    </div>
+</form>
+<!-- description needs an update in db.py -->
+
+{% endblock %}
