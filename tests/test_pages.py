@@ -125,8 +125,8 @@ class TestLogin(PageTestCase):
         response = self.client.get("/login")
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn('<button type="submit">Log in</button>', html)
-        self.assertIn('<button type="submit">Sign up</button>', html)
+        self.assertIn('<button type="submit" class="save">Log in</button>', html)
+        self.assertIn('<button type="submit" class="save">Sign up</button>', html)
 
 
     # 2. Log in with a valid email and password (e.g., alex.demo@example.com / DemoPass123!) redirects to / and the session holds Alex's user_id.
@@ -734,7 +734,7 @@ class TestProfile(PageTestCase):
         response = self.client.get("/profile")
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn('<h2>Profile</h2>' , html)
+        self.assertIn("<h2 class='page-title'>Profile</h2>" , html)
 
     # 2. Logged out GET or POST does not change db and redirects to `/login`
     def test_logged_out_request_no_change_to_db(self):
