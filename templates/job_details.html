@@ -5,7 +5,7 @@
 {% block content %}
 <h2 class='page-title'>Job Details</h2>
 
-<article class="job-details">
+<article class="job-details container">
   <p><a href="{{ url_for('index') }}">&larr; Back to dashboard</a></p>
 
   <h2>{{ job.title }}</h2>
@@ -61,12 +61,14 @@
     <p class="no-contacts">No contacts linked to this job yet.</p>
   {% endif %}
 
-  <p><a class="button" href="{{ url_for('edit_job', job_id=job.id) }}">Edit</a></p>
+  <div class="bottom same-line-wrap">
+    <button><a class="button" href="{{ url_for('edit_job', job_id=job.id) }}">Edit</a></button>
 
-  <form method="post" action="{{ url_for('delete_job', job_id=job.id )}}"
-      onsubmit='return confirm("Are you sure you want to delete " + {{ job.title|tojson }} + "?");'>
-      <button type="submit" class="delete-button">Delete</button>
-  </form>
+    <form method="post" action="{{ url_for('delete_job', job_id=job.id )}}"
+        onsubmit='return confirm("Are you sure you want to delete " + {{ job.title|tojson }} + "?");'>
+        <button type="submit" class="delete">Delete</button>
+    </form>
+  </div>
 
 </article>
 {% endblock %}
