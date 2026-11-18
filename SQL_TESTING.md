@@ -594,7 +594,7 @@ Routes call these Python functions in `db.py` instead of writing SQL. Each metho
 | Table | Access Methods |
 |---|---|
 | `users` | `get_user_by_email`, `create_user`, `get_user`, `update_user`, `change_password` |
-| `jobs` | `get_jobs_for_user`, `get_job`, `create_job`, `update_job` |
+| `jobs` | `get_jobs_for_user`, `get_job`, `create_job`, `update_job`, `delete_job` |
 | `contacts` | `get_contacts_for_user`, `get_contacts_for_job`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
 | `companies` | `get_companies_for_user`, `get_or_create_company` |
 
@@ -869,6 +869,32 @@ Replaces an existing job's fields, only if it belongs to the user. Also covers c
 
 ---
 
+## Access Method: delete_job
+
+### Description
+Deletes one job, only if it belongs to the user. The job's linked company is not affected. Contacts linked to the job are kept, but their `job_id` is set to NULL (`ON DELETE SET NULL`).
+
+### Parameters
+- `conn` (sqlite3.Connection)
+- `user_id` (int)
+- `job_id` (int)
+
+### Return Values
+- bool: True if deleted, False if the job doesn't exist or belongs to another user
+
+### Used By
+- Job Details (`/jobs/<id>`), via POST to `/jobs/<id>/delete`, User Story #3
+
+### Tests
+
+| # | Use Case Name | Pre-conditions | Test Steps | Expected Result |
+|---|---|---|---|---|
+| 1 | Deletes only that job | User A has 2 jobs; one is linked to a company and a contact | Delete the linked job | True; 1 job remains; the company still exists; the contact still exists with `job_id` NULL |
+| 2 | Another user's job is not deleted | User B has a job | Call with A's id and B's job id | False; B's job still exists |
+| 3 | Nonexistent job returns False | No job has id 9999 | Call with A's id and 9999 | False; job count unchanged |
+
+---
+
 ## Access Method: get_contacts_for_user
 
 ### Description
@@ -1114,7 +1140,7 @@ Pages and routes come from `PAGE_TESTING.md`. The nav bar and `/logout` use only
 | Add / Edit Contact | `/contacts/add`, `/contacts/<id>/edit` | `contacts`, `companies`, `jobs` | `get_companies_for_user`, `get_jobs_for_user`, `get_or_create_company`, `create_contact` (add), `get_contact` and `update_contact` (edit) |
 | Contact Details | `/contacts/<id>` | `contacts`, `companies`, `jobs` | `get_contact`, `delete_contact` |
 | Add / Edit Job | `/jobs/add`, `/jobs/<id>/edit` | `jobs`, `companies`, `contacts` | `get_companies_for_user`, `get_or_create_company`, `create_job` (add), `get_job`, `get_contacts_for_job`, and `update_job` (edit) |
-| Job Details | `/jobs/<id>` | `jobs`, `companies`, `contacts` | `get_job`, `get_contacts_for_job` |
+| Job Details | `/jobs/<id>` | `jobs`, `companies`, `contacts` | `get_job`, `get_contacts_for_job`, `delete_job` |
 | Profile | `/profile`, `/profile/password` | `users` | `get_user`, `update_user`, `change_password` |
 
 ---
@@ -1408,6 +1434,35 @@ All tests are planned for `tests/test_pages.py`. Each test uses the Flask test c
 2. GET `/jobs/<B's job id>`
 
 **Expected Result:** 404, the same as for a job id that doesn't exist; none of B's data appears  
+**Actual Result:** Pending  
+**Status:** Pending  
+**Post-conditions:** Database unchanged
+
+#### Job Details #3
+
+**Use Case Name:** Deleting a job removes only that row  
+**Description:** `delete_job` runs on POST to `/jobs/<id>/delete`  
+**Pre-conditions:** User A has 2 jobs; one is linked to a company and a contact  
+**Test Steps:**
+1. Log in as A
+2. POST `/jobs/<linked job id>/delete`
+3. Count A's jobs, companies, and contacts; select the contact's `job_id`
+
+**Expected Result:** Redirect to `/`; the deleted job is gone; the other job, the company, and the contact still exist; the contact's `job_id` is NULL  
+**Actual Result:** Pending  
+**Status:** Pending  
+**Post-conditions:** A has 1 job
+
+#### Job Details #4
+
+**Use Case Name:** A user can't delete another user's job  
+**Description:** `delete_job` returns False for a job the user doesn't own  
+**Pre-conditions:** User B has a job  
+**Test Steps:**
+1. Log in as A
+2. POST `/jobs/<B's job id>/delete`
+
+**Expected Result:** "Not found" response; B's job still exists  
 **Actual Result:** Pending  
 **Status:** Pending  
 **Post-conditions:** Database unchanged
