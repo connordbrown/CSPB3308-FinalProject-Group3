@@ -137,14 +137,14 @@ class TestLogin(PageTestCase):
         with self.client.session_transaction() as sess:
             self.assertEqual(sess.get("user_id"), self.user_a)
 
-    
+
     # 3. Log in with the right email in different case (ALEX.DEMO@example.com) succeeds.
     def test_email_dif_case_works(self):
         response = self._login({**USER_A, "email": USER_A["email"].upper()})
         self.assertEqual(response.status_code, 302)
         with self.client.session_transaction() as sess:
             self.assertEqual(sess.get("user_id"), self.user_a)
-    
+
     # 4. Log in with a wrong password stays on /login, shows an error, and creates no session.
     def test_wrong_pass_errors_changes_nothing(self):
         response = self._login({**USER_A, "password": "WrongPassword1"})
@@ -152,7 +152,7 @@ class TestLogin(PageTestCase):
         self.assertIn("Invalid login information", response.get_data(as_text=True))
         with self.client.session_transaction() as sess:
             self.assertIsNone(sess.get("user_id"))
-    
+
     # 5. Log in with an unknown email gives the same generic error as test 4, so the page doesn't reveal which emails exist.
     def test_unknown_email_doesnt_reveal_data(self):
         response = self._login({**USER_A, "email": "Wrong@email.com"})
@@ -160,7 +160,7 @@ class TestLogin(PageTestCase):
         self.assertIn("Invalid login information", response.get_data(as_text=True))
         with self.client.session_transaction() as sess:
             self.assertIsNone(sess.get("user_id"))
-    
+
     # 6. Sign up with valid fields creates one new users row, logs the user in, and redirects to /.
     def test_signup_success(self):
         response = self._signup()
@@ -214,7 +214,7 @@ class TestLogin(PageTestCase):
 
 class TestJobDetails(PageTestCase):
     """tests for /jobs/<id> """
- 
+
     def setUp(self):
         super().setUp()
         # User A: one fully filled job at a company with a location
@@ -226,7 +226,7 @@ class TestJobDetails(PageTestCase):
         # User B: one job
         self.company_b = self._insert_company(self.user_b, name="Beta Ltd")
         self.job_b = self._insert_job(self.user_b, self.company_b, title="Data Analyst")
- 
+
     def _open_job(self, job_id, user=USER_A):
         """Save the test data, log in as `user` and request the job page.
         The data must be committed first: the app reads the file through its own connection."""
@@ -244,7 +244,7 @@ class TestJobDetails(PageTestCase):
                          "Python and Flask stack."):
             with self.subTest(expected=expected):
                 self.assertIn(expected, html)
- 
+
     # 2. A job with linked contacts lists each of them, and each one links to /contacts/<id>.
     def test_linked_contacts_listed_with_links(self):
         first = self._insert_contact(self.user_a, name="Jordan Rivera", job_id=self.job_a, designation="hiring manager")
@@ -260,7 +260,7 @@ class TestJobDetails(PageTestCase):
     def test_no_contacts_shows_message(self):
         html = self._open_job(self.job_a).get_data(as_text=True)
         self.assertIn("No contacts linked to this job yet.", html)
- 
+
     # 4. A job with empty optional fields (link, notes, work type, date applied) returns 200 and shows no "None" text.
     def test_empty_optional_fields_show_no_none(self):
         company = self._insert_company(self.user_a, name="Summit Cloud")
@@ -270,12 +270,12 @@ class TestJobDetails(PageTestCase):
         html = response.get_data(as_text=True)
         self.assertIn("Support Engineer", html)
         self.assertNotIn("None", html)
- 
+
     # 5. A company with no city or region shows just the company name, with no stray comma.
     def test_company_location_shown_when_present(self):
         html = self._open_job(self.job_a).get_data(as_text=True)
         self.assertIn("Denver, CO", html)
- 
+
     def test_company_without_location_has_no_stray_comma(self):
         company = self._insert_company(self.user_a, name="Summit Cloud")
         bare_job = self._insert_job(self.user_a, company, title="Support Engineer")
@@ -283,7 +283,7 @@ class TestJobDetails(PageTestCase):
         self.assertIn("Summit Cloud", html)
         self.assertNotIn("company-location", html)
         self.assertNotIn("Summit Cloud,", html)
- 
+
     # Only a city or only a region is shown without a comma
     def test_company_with_only_a_city_has_no_stray_comma(self):
         company = self._insert_company(self.user_a, name="Fernhill Studio", city="Toronto")
@@ -291,7 +291,7 @@ class TestJobDetails(PageTestCase):
         html = self._open_job(job_id).get_data(as_text=True)
         self.assertIn("Toronto", html)
         self.assertNotIn("Toronto,", html)
- 
+
     # 6. A job id that doesn't exist returns 404.
     def test_missing_job_returns_404(self):
         response = self._open_job(NONEXISTENT_ID)
@@ -316,14 +316,14 @@ class TestJobDetails(PageTestCase):
         html = self._open_job(self.job_a).get_data(as_text=True)
         self.assertIn("Jordan Rivera", html)
         self.assertNotIn("Priyas Private Contact", html)
- 
+
     # 9. A logged-out visitor is redirected to /login.
     def test_logged_out_redirects_to_login(self):
         self.conn.commit()
         response = self.client.get(f"/jobs/{self.job_a}")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login")
- 
+
     # 10. A non-numeric id (e.g., /jobs/abc) returns 404.
     def test_non_numeric_id_returns_404(self):
         self.conn.commit()
@@ -336,13 +336,13 @@ class TestJobDetails(PageTestCase):
     def test_edit_button_points_to_edit_page(self):
         html = self._open_job(self.job_a).get_data(as_text=True)
         self.assertIn(f'href="/jobs/{self.job_a}/edit"', html)
- 
+
     # The Edit page the button points to exists, and also needs a login
     def test_edit_page_requires_login(self):
         response = self.client.get(f"/jobs/{self.job_a}/edit")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login")
- 
+
     # 12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
     def test_http_links_open_in_new_tab(self):
         for link in ("https://www.acme-example.com/jobs/1", "http://www.acme-example.com/jobs/1", "HTTPS://WWW.ACME-EXAMPLE.COM/JOBS/1"):
@@ -363,7 +363,7 @@ class TestJobDetails(PageTestCase):
                 self.assertNotIn('href="data', html)
                 self.assertNotIn('href="ftp', html)
                 self.assertIn(link.strip(), html, "The link should still be shown as plain text")
- 
+
     # Text typed by users is escaped, so it cannot add HTML or scripts to the page
     def test_user_text_is_escaped(self):
         job_id = self._insert_job(self.user_a, self.company_a, title="<script>alert(1)</script>",
@@ -372,12 +372,12 @@ class TestJobDetails(PageTestCase):
         self.assertNotIn("<script>alert(1)</script>", html)
         self.assertNotIn("<b>bold</b>", html)
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
- 
+
     # The page has a way back to the dashboard
     def test_back_to_dashboard_link(self):
         html = self._open_job(self.job_a).get_data(as_text=True)
         self.assertIn("Back to dashboard", html)
- 
+
 class TestContactFormsLoggedOut(PageTestCase):
     """tests for /contacts/add and the edit contact route without logging in"""
     # Rows inserted with the helpers must be committed (self.conn.commit()) before
@@ -400,13 +400,13 @@ class TestAddContact(PageTestCase):
 
     """tests for /contacts/add """
     # Rows inserted with the helpers must be committed (self.conn.commit()) before
-    # making a request, because the route uses a separate database connection. 
+    # making a request, because the route uses a separate database connection.
 
     def setUp(self):
         super().setUp() # Fresh temp database with users A and B
         self._login() # log in as user A
 
-    
+
 
     # 2. All fields render; name is required
     def test_all_fields_render_and_name_required(self):
@@ -426,13 +426,13 @@ class TestAddContact(PageTestCase):
         self.assertIsNotNone(name_input)
         self.assertIn("required", name_input.group())
 
-    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option 
+    # 3. Company and Job dropdowns list only the logged-in user's companies and jobs, plus a "None" option
     def test_dropdowns_list_only_own_companies_and_jobs(self):
-        
+
         # User A data - logged-in
         company_a = self._insert_company(self.user_a, name="Acme Corp")
         self._insert_job(self.user_a, company_a, title="Data Analyst")
-        # User B data 
+        # User B data
         company_b = self._insert_company(self.user_b, name="Beta Ltd")
         self._insert_job(self.user_b, company_b, title="Product Manager")
         self.conn.commit()
@@ -470,20 +470,20 @@ class TestAddContact(PageTestCase):
         self.assertIn("Name is required", html) # Error shows as written in create_contact() in db.py
         self.assertEqual(self._count("contacts"), before) # no new rows
         # Other entered values are kept
-        self.assertIn("sam@example.com", html, "email not kept after failure") 
+        self.assertIn("sam@example.com", html, "email not kept after failure")
         self.assertIn("555-0100", html, "phone number not kept after failure")
 
     # 5. Submitting with only a name succeeds
     def test_name_only_succeeds(self):
         # Count contact rows before attempt
-        before = self._count("contacts") 
+        before = self._count("contacts")
         # submit form with name only
         response = self.client.post("/contacts/add", data={"name": "Sam"})
 
         # Check for redirection to /contacts page
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/contacts")
-        
+
         # Count after valid insert
         self.assertEqual(self._count("contacts", "user_id = ?", (self.user_a,)), before + 1)
 
@@ -539,15 +539,15 @@ class TestAddContact(PageTestCase):
         company_b = self._insert_company(self.user_b, name="Beta Ltd")
         job_b = self._insert_job(self.user_b, company_b, title="Product Manager")
         self.conn.commit()
-        
+
         cases = {
         "company_id": str(company_b),
         "job_id": str(job_b),
         }
-        
+
         for field, value in cases.items():
             with self.subTest(field=field):
-                before = self._count("contacts")       
+                before = self._count("contacts")
                 response = self.client.post("/contacts/add", data={"name": "Sam", field: value})
                 self.assertEqual(response.status_code, 400)
                 self.assertIn("does not belong to the user", response.get_data(as_text=True))
@@ -696,7 +696,7 @@ class TestEditContact(PageTestCase):
         self.assertEqual(response.headers["Location"], f"/contacts/{self.contact_id}")
 
         # Count of contacts is unchanged
-        self.assertEqual(self._count("contacts"), before)   
+        self.assertEqual(self._count("contacts"), before)
         # Check that the contact's fields were updated in the database
         row = self._fetch("contacts", self.contact_id)
         for field, value in new_values.items():
@@ -716,7 +716,7 @@ class TestEditContact(PageTestCase):
 
         #submit changes to it as user A
         response = self.client.post(f"/contacts/{contact_b_id}/edit", data={"name": "Hacked Name"})
-        self.assertEqual(response.status_code, 404) 
+        self.assertEqual(response.status_code, 404)
 
         # Check that the contact's name was not changed in the database
         row = self._fetch("contacts", contact_b_id)
@@ -833,7 +833,7 @@ class TestProfile(PageTestCase):
         self.assertEqual(row["first_name"], USER_C["first_name"])
         self.assertEqual(row["last_name"], USER_C["last_name"])
         self.assertEqual(row["email"], USER_A["email"])
-    
+
     # 10. unchanged password results in no changes on save
     def test_same_password_no_change(self):
         self._login()
@@ -939,10 +939,10 @@ class TestAddJob(PageTestCase):
             with self.subTest(field=field):
                 self.assertIn(f'name="{field}"', html)
 
-         # Name is required
-        name_input = re.search(r'<input[^>]*name="name"[^>]*>', html)
-        self.assertIsNotNone(name_input)
-        self.assertIn("required", name_input.group())
+         # Title is required
+        title_input = re.search(r'<input[^>]*name="title"[^>]*>', html)
+        self.assertIsNotNone(title_input)
+        self.assertIn("required", title_input.group())
 
 
 class TestEditJob(PageTestCase):
@@ -966,7 +966,7 @@ class TestDashboard(PageTestCase):
         self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
         self.sense = self._insert_company(self.user_b, name= "Sense/Net")
 
-        # add jobs for user A 
+        # add jobs for user A
         self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
         self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
         # and one for  user B
@@ -978,7 +978,7 @@ class TestDashboard(PageTestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/login")
-    
+
 
     # 2. Page displays list of all jobs
     def test_jobs_list_shows(self):
@@ -1064,7 +1064,7 @@ class TestContacts(PageTestCase):
         self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
         self.sense = self._insert_company(self.user_b, name= "Sense/Net")
 
-        # add jobs for user A 
+        # add jobs for user A
         self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
         self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
         # and one for  user B
@@ -1121,7 +1121,7 @@ class TestContacts(PageTestCase):
         html = self.client.get("/contacts").get_data(as_text=True)
         self.assertIn("You don't have any contacts yet", html)
         self.assertIn("+ Add Contact", html)
-    
+
     # 7. Clicking a contact opens its details page
     def test_contact_link(self):
         self._login()
@@ -1199,7 +1199,7 @@ class TestContactDetails(PageTestCase):
         self.tessier = self._insert_company(self.user_a, name= "Tessier-Ashpool")
         self.sense = self._insert_company(self.user_b, name= "Sense/Net")
 
-        # add jobs for user A 
+        # add jobs for user A
         self.job_1 = self._insert_job(self.user_a, self.tessier, title="AI Security", status="declined")
         self.job_2 = self._insert_job(self.user_a, self.hosaka, title="Firmware Dev", status = "applied")
         # and one for  user B
@@ -1230,7 +1230,7 @@ class TestContactDetails(PageTestCase):
         self.assertIn('686-3333', html)
         self.assertIn("referrer", html)
         self.assertIn("case@hosaka.com", html)
-        self.assertIn("https://linked.com/in/case", html)  
+        self.assertIn("https://linked.com/in/case", html)
         self.assertIn("Met in Night City", html)
 
     # 3. Empty optional fields display as blank, not "None"
@@ -1251,34 +1251,34 @@ class TestContactDetails(PageTestCase):
     # 5. Nonexistent contact_id returns "not found"
     def test_no_contact(self):
         self._login()
-        response = self.client.get(f"/contacts/{NONEXISTENT_ID}")     
+        response = self.client.get(f"/contacts/{NONEXISTENT_ID}")
         self.assertEqual(response.status_code, 404)
 
     # 6. Another user's contact_id returns "not found" and shows none of their data
     def test_wrong_id(self):
         self._login()
-        response = self.client.get(f"/contacts/{self.arm}")      
-        self.assertEqual(response.status_code, 404)    
+        response = self.client.get(f"/contacts/{self.arm}")
+        self.assertEqual(response.status_code, 404)
         self.assertNotIn("Armitage", response.get_data(as_text=True))
 
     # 7. Edit opens /contacts/<id>/edit with the form prefilled
     def test_edit_link(self):
         self._login()
-        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)  
-        self.assertIn(f'href="/contacts/{self.case}/edit"', html) 
-        html = self.client.get(f"/contacts/{self.case}/edit").get_data(as_text=True)  
-        self.assertIn('value="Henry Case', html) 
+        html = self.client.get(f"/contacts/{self.case}").get_data(as_text=True)
+        self.assertIn(f'href="/contacts/{self.case}/edit"', html)
+        html = self.client.get(f"/contacts/{self.case}/edit").get_data(as_text=True)
+        self.assertIn('value="Henry Case', html)
 
     # 8. Delete asks for confirmation; confirming removes the contact and returns to /contacts
     def test_confirm_delete_name(self):
         self._login()
-        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)  
+        html = self.client.get(f"/contacts/{self.molly}").get_data(as_text=True)
         self.assertIn('confirm("Are you sure you want to delete " + "Molly Millions" + "?")', html) # cant directly test the click, but close enough
         # redirects:
         response = self.client.post(f'/contacts/{self.molly}/delete', follow_redirects=True)
         self.assertEqual(response.request.path, "/contacts")
 
-    
+
     # 9. Cancelling the confirmation keeps the contact - this is a duplicate from the contacts tests
     def test_cancel_delete(self):
         self._login()
