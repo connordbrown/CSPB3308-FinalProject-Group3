@@ -20,7 +20,7 @@
  [Trello](https://trello.com/b/6BrC0GcW/3308-team-3)
 
 ## Public Hosting Site
-[Python_Anywhere]https://prospexg3.pythonanywhere.com/
+https://prospexg3.pythonanywhere.com/
 
 ## Final Status Report
 - What we completed
