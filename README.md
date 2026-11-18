@@ -72,4 +72,10 @@ The job search process is often fragmented and spread out over many different si
 python -m unittest -v
 ```
 
+### Demo
+- run once prior to running the app
+  ```bash
+  python init_db.py
+  ```
+
 

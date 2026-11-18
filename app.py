@@ -1,10 +1,11 @@
 import db
-from flask import Flask, request, render_template, session, redirect, url_for, flash
+from flask import Flask, request, render_template, session, redirect, url_for, flash, abort
 from markupsafe import escape
 import json
 from contextlib import closing
 import sqlite3
 from functools import wraps
+from constants import STATUSES, WORK_TYPES
 
 app = Flask(__name__)
 app.secret_key = "Incredibly-private-and-secure-key"
@@ -23,13 +24,32 @@ def require_login(func):
         return func(*args, **kwargs)
     return wrapper
 
+def blank_to_none(value):
+    """Strip whitespace; return None for missing or blank values."""
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def to_int_or_none(value):
+    """Convert a dropdown value like "3" to 3; blank becomes None."""
+    value = blank_to_none(value)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError("Invalid selection.")
+
+
+
 @app.route("/")
+@require_login
 def index():
     """Dashboard, will show filterable list of job applications"""
-
-    path = app.static_folder + '/testing/sample_data.json'
-    with open(path, "r", encoding="utf-8") as sample_data_file:
-        sample_data = json.load(sample_data_file)
+    with closing(get_conn()) as  conn:
+        jobs = db.get_jobs_for_user(conn, session["user_id"])
 
     # Sort by status - in set order
     sort_order = {
@@ -42,11 +62,15 @@ def index():
         'withdrawn': 7,
         'rejected': 8
     }
-    jobs = sorted(sample_data['jobs'], key=lambda job: sort_order[job['status']])
 
+    jobs = sorted(jobs, key=lambda job: sort_order[job['status']])
+    status = request.args.get("status")
+    if status:
+        jobs = [job for job in jobs if job["status"]== status]
     return render_template(
         "dashboard.html",
-        jobs=jobs)
+        jobs=jobs,
+        current_status=status)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -68,7 +92,7 @@ def login():
                 error   = "Invalid login information"
                 status = 401
             elif action == "signup":
-                try: 
+                try:
                     password = request.form["password"]
                     if len(password.strip()) < 8:
                         raise ValueError("Password must be longer than 8 characters")
@@ -124,7 +148,9 @@ def profile():
                     if new_password != confirmation:
                         raise ValueError("New password and confirmation do not match")
                     with conn:
-                        db.change_password(conn, session["user_id"], password, new_password)
+                        success = db.change_password(conn, session["user_id"], password, new_password)
+                    if not success:
+                        raise ValueError("Current password incorrect")
                     flash("Password successfully changed!")
                     return redirect(url_for('profile'))
             except sqlite3.IntegrityError:
@@ -133,42 +159,291 @@ def profile():
             except ValueError as e:
                 error = str(e)
                 status = 400
-    
+
         user = db.get_user(conn, session["user_id"])
     return render_template("profile.html", user = user, error=error), status
 
 
-
-
-@app.route('/jobs/add')
+@app.route('/jobs/add', methods=['GET', 'POST'])
+@require_login
 def add_job():
-    """ form for adding a new job application"""
-    return f'Placeholder for form for adding new job'
+    """ Form for adding a new job application"""
+    user_id = session["user_id"]
+    error = None
+    status = 200
+    if request.method == 'GET':
+        with closing(get_conn()) as conn:
+            try:
+                companies = db.get_companies_for_user(conn, user_id)
+            except ValueError as error:
+                conn.rollback()
+                status = 400
+
+        return render_template(
+            "job_form.html",
+            companies=companies,
+            statuses=STATUSES,
+            work_types=WORK_TYPES
+        ), status
+
+    elif request.method == 'POST':
+        # Company ID - pick New Name IF filled out
+        # else use dropdown value
+        company_id = request.form['company_id_new_name'].strip() if request.form['company_id_new_name'].strip() else request.form['company_id']
+
+        with closing(get_conn()) as conn:
+            try:
+                with conn:
+                    job_id = db.create_job(
+                        conn,
+                        user_id,
+                        company_id,
+                        blank_to_none(request.form['title']),
+                        blank_to_none(request.form['status']),
+                        blank_to_none(request.form['work_type']),
+                        request.form['link'],
+                        request.form['notes'],
+                        blank_to_none(request.form['date']),
+                    )
+                    return redirect(url_for('job', job_id=job_id))
+
+            except ValueError as error:
+                conn.rollback()
+                status = 400
+                abort(400)
+
+
+@app.route('/jobs/<int:job_id>/edit', methods=['GET', 'POST'])
+@require_login
+def edit_job(job_id):
+    """Display a form for editing an existing job application"""
+    user_id = session["user_id"]
+    error = None
+    status = 200
+    if request.method == 'GET':
+        with closing(get_conn()) as conn:
+            try:
+                job_data = db.get_job(conn, user_id, job_id)
+                companies = db.get_companies_for_user(conn, user_id)
+
+                if job_data is None:
+                    abort(404)
+            except:
+                conn.rollback()
+                status = 400
+
+        return render_template(
+            "job_form.html",
+            job=job_data,
+            companies=companies,
+            statuses=STATUSES,
+            work_types=WORK_TYPES
+        ), status
+
+    elif request.method == 'POST':
+        # Company ID - pick New Name IF filled out
+        # else use dropdown value
+        company_id = request.form['company_id_new_name'].strip() if request.form['company_id_new_name'].strip() else request.form['company_id']
+
+        with closing(get_conn()) as conn:
+            try:
+                with conn:
+                    db.update_job(
+                        conn,
+                        session["user_id"],
+                        job_id,
+                        company_id,
+                        blank_to_none(request.form['title']),
+                        blank_to_none(request.form['status']),
+                        blank_to_none(request.form['work_type']),
+                        request.form['link'],
+                        request.form['notes'],
+                        blank_to_none(request.form['date']),
+                    )
+
+                    return redirect(url_for('job', job_id=job_id))
+            except ValueError as error:
+                conn.rollback()
+                status = 400
+                abort(400)
 
 @app.route('/jobs/<int:job_id>')
+@require_login
 def job(job_id):
-    """show details of saved job application"""
-    return f"Job {job_id} details - placeholder for now"
+    """Show details of one saved job application, with its company and linked contacts"""
+    user_id = session["user_id"]
+    with closing(get_conn()) as conn:
+        job_data = db.get_job(conn, user_id, job_id)
+        # Same 404 whether the job doesn't exist or belongs to someone else
+        if job_data is None:
+            abort(404)
+        contacts = db.get_contacts_for_job(conn, user_id, job_id)
+
+    # Only http(s) links become clickable. Anything else a user typed (such as
+    # "javascript:...") is shown as plain text.
+    job_link = (job_data["link"] or "").strip()
+    link_is_safe = job_link.lower().startswith(("http://", "https://"))
+
+    return render_template(
+        "job_details.html",
+        job=job_data,
+        contacts=contacts,
+        job_link=job_link,
+        link_is_safe=link_is_safe)
 
 @app.route('/contacts/<int:contact_id>')
+@require_login
 def contact(contact_id):
     """show details of saved contact"""
-    return f"Contact {contact_id} details - placeholder for now"
+    with closing(get_conn()) as  conn:
+        contact = db.get_contact(conn, session["user_id"], contact_id)
 
-@app.route('/contacts/add')
+    if contact is None:
+        abort(404)
+    return render_template(
+        "contact_details.html",
+        contact=contact)
+
+
+@app.route('/contacts/add', methods=['GET', 'POST'])
 @require_login
 def add_contact():
     """Display a form for adding a new contact to the saved contacts list"""
-    return f'Placeholder for form for adding new contact'
+    user_id = session["user_id"]
+    error = None
+    status = 200
+    form_values = {}
+    with closing(get_conn()) as conn:
+        if request.method == "POST":
+            form_values = request.form.to_dict()
+            try:
+                # read and clean each field
+                name = request.form.get("name", "")
+                title = blank_to_none(request.form.get("title"))
+                designation = blank_to_none(request.form.get("designation"))
+                email = blank_to_none(request.form.get("email"))
+                phone = blank_to_none(request.form.get("phone"))
+                linkedin_url = blank_to_none(request.form.get("linkedin_url"))
+                notes = blank_to_none(request.form.get("notes"))
+                company_id = to_int_or_none(request.form.get("company_id"))
+                job_id = to_int_or_none(request.form.get("job_id"))
+                new_company_name = blank_to_none(request.form.get("new_company_name"))
 
-@app.route('/contacts/edit/<int:contact_id>')
+
+                # handle adding a new company from Contacts form
+                if new_company_name is not None:
+                    company_id = db.get_or_create_company(conn, user_id, new_company_name)
+
+                # save contact
+                db.create_contact(
+                    conn, user_id, name=name, title=title, designation=designation,
+                    company_id=company_id, job_id=job_id, email=email, phone=phone,
+                    linkedin_url=linkedin_url, notes=notes
+                )
+                # commit, flash, redirect
+                conn.commit()
+                flash("Contact saved")
+                return redirect(url_for("contacts"))
+
+            except ValueError as e:
+                conn.rollback()
+                error = str(e)
+                status = 400
+
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
+
+    return render_template("contact_form.html", contact=None, form=form_values, error=error,
+                            companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
+
+@app.route('/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_contact(contact_id):
     """Display a form for editing an existing contact"""
-    return f'Placeholder for form for editing contact {contact_id}   '
+    user_id = session["user_id"]
+    error = None
+    status = 200
+
+    with closing(get_conn()) as conn:
+        contact = db.get_contact(conn, user_id, contact_id)
+        if contact is None:
+            abort(404, description="Contact not found")
+        form_values = dict(contact)  # pre-fill form with existing contact data
+
+        companies = db.get_companies_for_user(conn, user_id)
+        jobs = db.get_jobs_for_user(conn, user_id)
+
+        if request.method == "POST":
+            form_values = request.form.to_dict()
+            try:
+                # read and clean each field
+                name = request.form.get("name", "")
+                title = blank_to_none(request.form.get("title"))
+                designation = blank_to_none(request.form.get("designation"))
+                email = blank_to_none(request.form.get("email"))
+                phone = blank_to_none(request.form.get("phone"))
+                linkedin_url = blank_to_none(request.form.get("linkedin_url"))
+                notes = blank_to_none(request.form.get("notes"))
+                company_id = to_int_or_none(request.form.get("company_id"))
+                job_id = to_int_or_none(request.form.get("job_id"))
+                new_company_name = blank_to_none(request.form.get("new_company_name"))
+
+                # handle adding a new company from Contacts form
+                if new_company_name is not None:
+                    company_id = db.get_or_create_company(conn, user_id, new_company_name)
+
+                # save contact
+                updated = db.update_contact(
+                    conn, contact_id=contact_id, user_id=user_id, name=name, title=title, designation=designation,
+                    company_id=company_id, job_id=job_id, email=email, phone=phone,
+                    linkedin_url=linkedin_url, notes=notes
+                )
+                if not updated:
+                    conn.rollback()
+                    abort(404, description="Contact not found")
+
+                # commit, flash, redirect
+                conn.commit()
+                flash("Contact saved")
+                return redirect(url_for("contact", contact_id=contact_id))
+
+            except ValueError as e:
+                conn.rollback()
+                error = str(e)
+                status = 400
+
+    return render_template("contact_form.html", contact=contact, form=form_values, error=error,
+                            companies=companies, jobs=jobs, designations=db.DESIGNATIONS), status
 
 @app.route('/contacts')
+@require_login
 def contacts():
     """ display a list of contacts """
-    return f'Place holder for page showing list of saved contacts'
+    with closing(get_conn()) as  conn:
+        contacts = db.get_contacts_for_user(conn, session["user_id"])
+    return render_template(
+        "contacts.html",
+        contacts=contacts)
 
+@app.route('/contacts/<int:contact_id>/delete', methods=['POST'])
+@require_login
+def delete_contact(contact_id):
+        with closing(get_conn()) as  conn:
+            with conn:
+                deleted = db.delete_contact(conn, session["user_id"], contact_id)
+        if not deleted:
+            abort(404)
+        flash("Contact deleted successfully")
+        return redirect(url_for('contacts'))
+
+
+@app.route('/jobs/<int:job_id>/delete', methods=['POST'])
+@require_login
+def delete_job(job_id):
+        with closing(get_conn()) as  conn:
+            with conn:
+                deleted = db.delete_job(conn, session["user_id"], job_id)
+        if not deleted:
+            abort(404)
+        flash("Job deleted successfully")
+        return redirect(url_for('index'))

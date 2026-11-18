@@ -4,24 +4,27 @@
 
 {% block content %}
 <title> Log in </title>
-<h2>Log in to Prospex</h2>
-        <form method="post" action="{{url_for('login')}}">
-            <input type="hidden" name="action" value="login" >
+<h2 class='page-title'>Log in to Prospex</h2>
 
-            <label>Email<input type="email" name="email"> required></label>
-            <label>Password<input type="password" name="password"> required></label>
-            <button type="submit">Log in</button>
-        </form>
-        <form method="post" action="{{url_for('login')}}">
-            <input type="hidden" name="action" value="signup" >
-            <label>First Name<input type="text" name="first_name"> required></label>
-            <label>Last Name<input type="text" name="last_name"> required></label>
-            <label>Email<input type="email" name="email"> required></label>
-            <label>Password<input type="password" name="password"> required></label>
-            <label>Dispaly Name<input type="text" name="display_name"> required></label>
+<div class="container">
+    <form method="post" action="{{url_for('login')}}" class="form">
+        <input type="hidden" name="action" value="login" >
 
-            <button type="submit">Sign up</button>
-        </form>
-        {% if error %} <p class="error"> {{ error }} </p>{% endif %}
+        <label>Email:<input type="email" name="email" required></label>
+        <label>Password:<input type="password" name="password" required></label>
+        <button type="submit" class="save">Log in</button>
+    </form>
+
+    <form method="post" action="{{url_for('login')}}" class="form">
+        <input type="hidden" name="action" value="signup" >
+        <label>First Name:<input type="text" name="first_name" required></label>
+        <label>Last Name:<input type="text" name="last_name" required></label>
+        <label>Email:<input type="email" name="email" required></label>
+        <label>Password:<input type="password" name="password" required></label>
+        <label>Display Name:<input type="text" name="display_name" required></label>
+
+        <button type="submit" class="save">Sign up</button>
+    </form>
+</div>
 
 {% endblock %}
