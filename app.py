@@ -225,6 +225,9 @@ def edit_job(job_id):
             try:
                 job_data = db.get_job(conn, user_id, job_id)
                 companies = db.get_companies_for_user(conn, user_id)
+
+                if job_data is None:
+                    abort(404)
             except:
                 conn.rollback()
                 status = 400

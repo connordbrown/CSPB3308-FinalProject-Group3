@@ -270,6 +270,11 @@ body {
     grid-column-start: 1;
     grid-column-end: 5;
 }
+.left > * {
+    justify-content: space-between;
+    align-items: center;
+    align-self: stretch;
+}
 
 .right {
     grid-column-start: 5;
