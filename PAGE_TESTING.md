@@ -273,7 +273,7 @@ The text inputs are role/title, company, application link. The dropdown inputs a
 
 ![Job Details page mockup](docs/images/jobs_id.jpg)
 
-**Description:** Displays details of a given job. Title, company, status, type, link, notes and a list of connected contacts. Edit button will be added to open same job in the add/edit form. 
+**Description:** Displays details of a given job. Title, company, status, type, link, notes and a list of connected contacts. Edit button will be added to open same job in the add/edit form. A Delete button removes the job after a confirmation and returns the user to the dashboard. 
 
 **Parameters:**
 - `job_id` (int, URL path): must be a whole number.
@@ -284,10 +284,12 @@ The text inputs are role/title, company, application link. The dropdown inputs a
 - Job: `title`, `status`, `work_type`, `link`, `notes`, `date_applied`, joined to the company's `name`, `city`, `region`.
 - Linked contacts: `id`, `name`, `title`, `designation` for contacts where `job_id` = the job and `user_id` = the session user.
 - Access methods needed: `get_job(user_id, job_id)` (returns the job with its company, or None) and `get_contacts_for_job(user_id, job_id)` (returns a list, possibly empty).
+- On delete: `delete_job(user_id, job_id)` (returns True if deleted, False if the job doesn't exist or belongs to another user). The job's company is kept, and any linked contacts are kept with their `job_id` set to NULL.
 - Empty values (NULL `link`, `work_type`, `notes`, `date_applied`, or company `city`/`region`) are left out or shown as a dash. The page never shows "None".
 
 **Links:**
 - Edit button goes to `/jobs/<id>/edit`.
+- Delete button -> confirmation, then POST to `/jobs/<id>/delete`; redirects to `/`.
 - Each contact goes to `/contacts/<id>`.
 - A "back to dashboard" link goes to `/`.
 
@@ -304,6 +306,11 @@ The text inputs are role/title, company, application link. The dropdown inputs a
 10. A non-numeric id (e.g., `/jobs/abc`) returns 404.
 11. The Edit button points to `/jobs/<id>/edit` for the right job.
 12. A job link starting with http:// or https:// opens in a new tab; any other kind of link is not rendered as clickable.
+13. The Delete button asks for confirmation, and the confirmation names the job being deleted.
+14. Confirming removes the job, shows a "Job deleted successfully" message, and returns to the dashboard (`/`), where the job no longer appears.
+15. Cancelling the confirmation keeps the job.
+16. Deleting a job keeps its linked contacts; they no longer show a linked job.
+17. Deleting another user's job (or a job id that doesn't exist) returns 404 and leaves the job unchanged.
 
 ---
 ## 8. Profile
